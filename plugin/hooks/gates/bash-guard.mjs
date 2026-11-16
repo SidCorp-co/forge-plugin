@@ -1,13 +1,13 @@
-// Refuse the shell commands whose damage cannot be undone, and the one that launders a finding into
-// a green run. Narrow on purpose: a guard refusing too much gets disabled — how/bash-guard.md.
-// It also refuses the two shapes of a poll — a wait that sleeps, and one read of a log typed again
+// Refuse the shell commands whose damage cannot be undone, and teach the one that launders a finding
+// into a green run. Narrow on purpose: a guard refusing too much gets disabled — how/bash-guard.md.
+// It also teaches the two shapes of a poll — a wait that sleeps, and one read of a log typed again
 // with nothing done between — which lose nothing and cost a turn per wake-up: how/polling.md.
 
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { treeNamed } from "../../src/git/tree-named.mjs";
-import { GIT_GLOBALS, LITERALS, NOWHERE, RUNS, bodiless, clearNote, deny, gitTreeOf, handedIn, literal, note, noted, remaining, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
+import { GIT_GLOBALS, LITERALS, NOWHERE, RUNS, askedAlready, bodiless, clearNote, context, deny, gitTreeOf, handedIn, literal, note, noted, remaining, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 import { readerKey, sayOnce } from "../../src/shown/ledger.mjs";
 import { refMoveIn } from "../../src/git/ref-move.mjs";
 
@@ -55,10 +55,11 @@ const spanOf = (said) => {
   return one.length > SPAN_CAP ? `${one.slice(0, SPAN_CAP - 1)}\u2026` : one;
 };
 
-// cm:why kernel: each rule but lint-fix and sleep-in-wait takes processes or uncommitted work nothing restores (FR-08); those two are policy kept while AC-08-1-2 and NFR-11 say refuse (ISS-109)
+// cm:why kernel: each rule but the two marked `teaches` takes processes or uncommitted work nothing restores (FR-08); lint-fix and sleep-in-wait are a way of working, taught (AC-08-1-2, NFR-11)
 const RULES = [
   {
     name: "lint-fix",
+    teaches: true,
     // `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you see the diff first. A runner keeps its command as arguments and is not in the shared grammar; a path names it too.
     pattern: new RegExp(
       String.raw`^(?:\S*\/)?(?:(?:npx|pnpm\s+exec|yarn\s+run|bunx)\s+)?(?:\S*\/)?` +
@@ -129,13 +130,14 @@ const RULES = [
   },
   {
     name: "sleep-in-wait",
+    teaches: true,
     pattern: /^(?:\S*\/)?sleep(?=\s|$)/u,
     needsWait: true,
     topic: "polling",
     cause:
       "A sleep inside a wait polls: every wake-up is a turn spent asking, and a wait longer than "
       + "the shell tool's ten-minute cap ends with the state it was waiting on lost. Backgrounding "
-      + "this same loop is refused with it: that moves the poll off the turn budget and the answer "
+      + "this same loop is no way out: that moves the poll off the turn budget and the answer "
       + "out of reach together, a backgrounded call coming back to nobody.",
     instead:
       "Wait with a call that comes back to you. Where the work provides a verdict call, take that: "
@@ -257,9 +259,18 @@ export const run = (ev) => {
   };
   /* At most one reading gates a rule, and the doubt suffixes below are written about the dirty one. */
   const AT_STAKE = { dirty, shared };
-  for (const { name, pattern, cause, instead, atStake, needsWait, topic } of RULES) {
+  const taught = [];
+  // cm:why a teaching is said once a session per rule, and stamped only once no refusal below answers the call
+  const teach = (name, text) => {
+    if (!askedAlready(ev, `taught ${name}`, "bash-guard", { set: false })) taught.push({ name, text });
+  };
+  for (const { name, pattern, cause, instead, atStake, needsWait, topic, teaches } of RULES) {
     const hits = run.filter((one) => pattern.test(one.said) && (!needsWait || inWait(one)));
     if (!hits.length) continue;
+    if (teaches) {
+      teach(name, `${instead}\n\n\`${spanOf(hits[0].said)}\`: ${cause} Said once a session.${how(topic || "bash-guard", name)}`);
+      continue;
+    }
     const asks = AT_STAKE[atStake];
     /* The hit that answered, and not the last one read: the refusal is about that one, its trees and its span. */
     const hit = asks ? hits.find((one) => treesOf(one, ev.cwd).some(asks)) : hits[0];
@@ -285,16 +296,19 @@ export const run = (ev) => {
     deny(sayOnce(readerKey(ev), "bash-guard", full, { route: "bash-guard", shape, cause: "bash-guard/ref-move" }));
   }
 
-  // cm:why policy kept as a refusal while NFR-11 still says refuse; it passes on the second send, ISS-109 lists it for teaching
+  // cm:why taught, not refused: a read typed again loses nothing and costs a turn, a way of working (NFR-11)
   const again = readAgain(ev, (ev.tool_input ?? {}).command ?? "");
   if (again) {
-    deny(
-      "Refused — wait on the work writing it with one call that comes back to you, its own verdict call "
+    taught.push({
+      text: "Wait on the work writing it with one call that comes back to you, its own verdict call "
       + `or \`${WAIT_COMMAND}\` on the pid writing it, if it is still running. If it has already ended, `
       + "the read before this one came too early: ask the finished log what you now want to know, which "
-      + "is a different question. This rule says a thing once, so sending this again passes.\n\n"
+      + "is a different question. This rule says a thing once: the same read after this one is new again.\n\n"
       + `This is the read before it, typed again with nothing done between: ${again.join(", ")}. `
       + `A read repeated with nothing between it and the last one is a wait spent asking.${how("polling", "read-again")}`,
-    );
+    });
   }
+  if (!taught.length) done();
+  for (const { name } of taught) if (name) askedAlready(ev, `taught ${name}`, "bash-guard");
+  context(taught.map((one) => one.text).join("\n\n"));
 };

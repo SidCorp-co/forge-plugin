@@ -160,12 +160,13 @@ turn's own, anything standing there is that turn's; outside one, what is running
 that turn's own calls carries, as the words it typed, is, and nothing else is. Words as well as
 text: a turn that quotes another run's whole command line as one argument has named it, not run it.
 
-- **AC-17-11-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a wait that polls is refused, and a pause on its own is not"
-  IF a pause stands inside a wait for other work THEN the product SHALL refuse the command and SHALL
-  name the routes that wait without asking.
-- **AC-17-11-2** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "the same read of a log typed again is refused, and another question of it is not"
+- **AC-17-11-1** · Rev: 2 · Proof: plugin/test/gates/bash-guard/polling.test.mjs "a wait that polls is taught, and a pause on its own is not"
+  IF a pause stands inside a wait for other work THEN the product SHALL let the command run and
+  SHALL name, once a session, the routes that wait without asking.
+- **AC-17-11-2** · Rev: 2 · Proof: plugin/test/gates/bash-guard/polling.test.mjs "the same read of a log typed again is taught, and another question of it is not"
   WHEN a read of a log is repeated with nothing done between it and the read before THEN the product
-  SHALL refuse it once, and a different question of the same log SHALL pass.
+  SHALL let it run and say once what to wait with instead, and a different question of the same log
+  SHALL be said nothing.
 - **AC-17-11-3** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process still standing in a worktree the turn left refuses the stop, named"
   WHEN a turn ends and a process that turn began still stands, by its working directory, inside the
   worktree that turn stood in THEN the product SHALL refuse the stop and SHALL name that process's

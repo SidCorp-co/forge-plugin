@@ -14,11 +14,11 @@ nothing can put back, or something nobody would notice in time to — which is t
 for stopping. So those shapes are refused before they run, and the refusal names the safer form —
 because rewording a command until the pattern misses teaches that the guard is noise.
 
-Not every refusal of this gate is that one, and the ground is what decides which rule answers for
-it. A command that answers a checker instead of the code takes nothing from the tree and is refused
-for the judgement it skips, which is BR-12's ground. The same gate also refuses the two shapes of a
-wait that asks again; those spend a turn rather than anything in a tree, and the quality they carry
-out is NFR-11 rather than this requirement.
+Not everything this gate says is a refusal, and the ground is what decides which. A command that
+answers a checker instead of the code takes nothing from the tree, so it runs and is taught the
+judgement it skips, which is BR-12's ground. The same gate also teaches the two shapes of a wait
+that asks again; those spend a turn rather than anything in a tree, and the quality they carry out
+is NFR-11 rather than this requirement.
 
 It refuses a *shape* and never a style, and it judges the tree the command names rather than the
 one the shell happens to be in (BR-07).
@@ -43,9 +43,9 @@ same command, and the gate's own document says what the message owes.
 - **AC-08-1-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "the command itself is refused, and the refusal names the rule and a way out"
   WHEN a refused shape is about to run THEN the gate SHALL refuse the command and SHALL name the
   rule and one way out.
-- **AC-08-1-2** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a quoted flag is still the flag the rule is about"
-  IF a command answers a checker instead of the code THEN the gate SHALL refuse it, since it takes
-  work and leaves the finding.
+- **AC-08-1-2** · Rev: 2 · Proof: plugin/test/gates/bash-guard.test.mjs "a --fix lint runs, taught to fix each finding at its source, once a session"
+  IF a command answers a checker instead of the code THEN the gate SHALL let it run and SHALL say,
+  once a session, that each finding is fixed at its source, since it takes nothing from the tree.
 - **AC-08-1-3** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "reading the stash is not reverting it"
   WHEN a command reads the state a refused command would destroy THEN the gate SHALL allow it,
   because looking is not losing.

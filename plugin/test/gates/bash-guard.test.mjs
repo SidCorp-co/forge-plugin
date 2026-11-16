@@ -2,13 +2,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { waitsIn } from "../../src/hooks/shell-spans.mjs";
-import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { appendedLine } from "../../src/refusal.mjs";
 import { agentRefusal, callHook, cleanRepo, dirtyRepo, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
 import { assertRouteFirst } from "../fixtures/route-first.mjs";
@@ -26,12 +24,19 @@ const decideIn = (session, command, tool = "Bash") => {
   const env = { ...HOME, FORGE_SESSION_ID: session };
   const run = callHook(HOOK, { session_id: session, tool_name: tool, tool_input: { command }, cwd: DIRTY }, env);
   assert.equal(run.status, 0, run.stderr);
-  if (!run.stdout.trim()) return { allowed: true };
+  if (!run.stdout.trim()) return { allowed: true, taught: "" };
   const answer = JSON.parse(run.stdout).hookSpecificOutput;
-  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
+  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason, taught: answer.additionalContext ?? "" };
 };
 
 const decide = (command) => decideIn(randomUUID(), command);
+
+/* A teaching lets the call run and says the route on the same channel a refusal would have used. */
+const taughtBy = (command, session = randomUUID()) => {
+  const run = decideIn(session, command);
+  assert.equal(run.allowed, true, `${command} was refused, and it is taught: ${run.reason}`);
+  return run.taught;
+};
 
 /* Assembled: the guard reads this suite's own command line when a shell writes the file. */
 const STAGE_ALL = `git ${"add"} -A`;
@@ -114,15 +119,6 @@ test("a rule refused again with a new doubt keeps its instead and its route, and
   assert.match(again, /^Refused — reset the specific paths.* cannot be read from the command/u, again);
   assert.ok(again.includes("How: `forge hooks --how bash-guard` (cause: bash-guard/reset-hard)"), `the route: ${again}`);
   assert.doesNotMatch(again, /discards every uncommitted change/u, "the cause it already read is the part cut");
-});
-
-test("a polling repeat names its topic page and the rule under the gate that refused it", () => {
-  const session = randomUUID();
-  const wait = "until grep -q done log.txt; do sleep 5; done";
-  assert.match(asAgent("poller", wait, { session }), /A sleep inside a wait polls/u);
-  const again = asAgent("poller", wait, { session });
-  assert.ok(again.includes("`sleep 5`"), again);
-  assert.ok(again.includes("`forge hooks --how polling` (cause: bash-guard/sleep-in-wait)"), again);
 });
 
 /* One home across these cases, because the ledger lives in it: a fresh one per call would owe every
@@ -281,6 +277,19 @@ test("a pathspec bounds -A, and only the dot is everything", () => {
   assert.equal(decide(`${all} :/`).allowed, false, "pathspec magic for the root is the root");
 });
 
+/* AC-08-1-2. `--fix` takes nothing from the tree, so it is a way of working: the run goes ahead and
+   the route to the judgement it skips is said once a session, beside the refusals it never joins. */
+test("a --fix lint runs, taught to fix each finding at its source, once a session", () => {
+  const session = randomUUID();
+  const first = taughtBy("npx eslint --fix .", session);
+  assert.match(first, /^Fix each finding at its source/u, first);
+  assert.match(first, /the check is answered rather than the code/u, first);
+  assert.equal(taughtBy("npx eslint --fix src", session), "", "said once a session");
+  const both = decide(`npx eslint --fix . && git ${"reset"} --hard`);
+  assert.equal(both.allowed, false, "a kernel shape beside it is still refused");
+  assert.match(both.reason, /reset --hard discards/u, both.reason);
+});
+
 /* The shell removes a quote and keeps what is inside it, so a quoted flag is the flag. Four rules
    read the flag directly and missed all four of these until codex named them. */
 test("a quoted flag is still the flag the rule is about", () => {
@@ -288,7 +297,7 @@ test("a quoted flag is still the flag the rule is about", () => {
   assert.equal(decide(`git ${"add"} ${q}-A${q}`).allowed, false);
   assert.equal(decide(`git reset ${q}--hard${q}`).allowed, false);
   assert.equal(decide(`git ${q}stash${q}`).allowed, false);
-  assert.equal(decide(`eslint ${q}--fix${q} .`).allowed, false);
+  assert.match(taughtBy(`eslint ${q}--fix${q} .`), /Fix each finding at its source/u);
   assert.equal(decide(`git checkout -- ${q}file.txt${q}`).allowed, false);
 });
 
@@ -386,67 +395,6 @@ test("a body a shell runs is commands, whatever names it happens to carry", () =
   }
 });
 
-/* The three shapes counted in the transcripts, and the routes the refusal has to offer instead:
-   1,691 poll-shaped calls on one project in three days, 46 of them lost to the shell tool's cap.
-   Every route named is one whose own call comes back to the caller, because five runs on ISS-943
-   took the one that does not and never saw their answer. */
-test("a wait that polls is refused, and a pause on its own is not", () => {
-  const nap = `sl${"eep"}`;
-  const first = decide(`until curl -sf localhost:3000; do ${nap} 5; done`);
-  assert.equal(first.allowed, false);
-  assert.match(first.reason, /comes back to you/u, "the line every route it offers is picked by");
-  assert.match(first.reason, /foreground under the tool's own timeout/u, "the route for work this call starts");
-  assert.ok(first.reason.includes(WAIT_COMMAND), "the one for work already running, which a run cannot go back and relaunch");
-  assert.match(first.reason, /Monitor/u, "and the one for a wait past the cap");
-  assert.match(first.reason, /ten-minute cap/u, "and what the foreground one is bounded by");
-  assert.doesNotMatch(first.reason, /completion notice/u, "while the route that comes back to nobody is offered as none of them");
-  assert.match(first.reason, /Backgrounding this same loop is refused/u, "and the second attempt this refusal used to invite is answered inside the first");
-  assert.match(first.reason, /forge hooks --how polling/u, "the argument has its own page");
-  assert.equal(decide(`while ! grep -q ready /tmp/log; do ${nap} 10; done`).allowed, false);
-  assert.equal(decide(`while true; do date; ${nap} 30; done`).allowed, false);
-  assert.equal(decide(`until nc -z localhost 5432\ndo\n  ${nap} 5\ndone`).allowed, false, "`do` on its own line");
-  assert.equal(decide(`npm test | while read -r l; do ${nap} 1; done`).allowed, false, "past a pipeline");
-  assert.equal(decide(`until a; do until b; do ${nap} 1; done; done`).allowed, false, "and nested");
-  assert.equal(decide(`! while true; do ${nap} 1; done`).allowed, false, "past a prefix that inverts");
-  assert.equal(decide(`time until a; do ${nap} 1; done`).allowed, false, "and past one that measures");
-  assert.equal(decide(`while true; do for x in a; do :; done; ${nap} 1; done`).allowed, false, "past a for whose done is not the wait's");
-  assert.equal(decide(`until a; do select x in a; do :; done; ${nap} 1; done`).allowed, false, "and past a select's");
-  assert.equal(decide(`while true; do for ((i=0; i<3; i++)); do :; done; ${nap} 1; done`).allowed, false, "and past an arithmetic head, whose own `;` the span reader cuts");
-  assert.equal(decide(`while true; do for ((i=0; i<3; i++)) { :; }; ${nap} 1; done`).allowed, false, "and past the brace body an arithmetic for may take instead, which no done closes");
-  assert.equal(decide(`while true; for ((i=0; i<3; i++)) { :; }; do ${nap} 1; done`).allowed, false, "and where that brace body is in the wait's condition, so the do is still the wait's");
-  assert.equal(decide(`while true; for x in a; do :; done; do ${nap} 1; done`).allowed, false, "and where the loop in the condition takes a do of its own, which is not the wait's");
-  assert.equal(decide(`while true; for ((i=0; for < 3; i++)) { :; }; do ${nap} 1; done`).allowed, false, "and where an arithmetic head names a variable spelled like a loop, which opens none");
-  assert.equal(decide(`while true; do ${nap} 1; for ((i=0; i<1; i++)) { :; while false; do :; done; }; done`).allowed, false, "and where a wait is written inside that brace body, whose do is its own");
-  assert.equal(decide(`while true; do for x in "a { b"; do :; done; ${nap} 1; done`).allowed, false, "and where the brace is a character of a quoted word, which opens no body");
-  assert.equal(decide(`while true; do for f in "a\\" { b"; do :; done; ${nap} 1; done`).allowed, false, "and where an escape inside that word carries the quote it would otherwise have closed");
-  assert.equal(decide(`for x in a; do(:); done; while true; do ${nap} 1; done`).allowed, false, "and where a do opens on a subshell, so the loop before the wait takes its own");
-  assert.equal(decide(`while true; do for x in { a; do :; done; ${nap} 1; done`).allowed, false, "and where a bare brace is ordinary data in a word list, no body a plain for could take");
-  assert.equal(decide(`until a\ndo\n  for x in a\n  do\n    :\n  done\n  ${nap} 5\ndone`).allowed, false, "the same nesting spelled over lines");
-  assert.ok(decide(`${nap} 2`).allowed, "a pause on its own waits once and asks nothing");
-  assert.ok(decide(`${nap} 2 && npm test`).allowed, "one before the work is still one pause");
-  assert.ok(decide(`${nap} 2 && until a; do echo x; done`).allowed, "and one before a wait is outside it");
-  assert.ok(decide(`until a; do echo x; done && ${nap} 3`).allowed, "and one after a wait is outside it");
-  assert.ok(decide(`while read -r l; do echo "$l"; done < /tmp/f`).allowed, "a wait with no pause polls nothing");
-  assert.ok(decide(`for x in a b; do ${nap} 1; done`).allowed, "a for bounded by a count is no wait, so the pause in it stands");
-  assert.ok(decide(`echo "until x; do ${nap} 1; done"`).allowed, "and the shape inside an argument is prose");
-});
-
-/* The reading the rule above spends, on its own, because the guard's verdict cannot say which frame
-   a `done` closed: a `for` is pushed so that its own `done` pops it, and only a wait comes back as a
-   range (ISS-306). */
-test("a done closes the loop it belongs to, and only a wait is a range", () => {
-  const nap = `sl${"eep"}`;
-  const nested = `while true; do for x in a; do :; done; ${nap} 1; done`;
-  const [[from, to], ...rest] = waitsIn(nested);
-  assert.deepEqual([from, to, rest], [0, nested.length, []], "one range, the wait's own, running to its own done");
-  const at = nested.indexOf(nap);
-  assert.ok(at >= from && at < to, `the pause at ${at} is inside it, and not past the inner done at ${nested.indexOf("done")}`);
-  assert.deepEqual(waitsIn(`for x in a b; do ${nap} 1; done`), [], "a for's body is a frame too, and is no wait");
-  const braced = `while true; do for ((i=0;i<3;i++)) { :; }; while :; do ${nap} 1; done; done`;
-  assert.equal(waitsIn(braced).length, 2, "a brace body opens no frame, so it takes no done and leaves both waits their own");
-  assert.deepEqual(waitsIn("until a; do until b; do :; done; done"), [[8, 31], [0, 37]], "nested waits still answer innermost first");
-});
-
 /* The stash stack is the repository's, not the worktree's: a push in one tree is what a pop in
    another takes. So the tree about to receive somebody else's work is clean by definition, which is
    the one state `needsDirtyTree` stands the rule down in. */
@@ -483,21 +431,22 @@ test("a stash that moves a shared stack is refused in a clean worktree too", () 
 /* ISS-2501. The harness report follows a refusal by the name its How line gives it, so a rule
    reworded keeps its history; two rules sharing a name would be read as one cause there. */
 test("every rule names its own cause on the How line, and the two under polling name two", () => {
+  const said = (run) => run.reason ?? run.taught;
   const verb = "stash";
   const nap = `sl${"eep"}`;
   const reasons = {
-    "lint-fix": decide("npx eslint --fix .").reason,
+    "lint-fix": said(decide("npx eslint --fix .")),
     "kill-by-name": decide(BY_NAME).reason,
     "stage-everything": decide(STAGE_ALL).reason,
     "shared-stash": JSON.parse(from(sharedStack().second, `git ${verb} pop`)).hookSpecificOutput.permissionDecisionReason,
     "stash-reverts": decide(`git ${verb}`).reason,
     "checkout-path": decide("git checkout -- tracked.txt").reason,
     "reset-hard": decide("git reset --hard").reason,
-    "sleep-in-wait": decide(`until curl -sf localhost:3000; do ${nap} 5; done`).reason,
+    "sleep-in-wait": said(decide(`until curl -sf localhost:3000; do ${nap} 5; done`)),
   };
   const session = randomUUID();
   decideIn(session, "tail -50 /tmp/ship.log");
-  reasons["read-again"] = decideIn(session, "tail -50 /tmp/ship.log").reason;
+  reasons["read-again"] = said(decideIn(session, "tail -50 /tmp/ship.log"));
   const named = Object.entries(reasons).map(([name, reason]) => {
     const how = reason.trimEnd().split("\n").findLast((line) => line.trim() && !appendedLine(line));
     const found = /^How: `forge hooks --how (\S+)` \(cause: bash-guard\/([\w-]+)\)$/u.exec(how);
@@ -507,104 +456,36 @@ test("every rule names its own cause on the How line, and the two under polling 
   });
   assert.equal(new Set(named.map(([, cause]) => cause)).size, named.length, "no two rules share a name");
   assert.deepEqual(named.filter(([topic]) => topic === "polling").map(([, cause]) => cause), ["sleep-in-wait", "read-again"],
-    "and the two refusals under polling name two causes");
+    "and the two teachings under polling name two causes");
 });
 
-/* The wait taken out of the loop and one read typed per turn, which the rule above cannot see: over
-   24h, 11 runs of 60 spent 228 turns reading their own gate or ship log while it ran. */
-test("the same read of a log typed again is refused, and another question of it is not", () => {
-  const session = randomUUID();
-  const read = "tail -50 /tmp/ship.log";
-  assert.ok(decideIn(session, read).allowed, "the first read asks something nobody knows yet");
-  const again = decideIn(session, read);
-  assert.equal(again.allowed, false);
-  assert.match(again.reason, /\/tmp\/ship\.log/u, "the refusal names the log it is about");
-  assert.match(again.reason, /still running/u, "what to do while the work writing it runs");
-  assert.match(again.reason, /comes back to you/u, "which is a call that returns, and not a notice that reaches a run only while it is still going");
-  assert.doesNotMatch(again.reason, /completion notice/u, "so this refusal sends nobody where the one above does not");
-  assert.match(again.reason, /already\s+ended/u, "and what to do once that work has ended");
-  assert.match(again.reason, /came too early/u, "which is what the read before it was, since this gate cannot see the notice");
-  assert.match(again.reason, /is a different question/u, "so the way through is named rather than left to be found");
-  assert.match(again.reason, /says a thing once/u, "and the refusal that cannot see the log finish leaves a way past itself");
-  assert.ok(decideIn(session, read).allowed, "which is the read after the refusal, since the refusal cleared what it was made from");
-  assert.equal(decideIn(session, read).allowed, false, "and the one after that is a repeat again");
-  assert.match(again.reason, /forge hooks --how polling/u, "the argument has its own page");
-  assert.ok(decideIn(session, "grep -n error /tmp/ship.log").allowed, "another question is not the same ask");
-  assert.ok(decideIn(session, "tail -20 /tmp/ship.log").allowed, "nor is another depth of the same one");
-});
-
-test("what stands between two identical reads is what decides the second", () => {
-  const session = randomUUID();
-  const read = "tail -20 /tmp/gate.log";
-  assert.ok(decideIn(session, read).allowed);
-  assert.ok(decideIn(session, "echo checking").allowed, "a label is not work");
-  assert.equal(decideIn(session, read).allowed, false, "so the read past it is still the read before it");
-  assert.ok(decideIn(session, "npm test").allowed, "and this is");
-  assert.ok(decideIn(session, read).allowed, "so the read past that one asks something new");
-  assert.ok(decideIn(session, "x", "Edit").allowed, "a call this gate judges nothing of is still a call");
-  assert.ok(decideIn(session, read).allowed, "and it clears the memory too");
-});
-
-/* `.err` is named in no pattern of this gate: it answers for one because the class has one home. */
-test("a repeat nobody was waiting on passes: another file, another session, a verb that wrote", () => {
-  const session = randomUUID();
-  const notALog = "cat /tmp/notes.txt";
-  assert.ok(decideIn(session, notALog).allowed);
-  assert.ok(decideIn(session, notALog).allowed, "a file being worked on is not one being waited for");
-  const read = "tail -5 /tmp/build.err";
-  assert.ok(decideIn(session, read).allowed);
-  assert.ok(decideIn(randomUUID(), read).allowed, "another session has asked this of nothing");
-  assert.equal(decideIn(session, read).allowed, false, "while this one has");
-  assert.ok(decideIn(session, "echo done > /tmp/flag.log").allowed, "a redirect writes, whatever the verb");
-  assert.ok(decideIn(session, read).allowed, "so the read past it is new again");
-});
-
-
-/* Keyed on the command as the transcript records it, so the gate and `forge stats runs` cannot refuse
-   and count different things. Everything the two would read apart is outside the rule instead. */
-test("a shape the profiler could not key the same way is outside this rule, not read a second way", () => {
-  const session = randomUUID();
-  const wrapped = "bash -c 'tail -5 /tmp/ship.log'";
-  assert.ok(decideIn(session, wrapped).allowed);
-  assert.ok(decideIn(session, wrapped).allowed, "a body this rule does not open is no read of a log");
-  const asked = "grep 'error  code' /tmp/ship.log";
-  assert.ok(decideIn(session, asked).allowed);
-  assert.ok(decideIn(session, "grep 'error code' /tmp/ship.log").allowed, "quoted spacing is the question");
-  assert.equal(decideIn(session, "grep 'error code' /tmp/ship.log").allowed, false, "and asking it twice is not");
-});
-
-/* One command, three readers: this refusal, the page it points at, and the corpus reading that
-   counts what a run typed. The page imports nothing, being markdown, so the case is what holds it to
-   the spelling the other two share (ISS-2086). */
-test("the wait this gate prescribes is the one the page it points at prescribes", () => {
-  const nap = `sl${"eep"}`;
-  const refused = decide(`until curl -sf localhost:3000; do ${nap} 5; done`);
-  assert.ok(refused.reason.includes(WAIT_COMMAND), "the refusal prints the command whole");
-  const page = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "how", "polling.md"), "utf8");
-  assert.ok(page.includes(WAIT_COMMAND),
-    `\`forge hooks --how polling\` prescribes the same command, character for character:\n${page}`);
-});
-
-/* AC-07-3-4. One call per rule and the poll, each in a session of its own so each is the whole text;
-   the marker is followed by the route in the same sentence, never standing alone as `Refused.`. */
+/* AC-07-3-4. One call per rule, each in a session of its own so each is the whole text; the marker
+   is followed by the route in the same sentence, never standing alone as `Refused.`. A teaching
+   carries no marker and leads with its route too. */
 test("every refusal this gate writes leads with its route", () => {
   const stash = `git ${"stash"}`;
   const shown = (command, cwd = DIRTY) => JSON.parse(from(cwd, command)).hookSpecificOutput.permissionDecisionReason;
   const reasons = {
-    "--fix": shown(`npx eslint . --${"fix"}`),
     "by name": shown(BY_NAME),
     "stage all": shown(`${STAGE_ALL} && git commit -m done`),
     "stash, dirty": shown(stash),
     "stash, shared": shown(`${stash} pop`, sharedStack().second),
     checkout: shown(`git ${"checkout"} -- tracked.txt`),
     reset: shown(`git ${"reset"} --hard`),
-    sleep: shown(`until test -f /tmp/done; do ${"sleep"} 5; done`),
   };
-  const session = randomUUID();
-  decideIn(session, "tail -50 /tmp/ship.log");
-  reasons["read again"] = decideIn(session, "tail -50 /tmp/ship.log").reason;
   for (const [label, reason] of Object.entries(reasons)) {
     assert.match(reason, /^Refused — /u, label);
     assertRouteFirst(reason, label);
+  }
+  const session = randomUUID();
+  decideIn(session, "tail -50 /tmp/ship.log");
+  const taught = {
+    "--fix": taughtBy(`npx eslint . --${"fix"}`),
+    sleep: taughtBy(`until test -f /tmp/done; do ${"sleep"} 5; done`),
+    "read again": taughtBy("tail -50 /tmp/ship.log", session),
+  };
+  for (const [label, text] of Object.entries(taught)) {
+    assert.doesNotMatch(text, /^Refused/u, label);
+    assertRouteFirst(text, label);
   }
 });
