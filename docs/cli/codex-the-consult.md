@@ -17,27 +17,24 @@ could have asked for.** They are written into fields of an issue from a file tha
 pattern and is never staged, so neither the turn's record nor what a commit closes over names them —
 and a wrong plan is the expensive error, because everything after it is built against it and the
 review that would catch it comes after the code. So `forge record plan` and `forge record criteria` do the
-asking themselves: each judges whether an answered consult has read the file whole as it now stands,
-and where none has, prints the consult that would. The consult is a way of working and not kernel
-input, so by default the write goes ahead and the issue carries a comment saying no consult read it;
-a project that wants the write held sets `codex.consult` to `required` ([the unavailable
-gateway](codex-the-unavailable.md)). Whole means the same here as it does to a recheck — one `--send bodies`
+asking themselves: where no answered consult has read the file whole as it now stands, each prints
+the consult that would. A consult is a way of working, not kernel input: the write goes ahead with a
+comment saying no consult read it, unless `codex.consult` is `required`. Whole means the same here as it does to a recheck — one `--send bodies`
 pass — because what the log records per file is what was *read off disk* and not what travelled, so a
 diff round logs a size and a hash for a body the reviewer was told to fetch for itself and may never
 have asked for. What decides freshness is that per-file hash against the file's bytes now, not a
 clock: a file consulted, edited and then restored to what was read was read, and two writes
 inside one millisecond are still two. Four states are named apart rather than sharing a sentence —
 never consulted, sent as a diff, no whole body carried, read and since changed — because a caller who
-consulted and was refused anyway learns nothing from being sent back to the command that just
-failed them. Both verbs ask before they touch the tracker, so a
-refusal is never one the caller has to undo. A body piped in is told the file route, since a consult
-is asked for a path and there is none. And it stands down outside a checkout for nobody: these verbs write by issue
+consulted learns nothing from being sent back to the command just run. Both verbs ask before they
+touch the tracker, so a refusal is never one to undo. A piped body is told the file route, a consult
+being asked for a path. And it stands down outside a checkout for nobody: these verbs write by issue
 reference from any directory, so one `cd` would otherwise be the whole way past the rule. For the
 same reason which consult counts is decided by the file and never by where either command ran: a run
 consults from its worktree and writes from wherever its shell stands, so the key is the real path the
 argument resolves to, whichever checkout the consult was taken in (ISS-904). A different file holding
-the same bytes stays unread, because keying on the bytes would let a consult of a common text clear a
-file it never named.
+the same bytes stays unread: keying on bytes would let a consult of a common text clear a file it
+never named.
 
 **A reviewer that could not answer is a fifth state**, recorded apart: [the unavailable gateway](codex-the-unavailable.md).
 

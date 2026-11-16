@@ -105,12 +105,8 @@ test("a walk stopped by its request budget is told what it can do, never to writ
 });
 
 test("the transition a cut page earns is made, and nothing about it is done by hand", async () => {
-  /* The read-before-write gate sits inside the lease write and delivers the page it has not shown,
-     so the claim meets it once and passes on the re-send. That hold is not this case's subject. */
-  for (const again of [1, 2]) {
-    const claim = await ranAsync(FORGE, ["claim", "ISS-95"], ENV);
-    assert.equal(claim.status, again === 1 ? 1 : 0, claim.stderr);
-  }
+  const claim = await ranAsync(FORGE, ["claim", "ISS-95"], ENV);
+  assert.equal(claim.status, 0, claim.stderr);
   const run = await ranAsync(FORGE, ["advance", "ISS-95"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-95 {2}open -> in_progress:plan/u, run.stdout);

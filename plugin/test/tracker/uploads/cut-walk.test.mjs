@@ -103,19 +103,18 @@ before(async () => {
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
-/* A cut thread holds a session's first write to it once, at the renewal ahead of the first byte: the
-   last refusal before a send, so the line saying the file is going up is owed after it and not before. */
-test("the one hold a cut thread earns stops the upload before the warning is said", async () => {
+/* A cut thread is said to a session's first write to it and holds nothing (ISS-110), so that write
+   sends its file and writes its record as any later one does. */
+test("a cut thread's first write is not held, and sends and records as any other", async () => {
   state.walk = "cut";
   const [sent, wrote] = [uploads(), posted()];
   const run = await ask("record", "verdict", "ISS-9", "--criterion", "1", "--verdict", "pass",
-    "--commit", COMMIT, "--evidence", file("held-on-a-cut-walk.txt"));
+    "--commit", COMMIT, "--evidence", file("first-on-a-cut-walk.txt"));
   state.walk = "whole";
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /^Hold\b/mu, `held, the rest of the sentence being comments.mjs's own case: ${run.stderr}`);
-  assert.equal(warned(run.stderr), null, "no line claims a send the hold stopped");
-  assert.equal(uploads() - sent, 0);
-  assert.equal(posted() - wrote, 0);
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stderr, /^Hold\b/mu, run.stderr);
+  assert.equal(uploads() - sent, 1);
+  assert.equal(posted() - wrote, 1);
 });
 
 test("a verdict citing a file on a cut walk sends it and writes the record rather than refusing", async () => {
@@ -197,8 +196,7 @@ test("a record refused for another reason on a cut walk says nothing was sent an
 });
 
 /* The digest check sits between the renewal and the request, and can still refuse: a file rewritten
-   while the lease renews goes nowhere, so nothing may say it is being sent. It runs after the first
-   case has spent the one hold a cut thread earns, which would otherwise answer before the renewal. */
+   while the lease renews goes nowhere, so nothing may say it is being sent. */
 test("a file rewritten during the renewal on a cut walk is refused with no warning and no upload", async () => {
   const path = file("rewritten-during-renewal.txt");
   state.walk = "cut";

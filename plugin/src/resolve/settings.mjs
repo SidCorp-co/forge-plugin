@@ -577,7 +577,7 @@ export const shipMode = () => enumScope("ship");
 
 export const asksScope = () => enumScope("asks.mode");
 
-/** Whether a plan or criteria write no consult read is held in the project the directory `at` belongs to. */
+/** The `codex.consult` value of the project the directory `at` belongs to. */
 export const codexConsultAt = (at) => enumOf("codex.consult", projectFileAt(at), `the project file under ${at}`);
 
 /** The terms this project adds to the owner categories; anything but a list of strings adds none. */

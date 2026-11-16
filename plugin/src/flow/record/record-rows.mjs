@@ -84,7 +84,7 @@ const kindRows = (caps) => [
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
   `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}${KIND_PHRASE.plan}`,
   `  criteria     ${withCap("<file.md>", caps.acceptanceCriteria?.self).padEnd(VALUES)}`
-    + "numbered lines, from a file for a consult to read  [--replace]",
+    + "numbered lines, from a file a consult reads  [--replace]",
   "  design       --criterion N --class " + DESIGN_CLASSES.join("|")
     + " [--pattern S] --proof P [--module M]... [--contract C]...",
   LANDED_ROW,
@@ -112,8 +112,8 @@ const KIND_PHRASE = {
   note: "the release note, in the words of whoever filed the issue",
   wave: "one dispatch of a wave, on its headline issue",
   fold: "the end of that wave, once its fold is posted",
-  plan: "the plan itself, from a file for a consult to read",
-  criteria: "the numbered criteria, from a file for a consult to read",
+  plan: "the plan itself, from a file a consult reads",
+  criteria: "the numbered criteria, from a file a consult reads",
   design: "criteria classed, proven, with modules and contracts",
   [LANDED]: "a landing built by hand, recorded in core's order in one call",
 };

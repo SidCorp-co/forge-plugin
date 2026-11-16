@@ -1,11 +1,10 @@
 /* A skill that already says one sentence, and a write of that sentence into a second file of it. The
    learning gate teaches a duplicate before its once-per-file stamp, so this route has its own fixture. */
-import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { callHook, tempRoom } from "../fixtures.mjs";
+import { answered, callHook, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning", "learning-gate.mjs");
 
@@ -25,6 +24,5 @@ export const dupWrite = (session, { room, line }, { home, name = "shape.md", age
   const env = agent ? { ...home, CLAUDE_CODE_SESSION_ID: "the-wave" } : { ...home, FORGE_SESSION_ID: session };
   if (agent) delete env.FORGE_SESSION_ID;
   const run = callHook(HOOK, { session_id: session, ...(agent ? { agent_id: agent } : {}), ...write }, env);
-  assert.equal(run.status, 0, run.stderr);
-  return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.additionalContext : "";
+  return answered(run)?.hookSpecificOutput?.additionalContext ?? "";
 };

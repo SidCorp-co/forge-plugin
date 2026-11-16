@@ -77,9 +77,7 @@ export const ENUM_KEYS = {
     reads: "the tracker's own pipeline setting",
     unset: "unset, so the tracker's own pipeline setting says whether a change waits for a person's look",
   },
-  /* Whether a plan or criteria write no consult read is held. Unset reads `teach`: the consult is a
-     way of working, so the write goes ahead and the issue says no consult read it (ISS-110).
-     docs/cli/codex-the-unavailable.md. */
+  /* Unset reads `teach` (ISS-110): docs/cli/codex-the-unavailable.md. */
   "codex.consult": {
     values: {
       teach: "a plan or criteria write no consult read goes ahead, prints the consult that would read it, and the issue says no consult read it",
