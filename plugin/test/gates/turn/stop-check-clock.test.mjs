@@ -69,7 +69,7 @@ test("a linter that spends the stop clock leaves the worktree check its answer",
   const ev = { session_id: `s-${randomUUID()}`, transcript_path: transcript(used("Write", { file_path: file })), cwd: wt };
   const refused = decided(ev, () => [], clock);
   assert.equal(existsSync(spent), true, "the planted linter never ran");
-  assert.equal(refused.kind, "block", refused.said);
+  assert.equal(refused.kind, "context", refused.said);
   assert.match(refused.said, /is a worktree/u);
   assert.match(refused.said, /git -C .*add -u && git commit/u);
 });
@@ -123,11 +123,11 @@ test("a git probe slower than what the nearly spent clock gives it gets no answe
     `the live check's half that turns on the worktree is not named: ${stderr}`);
 });
 
-test("the same slow git probe answers with the clock whole and the dirty worktree refuses the stop", () => {
+test("the same slow git probe answers with the clock whole and the dirty worktree is taught at the stop", () => {
   const wt = dirtyWorktree();
   const bin = slowGit();
   const said = withPath(bin, () => decided({ session_id: `s-${randomUUID()}`, transcript_path: transcript(), cwd: wt }, () => []));
-  assert.equal(said.kind, "block", said.said);
+  assert.equal(said.kind, "context", said.said);
   assert.match(said.said, /is a worktree/u);
 });
 

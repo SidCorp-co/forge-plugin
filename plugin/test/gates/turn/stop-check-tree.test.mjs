@@ -24,22 +24,22 @@ test("the tree a subagent stood in is the one its commands moved to, whatever th
   mkdirSync(join(wt, "sub"));
   const own = handed(used("Bash", { command: `export FORGE_SESSION_ID=iss-1-abc\ncd ${pathed(wt)}\ncd sub && git status --short` }));
   const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: checkout }));
-  assert.match(said?.reason ?? "", /is a worktree/u, said?.reason);
-  assert.match(said.reason, new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"),
+  assert.match(said?.systemMessage ?? "", /is a worktree/u, said?.systemMessage);
+  assert.match(said.systemMessage, new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"),
     "the worktree, not the checkout the event names");
   /* ISS-1717: a body is the stdin of the command it stands on, and a `cd` it spells moves nothing. */
   const bodied = handed(used("Bash", { command: `cd ${pathed(wt)}
 cat > /tmp/b.md <<'X'
 cd /no-such-tree
 X` }));
-  assert.match(stopped(room(), subagentStop({ agent_transcript_path: bodied, cwd: checkout }))?.reason ?? "",
+  assert.match(stopped(room(), subagentStop({ agent_transcript_path: bodied, cwd: checkout }))?.systemMessage ?? "",
     new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"), "a cd inside a here-document body");
   /* A space escaped rather than quoted is one word to the shell, and to the reading every gate shares. */
   const spaced = join(tempRoom("stop-check-agent-sp-"), "w t");
   assert.equal(git(checkout, "worktree", "add", "-q", "-b", "spaced", spaced).status, 0);
   writeFileSync(join(spaced, "one.txt"), "changed here too\n");
   const escapedCd = handed(used("Bash", { command: `cd ${spaced.replaceAll(" ", "\\ ")} && git status --short` }));
-  assert.match(stopped(room(), subagentStop({ agent_transcript_path: escapedCd, cwd: checkout }))?.reason ?? "",
+  assert.match(stopped(room(), subagentStop({ agent_transcript_path: escapedCd, cwd: checkout }))?.systemMessage ?? "",
     new RegExp(`git -C ${escaped(typed(spaced))} add -u`, "u"), "a cd to a path with an escaped space");
 });
 
@@ -59,7 +59,7 @@ const twoTrees = (into = tempRoom("stop-check-tree-")) => {
 
 /* The dirty-tree line of the stop a subagent's one shell call ends in, the event standing in `cwd`. */
 const judgedIn = (command, cwd, env = room()) =>
-  stopped(env, subagentStop({ agent_transcript_path: handed(used("Bash", { command })), cwd }))?.reason ?? "";
+  stopped(env, subagentStop({ agent_transcript_path: handed(used("Bash", { command })), cwd }))?.systemMessage ?? "";
 
 const assertJudgedIn = (reason, tree, other, shape) => {
   assert.match(reason, new RegExp(`git -C ${escaped(typed(tree))} add -u`, "u"), `${shape}: ${reason || "(silent)"}`);

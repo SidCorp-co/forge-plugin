@@ -179,11 +179,12 @@ export const dispatch = async (given, ev = readEvent()) => {
     }
   }
   if (!blocks.length && !contexts.length && !stoodDown.length) return;
-  const told = toolEvent ? [...contexts, ...stoodDown] : contexts;
+  // cm:why a stop event carries no context, so what a gate teaches there is the answer's warning beside any stand-down
+  const told = [...contexts, ...stoodDown];
   emit({
     ...(blocks.length ? { decision: "block", reason: await filed(blocks.join("\n\n"), ev) } : {}),
-    ...(told.length ? { hookSpecificOutput: { hookEventName: toolEvent ?? TOOL_EVENTS.post, additionalContext: told.join("\n\n") } } : {}),
-    ...(stoodDown.length && !toolEvent ? { systemMessage: stoodDown.join("\n\n") } : {}),
+    ...(told.length && toolEvent ? { hookSpecificOutput: { hookEventName: toolEvent, additionalContext: told.join("\n\n") } } : {}),
+    ...(told.length && !toolEvent ? { systemMessage: told.join("\n\n") } : {}),
   });
 };
 

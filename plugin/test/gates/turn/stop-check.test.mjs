@@ -13,7 +13,7 @@ import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { assertRouteFirst } from "../../fixtures/route-first.mjs";
 import { AT, HOOK, REPO, decided, freshWorktree, git, handed, heldAndSilent, judgedStop, prompt, room, settled,
-  silentSince, spawnIn, stopStanding, stopped, subagentStop, transcript, used, written } from "./fixture.mjs";
+  silentSince, spawnIn, stopStanding, stopped, subagentStop, told, transcript, used, written } from "./fixture.mjs";
 const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
 
 /* A probe that means to be refused says 1300 characters of comment, because that is what a
@@ -32,7 +32,7 @@ const consult = (root) => JSON.stringify({
 
 /* The registered line, not the entry: it sets the stop clock, under which a lint's budget is what is
    left rather than the ceiling, and a budget that is not a whole number is one no child accepts. */
-test("the registered stop line refuses a dense write too, on the stop clock", () => {
+test("the registered stop line teaches a dense write too, on the stop clock", () => {
   const file = join(REPO, "plugin", "test", `stop-clock-${randomUUID().slice(0, 8)}.mjs`);
   writeFileSync(file, DENSE);
   try {
@@ -49,7 +49,7 @@ test("a turn that left nothing red ends in silence", () => {
   assert.equal(stopped(room(), { transcript_path: transcript(), cwd: cleanRepo() }), null);
 });
 
-test("a file this turn wrote that the project's linter rejects refuses the stop, named", () => {
+test("a file this turn wrote that the project's linter rejects is taught at the stop, named", () => {
   const file = join(REPO, "plugin", "test", `stop-probe-${randomUUID().slice(0, 8)}.mjs`);
   writeFileSync(file, DENSE);
   try {
@@ -57,23 +57,23 @@ test("a file this turn wrote that the project's linter rejects refuses the stop,
       transcript_path: transcript(used("Write", { file_path: file })),
       cwd: cleanRepo(),
     });
-    assert.match(said?.reason ?? "", /stop-probe-/u, `the file is not named: ${said?.reason}`);
-    assert.match(said.reason, /code-quality\/comment-density/u, "nor is what the linter said");
+    assert.match(said?.systemMessage ?? "", /stop-probe-/u, `the file is not named: ${said?.systemMessage}`);
+    assert.match(said.systemMessage, /code-quality\/comment-density/u, "nor is what the linter said");
   } finally {
     rmSync(file, { force: true });
   }
 });
 
-test("findings nobody ruled on refuse the stop, with the verdict to write", () => {
+test("findings nobody ruled on are taught at the stop, with the verdict to write", () => {
   const cwd = cleanRepo();
   const said = stopped(room(`${consult(realpathSync(cwd))}\n`), { transcript_path: transcript(), cwd });
-  assert.match(said?.reason ?? "", /Consult c9 made F1/u, said?.reason);
-  assert.match(said.reason, /forge codex verdict --of c9/u, "the command that clears it is missing");
+  assert.match(said?.systemMessage ?? "", /Consult c9 made F1/u, said?.systemMessage);
+  assert.match(said.systemMessage, /forge codex verdict --of c9/u, "the command that clears it is missing");
 });
 
 /* A run keeps its consults under the home inside its scratch, and this hook fires in the session's
    environment, whose log holds none of them (ISS-2651). */
-test("findings nobody ruled on in the run's own log refuse the stop, the session's log holding none", () => {
+test("findings nobody ruled on in the run's own log are taught at the stop, the session's log holding none", () => {
   const cwd = cleanRepo();
   const root = realpathSync(cwd);
   const id = "iss-2651-0000abcd";
@@ -83,13 +83,13 @@ test("findings nobody ruled on in the run's own log refuse the stop, the session
   mkdirSync(join(scratch, "home", "forge"), { recursive: true });
   writeFileSync(join(scratch, "home", "forge", "codex-log.jsonl"), `${consult(root)}\n`);
   const said = stopped(room(), { transcript_path: transcript(), cwd });
-  assert.match(said?.reason ?? "", /Consult c9 made F1/u, said?.reason);
+  assert.match(said?.systemMessage ?? "", /Consult c9 made F1/u, said?.systemMessage);
 });
 
 /* Git answers the two directories relatively in a checkout and absolutely in a worktree, so a
    comparison of the raw answers refuses every checkout there is — which is the dangerous direction,
    and why the checkout the worktree was made from is asserted silent in the same case. */
-test("tracked changes in a worktree the run made refuse the stop; the checkout they came from does not", () => {
+test("tracked changes in a worktree the run made are taught at the stop; the checkout they came from hears nothing", () => {
   const checkout = cleanRepo();
   writeFileSync(join(checkout, "one.txt"), "committed\n");
   git(checkout, "add", "one.txt");
@@ -99,8 +99,9 @@ test("tracked changes in a worktree the run made refuse the stop; the checkout t
   writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
 
   const said = stopped(room(), { transcript_path: transcript(), cwd: wt });
-  assert.match(said?.reason ?? "", /is a worktree this turn left with tracked changes/u, said?.reason);
-  assert.match(said.reason, /git -C .*add -u/u, "the command that clears it is missing");
+  assert.match(said?.systemMessage ?? "", /is a worktree this turn left with tracked changes/u, said?.systemMessage);
+  assert.match(said.systemMessage, /git -C .*add -u/u, "the command that clears it is missing");
+  assert.equal(said.decision, undefined, "and it does not hold the stop");
   assert.equal(stopped(room(), { transcript_path: transcript(), cwd: checkout }), null,
     "the checkout the worktree was made from is clean and must hear nothing");
 
@@ -376,12 +377,12 @@ test("a subagent's stop is judged on the subagent's own transcript, not the pare
   writeFileSync(file, DENSE);
   try {
     const own = handed(used("Write", { file_path: file }));
-    const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo() }));
-    assert.match(said?.reason ?? "", /stop-agent-/u, `the subagent's write is not named: ${said?.reason}`);
-    assert.match(said.reason, /code-quality\/comment-density/u);
+    const said = told(stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo() })));
+    assert.match(said, /stop-agent-/u, `the subagent's write is not named: ${said}`);
+    assert.match(said, /code-quality\/comment-density/u);
     assert.equal(stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo(), agent_type: "Explore" })), null,
       "a subagent this plugin did not dispatch is not this gate's to judge");
-    assert.equal(stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo(), agent_type: "runner" }))?.reason.includes("stop-agent-"), true,
+    assert.equal(told(stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo(), agent_type: "runner" }))).includes("stop-agent-"), true,
       "the bare role name is the same role");
   } finally {
     rmSync(file, { force: true });
@@ -496,28 +497,29 @@ test("stop.agents in a project's own configuration decides which subagents' stop
   }
 });
 
-test("a refusal is a block on the stop, never a permission decision", () => {
+test("a teaching on the stop is its warning, never a block or a permission decision", () => {
   const cwd = cleanRepo();
   const said = stopped(room(`${consult(realpathSync(cwd))}\n`), { transcript_path: transcript(), cwd });
-  assert.equal(said.decision, "block");
-  assert.equal(said.hookSpecificOutput, undefined, "a Stop event has no permission to decide");
+  assert.equal(said.decision, undefined, "a consult nobody ruled on does not hold the stop");
+  assert.match(said.systemMessage, /^Clear each item below by the line under it; the stop went ahead\./u);
+  assert.equal(said.hookSpecificOutput, undefined, "a Stop event has no permission to decide and no context to carry");
 });
 
-test("the same red item does not refuse the stop after this one", () => {
+test("the same red item is not taught again after this stop", () => {
   const cwd = cleanRepo();
   const env = room(`${consult(realpathSync(cwd))}\n`);
   const path = transcript();
   const session = randomUUID();
-  assert.match(stopped(env, { session_id: session, transcript_path: path, cwd }).reason, /Consult c9/u);
-  assert.equal(stopped(env, { session_id: session, transcript_path: path, cwd }), null, "it refused twice");
+  assert.match(stopped(env, { session_id: session, transcript_path: path, cwd }).systemMessage, /Consult c9/u);
+  assert.equal(stopped(env, { session_id: session, transcript_path: path, cwd }), null, "it was taught twice");
 });
 
 /* AC-07-3-4. The stop's list of red items and the configuration it cannot read, each read for the
    order: every item carries its own clearing line, and the head over them is the route. */
-test("every refusal this gate writes leads with its route", () => {
+test("every message this gate writes leads with its route", () => {
   const cwd = cleanRepo();
   const red = stopped(room(`${consult(realpathSync(cwd))}\n`), { transcript_path: transcript(), cwd });
-  assertRouteFirst(red.reason, "work left red");
+  assertRouteFirst(red.systemMessage, "work left red");
   let malformed = "";
   try {
     judgedStop({ hook_event_name: "SubagentStop", agent_type: "forge:runner" }, "runner");

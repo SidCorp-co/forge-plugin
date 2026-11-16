@@ -1,5 +1,6 @@
-// Refuses the end of a turn that left work red, one line per item and the command that clears it.
-// Once per item per turn, so a run that cannot clear one says so and ends. how/stop-check.md.
+// Holds the end of a turn that left a lease silent or a process standing, and teaches the rest of
+// what it left red, one line per item and the command that clears it. Once per item per turn, so a
+// run that cannot clear one says so and ends. how/stop-check.md.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
@@ -19,7 +20,7 @@ import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { parsedOr } from "../../../src/wire/request.mjs";
 import { distinctKeysIn, keysIn } from "../../../src/tracker/issues.mjs";
-import { MOVE_WORD, NOWHERE, askedAlready, block, directoryAt, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf,
+import { MOVE_WORD, NOWHERE, askedAlready, block, context, directoryAt, done, how, isSubagent, logged, remaining, sinceTurn, transcriptOf,
   turnAt, turnRecords, turnWrites, typed, withoutBodies } from "../../_hook.mjs";
 
 const MAX_ISSUES = 2;
@@ -104,6 +105,7 @@ export const judgedStop = (ev, listed = projectStop().agents) => {
   if (!isSubagent(ev)) return true;
   const names = listed ?? [];
   if (!Array.isArray(names) || names.some((one) => typeof one !== "string")) {
+    // cm:why kernel: malformed input, a configuration key whose value cannot say whose stop is judged
     block("Set `stop.agents` in this project's configuration to a list of agent names, the ones whose stop "
       + "this gate judges, or drop the key and no subagent's stop is judged.\n\n"
       + "That key holds something other than a list of names, so whose stop is judged cannot be read.");
@@ -253,11 +255,12 @@ export const run = (ev, held = heldAndSilent) => {
   const at = turnAt(records) || (isSubagent(ev) ? String(records[0]?.timestamp ?? "") : "");
   const { shell, said, calls } = readTurn(records);
   const tree = treeOf(ev, records, shell);
-  const lines = [];
+  const holding = [];
+  const taught = [];
   const missed = [];
   const fresh = (item) => !asked(ev, at, item, true);
-  const say = (item, line) => {
-    if (fresh(item)) lines.push(line);
+  const say = (item, line, into = taught) => {
+    if (fresh(item)) into.push(line);
   };
   const spare = (name) => {
     if (left() > 1000) return true;
@@ -292,9 +295,10 @@ export const run = (ev, held = heldAndSilent) => {
     const standing = stillRunning(tree, since, calls, own === true);
     if (standing.length) {
       const [first, ...rest] = standing;
+      // cm:why kernel: run, a process the turn started still stands, so the run has not ended and nothing resumes or reaps it (NFR-11)
       say("live", `This turn started ${standing.length === 1 ? "a process" : `${standing.length} processes`} `
         + `still standing, pid ${first.pid} (${first.command})${rest.length ? " among them" : ""}.\n`
-        + "  Clear it: block on it before this turn ends — `forge hooks --how polling` names the wait.");
+        + "  Clear it: block on it before this turn ends — `forge hooks --how polling` names the wait.", holding);
     }
   }
 
@@ -302,8 +306,9 @@ export const run = (ev, held = heldAndSilent) => {
     const keys = held(ev, tree, said, holderOf(ev, shell));
     if (keys === null) missed.push("the lease check (the tracker did not say which issues are in progress)");
     for (const key of keys ?? []) {
+      // cm:why kernel: session, the lease keeps this issue from every other run while it stands silent
       say("lease", `${key} is in_progress under this session's lease and nothing was written since the claim.\n`
-        + `  Clear it: \`forge record park ${key} --kind paused --why "<where you left it>"\`, or advance it.`);
+        + `  Clear it: \`forge record park ${key} --kind paused --why "<where you left it>"\`, or advance it.`, holding);
     }
   }
 
@@ -313,9 +318,14 @@ export const run = (ev, held = heldAndSilent) => {
   missed.push(...unread);
   unjudged(missed);
 
-  const red = [...lint, ...lines];
-  if (red.length) {
+  const red = [...lint, ...taught];
+  if (holding.length) {
     block(`Clear each item below before this turn ends, by the line under it.\n\nThis turn is ending with `
+      + `work it left standing:\n\n${holding.join("\n")}`
+      + `${red.length ? `\n\nAlso left red, which does not hold the stop:\n\n${red.join("\n")}` : ""}${how()}`);
+  }
+  if (red.length) {
+    context(`Clear each item below by the line under it; the stop went ahead.\n\nThis turn ended with `
       + `work it left red:\n\n${red.join("\n")}${how()}`);
   }
   done();

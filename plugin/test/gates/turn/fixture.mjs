@@ -51,6 +51,9 @@ export const room = (log) => {
   return { ...process.env, HOME: home, XDG_CONFIG_HOME: home, TMPDIR: tempRoom("stop-check-tmp-") };
 };
 
+// cm:why a taught item rides the warning, or the hold's reason where a kernel item holds the same stop
+export const told = (said) => [said?.reason, said?.systemMessage].filter(Boolean).join("\n\n");
+
 export const stopped = (env, event) => {
   const held = callHook(HOOK, { hook_event_name: "Stop", session_id: randomUUID(), ...event }, env);
   assert.equal(held.status, 0, held.stderr);
