@@ -1,9 +1,9 @@
-// Stop once before a write to a file an open session cannot pick up: the ship names these at the end
+// Teach once at a write to a file an open session cannot pick up: the ship names these at the end
 // of a run, hours after the decision that put the text there. how/restart-owed.md says why.
 
 import { dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, deny, done, how, lastRecords, logged, named, ownTranscript, settled, shellWrites, writtenPaths } from "../_hook.mjs";
+import { askedAlready, context, done, how, lastRecords, logged, named, ownTranscript, settled, shellWrites, writtenPaths } from "../_hook.mjs";
 import { FROZEN, copyToRun, freezesSession } from "../../src/tools/plugin-copy.mjs";
 
 /** The repository-relative name `freezesSession` reads — the set is its and nothing here narrows or widens it — or null where the write is not in a checkout of this plugin at all. A marketplace `source` is one directory below the checkout root, which is what `copyToRun` answers with and what this reads the root back off. */
@@ -32,10 +32,10 @@ const frozen = (path, here) => {
   return rel && freezesSession(rel) ? rel : null;
 };
 
-/** What the agent said when it re-sent, kept so the ship can print it beside the file. The transcript read is the writing run's own and never the one a delegated run's event hands it, which is the dispatcher's and whose last line is about another issue (ISS-510). A transcript this cannot read leaves the line empty rather than refusing the write it already asked about. */
+/** What the agent said just before this write, kept so the ship can print it beside the file. The transcript read is the writing run's own and never the one a delegated run's event hands it, which is the dispatcher's and whose last line is about another issue (ISS-510). A transcript this cannot read leaves the line empty rather than holding the write. */
 const lineGiven = (ev) => {
   const records = lastRecords(ownTranscript(ev)) ?? [];
-  /* The re-send is the last record and carries no text, so the line is behind it; a record that is not the agent's is the hold, and what was said before the hold was not said about this. */
+  /* The write is the last record and carries no text, so the line is behind it; a record that is not the agent's is a tool's answer, and what was said before it was not said about this write. */
   for (let at = records.length - 1; at >= 0 && records[at]?.type === "assistant"; at -= 1) {
     const said = (records[at].message?.content ?? [])
       .filter((one) => one?.type === "text")
@@ -48,20 +48,28 @@ const lineGiven = (ev) => {
   return "";
 };
 
-/* One note per file per session: the write after the hold is the answer, and every write after that one is the same answer again. */
-const note = (ev, rel) => {
+const NO_LINE = "no line given";
+
+// cm:why two notes per file a session at most, the line before the first write and the one the teaching asks for before the next; the ship prints the latest
+const answer = (ev, rel) => {
   if (askedAlready(ev, `${rel} noted`, "restart-owed")) return;
-  logged("note", lineGiven(ev) || "no line given", rel);
+  const said = lineGiven(ev);
+  if (said) logged("note", said, rel);
 };
 
-const hold = (rel) =>
-  deny(
-    "Hold — say in one line why no live home fits, then re-send. A rule with a checker belongs under "
-      + "`plugin/src/`, where the CLI serves it live; method text in a guide; a reason in a `--how` page.\n\n"
+const teach = (ev, rel) => {
+  const said = lineGiven(ev) || NO_LINE;
+  logged("note", said, rel);
+  context(
+    "Say in one line why no live home fits before your next write to this file: that line replaces the one "
+      + "recorded below. A rule with a checker belongs under `plugin/src/`, where the CLI serves it live; "
+      + "method text in a guide; a reason in a `--how` page.\n\n"
       + `\`${rel}\` is in the restart set: it reaches a session only at its next start, and every `
-      + "open session runs the old copy until then."
+      + "open session runs the old copy until then. Recorded as the reason, which the release prints beside "
+      + `the file: ${said === NO_LINE ? NO_LINE : `"${said}"`}. Said once per file a session.`
       + how(),
   );
+};
 
 export const run = (ev) => {
   const tool = ev.tool_name ?? "";
@@ -79,10 +87,10 @@ export const run = (ev) => {
     const rel = frozen(path, here);
     if (!rel) continue;
     if (askedAlready(ev, settled(path), "restart-owed")) {
-      note(ev, rel);
+      answer(ev, rel);
       continue;
     }
-    hold(rel);
+    teach(ev, rel);
   }
   done();
 };
