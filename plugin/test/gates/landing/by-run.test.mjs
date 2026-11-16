@@ -1,5 +1,5 @@
 /* The gate is matched by what a command runs, not by how it was typed: a project declaring `npm run gate`
-   once has every spelling of that run refused, and a read of the script, or another script, let through
+   once has every spelling of that run taught, and a read of the script, or another script, let through
    (ISS-3194). */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -38,7 +38,9 @@ const decision = (command, { project = DECLARED, cwd = REPO } = {}) => {
   const run = callHook(HOOK,
     { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: `r${count}`, cwd },
     { ...process.env, HOME: room, XDG_CONFIG_HOME: room });
-  return answered(run)?.hookSpecificOutput?.permissionDecision ?? "allow";
+  const out = answered(run)?.hookSpecificOutput;
+  assert.equal(out?.permissionDecision, undefined, "the gate teaches and lets the run through");
+  return out?.additionalContext ? "taught" : "quiet";
 };
 
 const SPELLINGS = [
@@ -64,37 +66,37 @@ const SPELLINGS = [
   "nice -n10 node scripts/gates.mjs",
 ];
 
-test("every spelling that runs the declared gate's script is refused", () => {
-  for (const command of SPELLINGS) assert.equal(decision(command), "deny", command);
+test("every spelling that runs the declared gate's script is taught", () => {
+  for (const command of SPELLINGS) assert.equal(decision(command), "taught", command);
 });
 
-test("npm pointed at the tree from outside it is refused by the tree it names", () => {
-  assert.equal(decision(`npm --prefix ${REPO} run gate`, { cwd: ELSEWHERE }), "deny");
-  assert.equal(decision(`npm --prefix=${REPO} run gate`, { cwd: ELSEWHERE }), "deny");
-  assert.equal(decision(`node ${join(REPO, "scripts", "gates.mjs")}`, { cwd: ELSEWHERE }), "deny");
-  assert.equal(decision(`npm run --prefix ${REPO} gate`, { cwd: ELSEWHERE }), "deny", "npm's option after run");
-  assert.equal(decision(`npm run gate --prefix ${REPO}`, { cwd: ELSEWHERE }), "deny", "and after the script's name");
-  assert.equal(decision(`npm run gate -- --prefix ${REPO}`, { cwd: ELSEWHERE }), "allow",
+test("npm pointed at the tree from outside it is taught by the tree it names", () => {
+  assert.equal(decision(`npm --prefix ${REPO} run gate`, { cwd: ELSEWHERE }), "taught");
+  assert.equal(decision(`npm --prefix=${REPO} run gate`, { cwd: ELSEWHERE }), "taught");
+  assert.equal(decision(`node ${join(REPO, "scripts", "gates.mjs")}`, { cwd: ELSEWHERE }), "taught");
+  assert.equal(decision(`npm run --prefix ${REPO} gate`, { cwd: ELSEWHERE }), "taught", "npm's option after run");
+  assert.equal(decision(`npm run gate --prefix ${REPO}`, { cwd: ELSEWHERE }), "taught", "and after the script's name");
+  assert.equal(decision(`npm run gate -- --prefix ${REPO}`, { cwd: ELSEWHERE }), "quiet",
     "past a `--` the option is the script's, and the caller's own package runs");
 });
 
 test("a launcher that changes directory moves where the script is resolved", () => {
-  assert.equal(decision(`env -C ${REPO} node scripts/gates.mjs`, { cwd: ELSEWHERE }), "deny", "into the ready tree");
-  assert.equal(decision(`env --chdir=${REPO} node scripts/gates.mjs`, { cwd: ELSEWHERE }), "deny");
-  assert.equal(decision(`env -C ${ELSEWHERE} node scripts/gates.mjs`), "allow",
+  assert.equal(decision(`env -C ${REPO} node scripts/gates.mjs`, { cwd: ELSEWHERE }), "taught", "into the ready tree");
+  assert.equal(decision(`env --chdir=${REPO} node scripts/gates.mjs`, { cwd: ELSEWHERE }), "taught");
+  assert.equal(decision(`env -C ${ELSEWHERE} node scripts/gates.mjs`), "quiet",
     "out of it, onto another repository's script at the same relative path");
 });
 
 test("reading the script, or running another, is let through", () => {
   for (const command of ["cat scripts/gates.mjs", "grep -n gate scripts/gates.mjs", "sed -n 1p scripts/gates.mjs",
     "node scripts/other.mjs", "npm run gate:spec", "node -e 'require(\"./scripts/gates.mjs\")'", "echo node scripts/gates.mjs"]) {
-    assert.equal(decision(command), "allow", command);
+    assert.equal(decision(command), "quiet", command);
   }
 });
 
-test("a tree not shipping ready, or declaring no gate, is refused none of them", () => {
+test("a tree not shipping ready, or declaring no gate, is taught none of them", () => {
   for (const command of ["node ./scripts/gates.mjs", "npm run -s gate"]) {
-    assert.equal(decision(command, { project: { slug: "fixture", ship: "self", stats: { commands: { gate: "npm run gate" } } } }), "allow", command);
-    assert.equal(decision(command, { project: { slug: "fixture", ship: "ready" } }), "allow", command);
+    assert.equal(decision(command, { project: { slug: "fixture", ship: "self", stats: { commands: { gate: "npm run gate" } } } }), "quiet", command);
+    assert.equal(decision(command, { project: { slug: "fixture", ship: "ready" } }), "quiet", command);
   }
 });

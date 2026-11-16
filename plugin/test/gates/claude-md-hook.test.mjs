@@ -32,41 +32,43 @@ const decide = (file = join(room, "CLAUDE.md")) => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  if (!run.stdout.trim()) return { allowed: true };
+  if (!run.stdout.trim()) return { quiet: true };
   const held = JSON.parse(run.stdout);
-  return { allowed: held.decision !== "block", reason: held.reason ?? "" };
+  assert.equal(held.decision, undefined, "a claim is taught, never blocked");
+  const reason = held.hookSpecificOutput?.additionalContext ?? "";
+  return { quiet: !reason, reason };
 };
 
 /* A gate that fires over what someone inherited is switched off in its first hour, and it would
-   refuse the edit that fixes the claim. */
+   nag the edit that fixes the claim. */
 test("a claim already broken in the committed file is not this write's doing", () => {
-  assert.equal(decide().allowed, true);
+  assert.equal(decide().quiet, true);
 });
 
 test("a claim the write introduces is refused, named, with one move and where the argument is", () => {
   guide("# CLAUDE.md\n\nThe plan is [here](docs/OLD-PLAN.md).\nRun `npm run verify`, and read `scripts/gate.mjs`.\n");
-  const { allowed, reason } = decide();
-  assert.equal(allowed, false);
+  const { quiet, reason } = decide();
+  assert.equal(quiet, false);
   assert.match(reason, /`scripts\/gate\.mjs` names no such path/u);
   assert.match(reason, /`verify` is in no package\.json here/u);
   assert.match(reason, /^Correct each claim below, or delete it/u);
   assert.match(reason, /forge hooks --how claude-md/u);
-  assert.ok(reason.length < 500, `${reason.length} characters printed on a refused write`);
+  assert.ok(reason.length < 500, `${reason.length} characters printed after the write`);
 });
 
 test("correcting the claim clears it, and deleting the inherited one is an answer too", () => {
   guide("# CLAUDE.md\n\nRun `npm test` before every commit.\n");
-  assert.equal(decide().allowed, true);
+  assert.equal(decide().quiet, true);
 });
 
 test("a project's own guides and every other file are its business", () => {
   guide("# CLAUDE.md\n\nRead `scripts/nothing-here.mjs`.\n");
-  assert.equal(decide(join(room, "package.json")).allowed, true);
-  assert.equal(decide().allowed, false, "and CLAUDE.md itself still answers");
+  assert.equal(decide(join(room, "package.json")).quiet, true);
+  assert.equal(decide().quiet, false, "and CLAUDE.md itself still answers");
 });
 
-/* AC-07-3-4. One refusal, the claims it lists coming after the route. */
-test("every refusal this gate writes leads with its route", () => {
+/* AC-07-3-4. One teaching, the claims it lists coming after the route. */
+test("every teaching this gate writes leads with its route", () => {
   guide("# CLAUDE.md\n\nRead `scripts/never-there.mjs`.\n");
   assertRouteFirst(decide().reason, "a claim the tree does not bear out");
 });

@@ -132,15 +132,16 @@ test("the reasoning is what --how prints, and a near miss is named", () => {
 /* AC-07-3-5. The line is the printer's and not the page's: every page sits at the ceiling above, and a
    sentence twenty pages carried would be twenty copies of one rule. */
 test("a gate's page is printed with the line saying its refusal is the route", () => {
-  const refusing = forge("--how", "landing-gate");
+  const refusing = forge("--how", "judge-writes");
   assert.equal(refusing.status, 0, refusing.stderr);
   assert.equal(
     refusing.stdout.trimEnd(),
-    `${readFileSync(join(HOW, "landing-gate.md"), "utf8").trimEnd()}\n\n${ROUTE_NOT_VERDICT}`,
+    `${readFileSync(join(HOW, "judge-writes.md"), "utf8").trimEnd()}\n\n${ROUTE_NOT_VERDICT}`,
     "the page whole, and then the line",
   );
   assert.match(ROUTE_NOT_VERDICT, /the route to take, not a verdict on the call/u);
   const speaking = forge("--how", "ask-precedent");
   assert.equal(speaking.status, 0, speaking.stderr);
   assert.doesNotMatch(speaking.stdout, /not a verdict/u, "a gate that refuses nothing is not told its refusal is a route");
+  assert.doesNotMatch(forge("--how", "landing-gate").stdout, /not a verdict/u, "nor one that only teaches");
 });

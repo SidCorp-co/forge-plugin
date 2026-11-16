@@ -1,4 +1,4 @@
-// Under ship `ready` the landing runs the project's whole-tree gate, and nothing before it does. how/landing-gate.md.
+// Under ship `ready` the landing runs the project's whole-tree gate, so a run of it before is taught the cheaper proof. how/landing-gate.md.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -10,12 +10,12 @@ import { offReach } from "../../src/hooks/hook-switch.mjs";
 import { enumOf, projectFileAt } from "../../src/resolve/settings.mjs";
 import { gitDirAt, runFor, runIdAt } from "../../src/resolve/session/run-id.mjs";
 import { declaredClasses, declaredCommands } from "../../src/stats/corpus/declared.mjs";
-import { deny, done, how, shellText } from "../_hook.mjs";
+import { askedAlready, context, done, how, shellText } from "../_hook.mjs";
 
 const GATE = "landing-gate";
 
 /* Both halves are the project's own: a tree that never said `ready`, or never named its gate, has not
-   decided that a gate run is the landing's alone, and is refused nothing (G-12). The source is passed
+   decided that a gate run is the landing's alone, and is told nothing (G-12). The source is passed
    so that reading another tree's mode resolves nothing about this process's own project. */
 const heldIn = (tree) => {
   const parsed = projectFileAt(tree);
@@ -56,19 +56,19 @@ const byRun = ({ tree, span }) => {
 export const run = (ev) => {
   if (ev.tool_name !== "Bash") done();
   const cwd = ev.cwd ?? process.cwd();
-  /* A destination no reading names is not judged: refusing it would rest on a guess at whose gate it is. */
+  /* A destination no reading names is not judged: teaching it would rest on a guess at whose gate it is. */
   const spans = commandsAt(shellText((ev.tool_input ?? {}).command), cwd, heldIn);
   const hit = spans.find(({ tree, held, here }) => tree && opensWithAny(held.classes, here))
     ?? spans.map(byRun).find(Boolean);
-  if (!hit) done();
+  if (!hit || askedAlready(ev, hit.tree, GATE)) done();
   const key = keyOf(hit.tree);
-  deny(
+  context(
     "Run the suites that exercise the files this change touched, then hand it over: "
       + `\`forge claim ${key} --pushed --ready\`.\n\n`
-      + `Refused: ${hit.held.said.map((one) => `\`${one}\``).join(" or ")} is this project's whole-tree gate, and under `
+      + `${hit.held.said.map((one) => `\`${one}\``).join(" or ")} is this project's whole-tree gate, and under `
       + "ship `ready` the landing gates every change on the base as it is, so a builder's run of it measures "
       + "nothing the landing will not. "
-      + `Past the gate: \`forge hooks --off ${GATE}\`, ${offReach(GATE)}.`
+      + `Said once a session; silenced by \`forge hooks --off ${GATE}\`, ${offReach(GATE)}.`
       + how(),
   );
 };

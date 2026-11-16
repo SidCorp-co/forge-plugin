@@ -21,7 +21,7 @@ writeFileSync(join(REPO, ".git", "forge-run-id"), "iss-77-0a1b2c3d\n");
 spawnSync("git", ["-C", OTHER, "symbolic-ref", "HEAD", "refs/heads/iss-55-by-hand"], { cwd: room });
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
-/* A refusal is armed by the project's own two declarations and by no table of this repository's. */
+/* A teaching is armed by the project's own two declarations and by no table of this repository's. */
 const GATED = { stats: { commands: { gate: "npm run check" } } };
 const READY = { slug: "fixture", ship: "ready", ...GATED };
 
@@ -38,14 +38,19 @@ const gate = (command, { project = READY, other = null, cwd = REPO } = {}) => {
   );
   return answered(run);
 };
-const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
+const because = (out) => out?.hookSpecificOutput?.additionalContext ?? "";
+const taught = (out) => out?.hookSpecificOutput?.permissionDecision === undefined && Boolean(because(out));
 
 test("the declared gate is refused where the project ships ready", () => {
   const out = gate("npm run check");
-  assert.equal(out?.hookSpecificOutput?.permissionDecision, "deny", "under ready the gate is the landing's");
-  assert.equal(gate("cd sub && npm run check -- --full")?.hookSpecificOutput?.permissionDecision, "deny",
+  assert.equal(taught(out), true, "under ready the gate is the landing's");
+  const session = { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm run check" }, session_id: "once", cwd: REPO };
+  const env = { ...process.env, HOME: room, XDG_CONFIG_HOME: room };
+  assert.equal(taught(answered(callHook(HOOK, session, env))), true);
+  assert.equal(answered(callHook(HOOK, session, env)), null, "said once a session");
+  assert.equal(taught(gate("cd sub && npm run check -- --full")), true,
     "and in the same tree after a cd, with arguments after it");
-  assert.equal(gate("ls && npm run check")?.hookSpecificOutput?.permissionDecision, "deny",
+  assert.equal(taught(gate("ls && npm run check")), true,
     "and as the second command of a line");
 });
 
@@ -86,7 +91,7 @@ test("a script whose name only begins with the declared gate's is not the gate",
     assert.equal(gate(other), null, `${other} is another script`);
   }
   for (const same of ["npm run check", "npm run check -- --full", "npm run check;", "(npm run check)"]) {
-    assert.equal(gate(same)?.hookSpecificOutput?.permissionDecision, "deny", `${same} is the gate`);
+    assert.equal(taught(gate(same)), true, `${same} is the gate`);
   }
 });
 
@@ -100,6 +105,6 @@ test("the landing's own verbs are not the gate, and pass under ship ready", () =
 test("a line that moves into another tree is judged by that tree's own declaration", () => {
   assert.equal(gate(`cd ${OTHER} && npm run check`, { other: { ...READY, ship: "self" } }), null,
     "the tree the gate runs in ships self");
-  assert.equal(gate(`cd ${OTHER} && npm run check`, { project: { ...READY, ship: "self" }, other: READY })
-    ?.hookSpecificOutput?.permissionDecision, "deny", "and the one it was sent from does not decide for it");
+  assert.equal(taught(gate(`cd ${OTHER} && npm run check`, { project: { ...READY, ship: "self" }, other: READY })), true,
+    "and the one it was sent from does not decide for it");
 });

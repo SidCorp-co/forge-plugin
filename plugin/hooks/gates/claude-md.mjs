@@ -1,12 +1,12 @@
 // A claim CLAUDE.md makes about the repository is read as fact by every session that opens it, and
-// it rots silently. Checked where it is written. how/claude-md.md.
+// it rots silently. Checked where it is written, and taught rather than refused. how/claude-md.md.
 
 import { relative } from "node:path";
 
 import { checkClaims, readClaudeMd } from "../../src/checks/claude-md.mjs";
 import { repoRoot } from "../../src/git/repo-root.mjs";
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
-import { block, remaining, touched, how, done } from "../_hook.mjs";
+import { context, remaining, touched, how, done } from "../_hook.mjs";
 
 /* The eight kinds `forge doctor` reports, in its words: how/claude-md.md. */
 const KINDS = [
@@ -45,7 +45,7 @@ export const run = (ev) => {
   const fresh = named(held.text, root).filter((one) => !before.includes(one));
   if (!fresh.length) done();
 
-  block(
+  context(
     "Correct each claim below, or delete it — the file it names is the authority, and a claim it "
       + "has outlived is worse than silence.\n\n"
       + `CLAUDE.md now claims ${fresh.length === 1 ? "something" : `${fresh.length} things`} this repository `
