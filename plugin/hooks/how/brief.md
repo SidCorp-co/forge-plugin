@@ -4,7 +4,8 @@ Why: a typed message carries what the dispatcher believed about the method, and 
 first. On 2026-09-23 five briefs carried a rebase order under text forbidding it (ISS-2148).
 
 What to do: send what `forge brief ISS-nn --tree <the run's worktree>` prints (no `--tree` for a
-run given none), whole and unchanged; a judge's or a requirement's form: `forge brief -h`.
+run given none), whole and unchanged; a judge's form (`--judge --url` or `--judge --program`) or a
+requirement's: `forge brief -h`.
 
 It teaches, never refuses: the dispatch goes as written and the brief to send arrives beside it,
 which brief being a way of working, not kernel input. What it judges: whether the whole prompt is
