@@ -16,7 +16,9 @@ export const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
 export const BRIEF =
   "Record only what cost a cycle, will recur, fails silently, is not already written, and code "
   + "cannot hold: a check, a default or a refusal that names the way is fixed or filed there instead, "
-  + "since a memory reminds one agent and code holds every run. Most rounds record nothing.";
+  + "since a memory reminds one agent and code holds every run. How builders share code (one worktree per "
+  + "builder off the batch branch, an inventory a new route or door must join) is a code-standard rule held "
+  + "by a gate, a default or a tool, never a memory. Most rounds record nothing.";
 
 /** Whether a path sits under a project's own `.claude/skills/`: the host loads that directory for the one
  *  project holding it, so its text is a note about one repository by construction — the very thing a

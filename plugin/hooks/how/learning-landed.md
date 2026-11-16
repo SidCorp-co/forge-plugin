@@ -3,17 +3,16 @@
 Why: the gate before a write reads shapes, and a shape list is silent on the route nobody thought of.
 This one reads the disk instead, so a memory or a skill file that appeared unasked is answered for.
 
-It teaches after the write and refuses nothing. What it asks: one line saying which of the five
-conditions the file meets. If none holds, remove it — a file kept because deleting it felt wasteful
-is what the five conditions are against.
+It teaches after the write and refuses nothing. It asks one line naming which of the five
+conditions the file meets; if none holds, remove it. How builders share code (one worktree per
+builder off the batch branch, an inventory a new route or door must join) is a code-standard rule
+held by a gate, a default or a tool, never a memory.
 
-How to avoid it: write a memory with `Write` and a skill's text with `Edit`, where the question comes
-first and is stamped, so it is never asked twice.
+Avoid it: write a memory with `Write` and a skill's text with `Edit`, where the question comes first.
 
-What it sees: a guarded file changed in the last two minutes that a command named, and any in the
-memory or skill directories changed since this call began (none where the transcript cannot say). A
-tracked file the tree agrees with was restamped, not written. What is left may still be another's:
-say which, and it is not asked again.
+What it sees: a guarded file a command named in the last two minutes, and any in the memory or skill
+directories changed since this call began. A tracked file the tree agrees with was restamped, not
+written. One that is another's: say which, and it is not asked again.
 
 Not judged: whether the fact is true or useful; a file outside `memory/` or `skills/`; a shipped
 skill, tracked or marketplace-named; an installed copy of this plugin, where the host's install
