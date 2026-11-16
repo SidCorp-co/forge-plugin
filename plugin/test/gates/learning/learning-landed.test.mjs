@@ -53,6 +53,8 @@ test("a memory file that arrived by no route a check reads is caught after the f
   assert.match(first, /Record only what cost a cycle/u);
   assert.match(first, /How builders share code .* is a code-standard rule held by a gate, a default or a tool, never a memory\./u,
     "a learning about builder isolation is pointed at the code standard (ISS-111)");
+  assert.match(first, /What the round itself tripped or missed is its audit, `audit\.self` \(`forge-runner api projects\/<id>\/self-audits -X POST`\)/u,
+    "a round's own miss is pointed at its self-audit, never a memory (ISS-1251)");
   assert.match(first, /which of the five conditions/u);
   assert.match(first, /forge hooks --how learning-landed/u);
 });

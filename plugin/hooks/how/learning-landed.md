@@ -6,7 +6,7 @@ This one reads the disk instead, so a memory or a skill file that appeared unask
 It teaches after the write and refuses nothing. It asks one line naming which of the five
 conditions the file meets; if none holds, remove it. How builders share code (one worktree per
 builder off the batch branch, an inventory a new route or door must join) is a code-standard rule
-held by a gate, a default or a tool, never a memory.
+held by a gate, a default or a tool, never a memory, and a round's own miss is its `audit.self`.
 
 Avoid it: write a memory with `Write` and a skill's text with `Edit`, where the question comes first.
 

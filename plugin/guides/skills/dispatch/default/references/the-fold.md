@@ -51,6 +51,15 @@ Where the run-cost record can be read per step, the wave's own opening cost goes
 figure it is meant to be reducing. A skill that claims a saving it has not measured is the habit this
 one replaces.
 
+## The master's own audit
+
+The fold reads what the runs did; the master's own part is audited too, once per issue the wave
+landed: `forge-runner api projects/<id>/self-audits -X POST`, as `master`, each line of the master
+rubric or card red flag the wave tripped and each act the master should have reached for. Its card
+is `forge_describe { action: "audit.self" }`. A run audits its own build as `run`, so this one says
+what the dispatching, the landing and the asking did, not what the code did. A wave that tripped
+nothing sends `failed: []`, which the capabilities page counts as an audit and not as silence.
+
 ## Closing the wave
 
 The trees the runs worked in go, once what a verdict cites has been captured somewhere a verdict can

@@ -1,6 +1,19 @@
 # Learning selectively
 
-**Most rounds record nothing.** The default at the end of a round is silence.
+**Most rounds record nothing.** The default at the end of a round is silence, with one exception.
+
+## The audit every round owes
+
+A run that closed an issue or handed it on audits what it shipped, once, before the round ends:
+`forge-runner api projects/<id>/self-audits -X POST`, as `run`, naming the issue, each line of the
+run rubric or card red flag the work tripped, and each act it should have reached for and did not.
+Its card is read with `forge_describe { action: "audit.self" }`, which carries the rubric and the
+shape. A clean round sends `failed: []`, which is a record and not silence: it is what lets a miss
+reported next week be read against a round that said it had none.
+
+The audit is not this reference's other learning. A failed line goes to core as a correction the
+steward draws lessons from, and a miss is counted on the card it names, so neither is a memory or a
+skill edit here; what follows still decides those.
 
 <!-- forge:when feedback.plugin off -->
 ## The defect this project sends nowhere, and what the report owes for it
