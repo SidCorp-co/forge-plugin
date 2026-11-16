@@ -196,7 +196,9 @@ test("the rounds line says which consult its count is of, on both surfaces that 
    sentence now, the ladder's, printed apart from the bought rounds on both surfaces and by the
    refusal (ISS-2303). */
 test("the read a plan or a criteria write owes is printed apart from the rounds a rung buys", () => {
-  assert.match(WRITE_READ_OWED, /owed at every rung/u, "the sentence says no rung drops the read");
+  assert.match(WRITE_READ_OWED, /asked at every rung, and no rung drops it/u, "the sentence says no rung drops the read");
+  assert.match(WRITE_READ_OWED, /lands with a comment on the issue saying so, unless the project.s `codex.consult` holds the write/u,
+    "and that, unread, the write is taught rather than held where the project set nothing (ISS-110)");
   assert.match(WRITE_READ_OWED, /taken again once a correction changes the file/u,
     "and that a correction to a file already taken owes it again");
   for (const rung of [TRIVIAL, FIX]) {

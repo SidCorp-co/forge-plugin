@@ -21,7 +21,12 @@ const { logConsult, logPath } = await import("../../../src/codex/codex-log.mjs")
 const { repoRoot } = await import("../../../src/git/repo-root.mjs");
 const { readOrRefuse } = await import("../../../src/codex/codex-read.mjs");
 
-const refusalOf = (path, cwd) => readOrRefuse(path, cwd).refusal;
+/* What the write is told, refused or taught: which consult counts is the same question under every
+   reading of `codex.consult` (ISS-110). */
+const toldOf = (path, cwd) => {
+  const got = readOrRefuse(path, cwd);
+  return got.refusal ?? got.taught ?? null;
+};
 
 const TEXT = "1. it refuses\n";
 
@@ -70,41 +75,41 @@ test("a write from the primary checkout is cleared by a consult of the same abso
   const inTree = written(WORKTREE, "plan.md");
   consultedFrom(WORKTREE, scratch);
   assert.equal(consultedFrom(WORKTREE, inTree), "plan.md", "the worktree's row names its own file by a rel");
-  assert.equal(refusalOf(scratch, PRIMARY), null);
-  assert.equal(refusalOf(inTree, PRIMARY), null);
+  assert.equal(toldOf(scratch, PRIMARY), null);
+  assert.equal(toldOf(inTree, PRIMARY), null);
 });
 
 test("a file inside one repository is cleared by a consult of it taken in an unrelated checkout", () => {
   const path = written(PRIMARY, "inside.md");
   assert.ok(consultedFrom(STRANGER, path).startsWith("/"), "the stranger's row names it by its real path");
-  assert.equal(refusalOf(path, PRIMARY), null);
-  assert.equal(refusalOf(path, WORKTREE), null);
+  assert.equal(toldOf(path, PRIMARY), null);
+  assert.equal(toldOf(path, WORKTREE), null);
 });
 
 test("a file outside every repository is cleared by a consult of it taken in an unrelated checkout", () => {
   const path = written(tempRoom("read-anywhere-scratch-"), "criteria.md");
   consultedFrom(STRANGER, path);
-  assert.equal(refusalOf(path, PRIMARY), null);
-  assert.equal(refusalOf(path, WORKTREE), null);
+  assert.equal(toldOf(path, PRIMARY), null);
+  assert.equal(toldOf(path, WORKTREE), null);
 });
 
 test("from outside every checkout, a consult of a file outside every repository clears it", () => {
   const nowhere = tempRoom("read-anywhere-nowhere-");
   const path = written(nowhere, "criteria.md");
-  assert.match(refusalOf(path, nowhere), /No consult has read .*criteria\.md[\s\S]*is in no git checkout/u);
+  assert.match(toldOf(path, nowhere), /No consult has read .*criteria\.md[\s\S]*is in no git checkout/u);
   consultedFrom(STRANGER, path);
-  assert.equal(refusalOf(path, nowhere), null);
+  assert.equal(toldOf(path, nowhere), null);
 });
 
-test("a consult of a different file holding the same bytes leaves the write refused", () => {
+test("a consult of a different file holding the same bytes leaves the write unread", () => {
   const read = written(tempRoom("read-anywhere-scratch-"), "criteria.md");
   const twin = written(tempRoom("read-anywhere-scratch-"), "criteria.md");
   consultedFrom(WORKTREE, read);
-  assert.match(refusalOf(twin, PRIMARY), /^No consult has read /u);
+  assert.match(toldOf(twin, PRIMARY), /^No consult has read /u);
   const sameName = written(STRANGER, "twin.md");
   written(PRIMARY, "twin.md");
   consultedFrom(STRANGER, sameName);
-  assert.match(refusalOf(join(PRIMARY, "twin.md"), PRIMARY), /^No consult has read twin\.md/u,
+  assert.match(toldOf(join(PRIMARY, "twin.md"), PRIMARY), /^No consult has read twin\.md/u,
     "one rel under two roots is two files");
 });
 
@@ -112,8 +117,8 @@ test("a relative argument still names the file under the directory the write run
   written(WORKTREE, "relative.md");
   const primaryCopy = written(PRIMARY, "relative.md");
   consultedFrom(PRIMARY, primaryCopy);
-  assert.match(refusalOf("relative.md", WORKTREE), /^No consult has read relative\.md/u);
-  assert.equal(refusalOf("relative.md", PRIMARY), null);
+  assert.match(toldOf("relative.md", WORKTREE), /^No consult has read relative\.md/u);
+  assert.equal(toldOf("relative.md", PRIMARY), null);
 });
 
 test("a file edited since another checkout's consult read it says its text changed since that consult", () => {
@@ -121,7 +126,7 @@ test("a file edited since another checkout's consult read it says its text chang
   consultedFrom(WORKTREE, path);
   const id = `aw${String(serial).padStart(4, "0")}`;
   writeFileSync(path, `${TEXT}2. and one more\n`);
-  assert.match(refusalOf(path, PRIMARY), new RegExp(`^Consult ${id} read .*criteria\\.md whole, and its text has changed since\\.`, "u"));
+  assert.match(toldOf(path, PRIMARY), new RegExp(`^Consult ${id} read .*criteria\\.md whole, and its text has changed since\\.`, "u"));
 });
 
 test("the log these cases wrote is the sandbox's, never the developer's", () => {

@@ -37,4 +37,5 @@ export const passesUnread = (state, consult) => consult === "advisory" && (state
 
 /** The route a refusal names where the gateway, not the agent, is why nothing read a file. */
 export const ADVISORY_ROUTE = "`forge doctor --set codex.consult=advisory` is the project's way to let an "
-  + "unavailable gateway hold nothing: what goes through then says no consult read it.";
+  + "unavailable gateway hold nothing, and `teach` lets every unread write through: what goes through then says no "
+  + "consult read it.";

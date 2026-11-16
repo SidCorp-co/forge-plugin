@@ -465,15 +465,18 @@ run that dies leaves nothing wrong, and it is reported rather than enforced unti
 
 ### UC-06-10 — A reviewer that cannot answer stops no run where the project made the reading advisory
 
-Rev: 1 · Actors: agent, reviewer · Enforces: BR-01
+Rev: 2 · Actors: agent, reviewer · Enforces: BR-01
 
 The reviewer is a service outside the flow, and a precondition it cannot meet holds every run that
 waits on it: on 2026-09-30 every consult came back unavailable and a builder sat in a loop until
-somebody told it to stop. So a project may declare the reading advisory, and then a reading the
-reviewer could not give is written down as not given and the work goes on, and so is every reading
-on a machine with no reviewer configured, where none can be asked for. Elsewhere a reading nobody
-asked for is still asked for under either declaration, because the record has to tell a reviewer that
-was down from an agent that skipped it. Why the default stays required: `docs/cli/codex-the-consult.md`.
+somebody told it to stop. The reading a plan or criteria write asks for is a way of working, not
+kernel input, so by default a write no consult read goes ahead, taught the consult that would read
+it, and the issue says no consult read it and why. A project may instead declare the reading
+required, and then every unread write is held; or advisory, and then a reading the reviewer could
+not give is written down as not given and the work goes on, and so is every reading on a machine
+with no reviewer configured, where none can be asked for. Under either declaration a reading nobody
+asked for is still asked for, because the record has to tell a reviewer that was down from an agent
+that skipped it. Why the default teaches: `docs/cli/codex-the-unavailable.md`.
 
 - **AC-06-10-1** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a plan an advisory project takes after the gateway failed posts the gateway's status and the consult"
   WHERE the project has declared the reading advisory, WHEN the newest consult asked for a plan or
@@ -487,8 +490,8 @@ was down from an agent that skipped it. Why the default stays required: `docs/cl
   WHERE the project has declared the reading advisory and the machine has no reviewer configured,
   the CLI SHALL write a plan or criteria file to the issue and SHALL post on that issue that no
   reviewer is configured.
-- **AC-06-10-4** · Rev: 1 · Proof: plugin/test/codex/read/codex-read.test.mjs "a required reading refuses a file whose consult failed, naming the status and the declaration that lets it through"
-  WHERE the project has not declared the reading advisory, IF the newest consult asked for a plan or
+- **AC-06-10-4** · Rev: 2 · Proof: plugin/test/codex/read/codex-read.test.mjs "a required reading refuses a file whose consult failed, naming the status and the declaration that lets it through"
+  WHERE the project has declared the reading required, IF the newest consult asked for a plan or
   criteria file got no answer from the reviewer THEN the CLI SHALL refuse the write, SHALL say what
   the reviewer answered instead, and SHALL name the declaration that lets the write proceed.
 - **AC-06-10-5** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a plan taken under the stand-down posts that no consult read it, and why"
@@ -505,6 +508,11 @@ was down from an agent that skipped it. Why the default stays required: `docs/cl
   WHERE the project has declared the reading advisory and the machine has a reviewer configured, IF
   a door's call carries a file no consult was asked about THEN the CLI SHALL refuse it as it would
   under a required reading.
+- **AC-06-10-9** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a file no answered consult has read whole goes ahead by default, posting that none read it and printing the consult"
+  WHERE the project has declared no reading or declared it teach, WHEN a plan or criteria write names
+  a file no consult has read whole at its current bytes THEN the CLI SHALL write the file to the
+  issue, SHALL post on that issue that no consult read it and why, and SHALL print the consult that
+  would read it.
 
 ## Business rules enforced
 

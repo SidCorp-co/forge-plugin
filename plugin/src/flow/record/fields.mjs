@@ -275,12 +275,14 @@ const onlyFile = (kind, [path, ...extra], what) => {
 
 /* A plan or criteria taken with no consult having read it says so on the issue, beside the field, so
    nothing a later reader sees claims a review that did not happen and the reason — a gateway that
-   could not answer, none configured, a stand-down — is the one the record keeps (ISS-2932). */
-const withUnread = (what, unread, superseding) => {
+   could not answer, none configured, a stand-down, a consult skipped where the project teaches it —
+   is the one the record keeps (ISS-2932, ISS-110). */
+const withUnread = (what, { unread, taught }, superseding) => {
   if (!unread) return superseding;
   const said = `## No consult read the ${what}\n\nThe ${what} was written to this issue with no consult having `
     + `read it: ${unread}. Nothing has reviewed this text.`;
   console.error(`record ${what}: no consult read this file — ${unread}; the issue is told so in a comment.`);
+  if (taught) console.error(taught);
   return { ...superseding, noted: said };
 };
 
@@ -288,9 +290,10 @@ const withUnread = (what, unread, superseding) => {
    replaces a payload its status was earned on: that question costs a read of the issue, and every
    refusal above it costs none. */
 
-/** The plan field, and every refusal a plan can earn, from a file a consult has read. */
+/** The plan field, and every refusal a plan can earn, from a file for a consult to read. */
 export const planPrepared = async (argv, at) => {
-  const { refusal, text, unread } = onlyFile("plan", argv, PLAN_BODY);
+  const read = onlyFile("plan", argv, PLAN_BODY);
+  const { refusal, text } = read;
   if (refusal && text === null) refuse(refusal);
   const plan = text ?? await bodyFrom(argv[0]);
   if (!plan.trim()) refuse("An empty plan would clear the field; pass the plan itself.");
@@ -303,7 +306,7 @@ export const planPrepared = async (argv, at) => {
   if (refusal) refuse(refusal);
   const changed = planChanged(unwrap(body.plan), plan);
   return { field: "plan", value: plan, shown: plan, changed,
-    ...withUnread("plan", unread, await supersedingOf("plan", plan, at)) };
+    ...withUnread("plan", read, await supersedingOf("plan", plan, at)) };
 };
 
 /** The criteria field, numbered and renumbered by nobody: the numbers a verdict names are stored. */
@@ -312,7 +315,8 @@ export const criteriaPrepared = async (argv, at) => {
      one no review round should have been spent on, which is the whole of ISS-483. */
   const replace = argv.includes(REPLACE);
   const file = argv.filter((one) => one !== REPLACE);
-  const { refusal, text, unread } = onlyFile("criteria", file, CRITERIA_BODY);
+  const read = onlyFile("criteria", file, CRITERIA_BODY);
+  const { refusal, text } = read;
   if (refusal && text === null) refuse(refusal);
   const criteria = criteriaLines(text ?? await bodyFrom(file[0]), at.reference);
   criteriaChecked(criteria, refuse);
@@ -324,7 +328,7 @@ export const criteriaPrepared = async (argv, at) => {
   if (refusal) refuse(refusal);
   const value = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
   return { field: "acceptanceCriteria", value, shown: value, changed,
-    ...withUnread("criteria", unread, await supersedingOf("criteria", value, at)) };
+    ...withUnread("criteria", read, await supersedingOf("criteria", value, at)) };
 };
 
 /** The release note, in whichever of its two forms was typed. */

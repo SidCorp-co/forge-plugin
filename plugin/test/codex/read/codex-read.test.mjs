@@ -22,10 +22,19 @@ const { readOrRefuse } = await import("../../../src/codex/codex-read.mjs");
 const { WRITE_READ_OWED } = await import("../../../src/ladder.mjs");
 const { NO_GATEWAY_REASON, STOOD_DOWN_REASON } = await import("../../../src/codex/log/unavailable.mjs");
 
-/* The refusal alone where a case is about the wording, and the pair where it is about the bytes. */
+/* The refusal alone where a case is about the wording, and the pair where it is about the bytes.
+   `toldOf` is what the write is told whichever way the project reads the consult: the refusal where
+   it holds the write, the same sentence taught where the write goes ahead (ISS-110). */
 const refusalOf = (...given) => readOrRefuse(...given).refusal;
+const toldOf = (...given) => {
+  const got = readOrRefuse(...given);
+  return got.refusal ?? got.taught ?? null;
+};
 
 const PLAN = "# the plan\n\nScreen change: no\n";
+
+/* The project's reading of the consult, planted in this suite's own record for the room's root. */
+const reading = (root, consult) => projectRecord(root, sandbox, { slug: "fixture", ...(consult ? { codex: { consult } } : {}) });
 
 /* One checkout, one plan file in it, and the rel the log would key on — read off `locate` rather
    than assembled here, so the test cannot agree with itself against the code. */
@@ -50,26 +59,42 @@ const consulted = (root, rel, text, over = {}) =>
     ...over,
   });
 
-test("a plan no consult has read is refused, and the refusal names the consult that clears it", () => {
+test("a plan no consult has read goes ahead by default, unread, and is taught the consult that would read it", () => {
   const { root, path, rel } = room();
-  const refusal = refusalOf(path, root);
-  assert.match(refusal, /No consult has read plan\.md/u);
-  assert.match(refusal, /forge codex consult --send bodies plan\.md/u);
-  assert.match(refusal, /FORGE_CODEX_DISABLE=1/u);
+  const got = readOrRefuse(path, root);
+  assert.equal(got.refusal, null, "the consult is a way of working, so the default holds nothing");
+  assert.equal(got.text, PLAN, "and the bytes the write takes are the ones judged");
+  assert.equal(got.unread, "no consult was asked for plan.md", "the reason the issue's comment keeps");
+  assert.match(got.taught, /No consult has read plan\.md/u);
+  assert.match(got.taught, /forge codex consult --send bodies plan\.md/u, "the next step");
+  assert.doesNotMatch(got.taught, /FORGE_CODEX_DISABLE/u, "nothing is held, so no stand-down is offered");
   assert.equal(rel, "plan.md");
+});
+
+test("a required reading refuses a plan no consult has read, naming the consult that clears it", () => {
+  const { root, path } = room();
+  reading(root, "required");
+  const got = readOrRefuse(path, root);
+  assert.match(got.refusal, /No consult has read plan\.md/u);
+  assert.match(got.refusal, /forge codex consult --send bodies plan\.md/u);
+  assert.match(got.refusal, /FORGE_CODEX_DISABLE=1/u);
+  assert.equal(got.unread, undefined, "a held write posts no note, being no write");
 });
 
 /* The rung's rounds line and this refusal are the two counts a run reads, and a run at a lighter
    rung reads the line first: told it buys one consult, it meets this and has to know whether this
    is the one, or the stand-down below is the cheaper-looking answer (ISS-1322). */
-test("the refusal says this read is owed at every rung, before it offers the stand-down", () => {
+test("the refusal says this read is asked at every rung, before it offers the stand-down", () => {
   const { root, path } = room();
+  reading(root, "required");
   const refusal = refusalOf(path, root);
   assert.match(refusal, /at every rung, and no rung drops it/u);
   assert.ok(refusal.includes(WRITE_READ_OWED),
     "the refusal spells the owed read some other way than the rung's rounds print it (ISS-2303)");
   assert.ok(refusal.indexOf("every rung") < refusal.indexOf("FORGE_CODEX_DISABLE"),
-    "a run reads that the read is owed before it reads what would stand the check down");
+    "a run reads that the read is asked before it reads what would stand the check down");
+  reading(root, null);
+  assert.ok(readOrRefuse(path, root).taught.includes(WRITE_READ_OWED), "and the taught sentence carries it too");
 });
 
 test("a consult that read the file whole clears the write, and an edit makes it unread again", () => {
@@ -77,7 +102,7 @@ test("a consult that read the file whole clears the write, and an edit makes it 
   consulted(root, rel, PLAN);
   assert.equal(refusalOf(path, root), null);
   writeFileSync(path, `${PLAN}one more line\n`);
-  assert.match(refusalOf(path, root), /read plan\.md whole, and its text has changed since/u);
+  assert.match(toldOf(path, root), /read plan\.md whole, and its text has changed since/u);
   /* Restored to the bytes that were read: a hash says read where a timestamp would say edited. */
   writeFileSync(path, PLAN);
   assert.equal(refusalOf(path, root), null);
@@ -86,23 +111,23 @@ test("a consult that read the file whole clears the write, and an edit makes it 
 test("a diff consult does not clear it, and the refusal names the consult that sent the diff", () => {
   const { root, path, rel } = room();
   consulted(root, rel, PLAN, { id: "d1ff01", send: "diffs" });
-  assert.match(refusalOf(path, root), /Consult d1ff01 named plan\.md but sent its diff/u);
+  assert.match(toldOf(path, root), /Consult d1ff01 named plan\.md but sent its diff/u);
 });
 
 test("a clipped body and a body that never arrived are both no whole body", () => {
   const clip = room();
   consulted(clip.root, clip.rel, PLAN, { id: "c11p01", sent: [{ rel: clip.rel, sha: digest(PLAN), chars: PLAN.length, clipped: true }] });
-  assert.match(refusalOf(clip.path, clip.root), /Consult c11p01 carried no whole body for plan\.md/u);
+  assert.match(toldOf(clip.path, clip.root), /Consult c11p01 carried no whole body for plan\.md/u);
   const gone = room();
   consulted(gone.root, gone.rel, PLAN, { id: "m1ss01", sent: [{ rel: gone.rel, missing: "ENOENT" }] });
-  assert.match(refusalOf(gone.path, gone.root), /Consult m1ss01 carried no whole body for plan\.md/u);
+  assert.match(toldOf(gone.path, gone.root), /Consult m1ss01 carried no whole body for plan\.md/u);
 });
 
 /* The same rel under another root is another file, so a consult there read something else (ISS-904). */
 test("a consult of the same name under another root read another file", () => {
   const { root, path, rel } = room();
   consulted(join(root, "elsewhere"), rel, PLAN, { id: "0ther1" });
-  assert.match(refusalOf(path, root), /No consult has read plan\.md/u);
+  assert.match(toldOf(path, root), /No consult has read plan\.md/u);
 });
 
 test("one consult naming both files clears both writes", () => {
@@ -129,8 +154,16 @@ test("one consult naming both files clears both writes", () => {
   assert.equal(refusalOf(other, root), null);
 });
 
-test("a body with no file behind it is refused with the file route named", () => {
+test("a body with no file behind it is taught the file route, and refused with it where the project holds the write", () => {
   const { root } = room();
+  for (const path of ["-", "@plan.md"]) {
+    const got = readOrRefuse(path, root);
+    assert.equal(got.refusal, null, `${path} goes ahead by default`);
+    assert.equal(got.text, null, "and the caller's own reader takes the body");
+    assert.match(got.unread, /names no path a consult could be shown/u);
+    assert.match(got.taught, /Write it to a file and name the file/u);
+  }
+  reading(root, "required");
   for (const path of ["-", "@plan.md"]) {
     assert.match(refusalOf(path, root), /Write it to a file and name the file/u);
   }
@@ -164,11 +197,13 @@ test("a path naming something that is not a regular file is refused, never read"
 
 /* The verb writes by issue reference from anywhere, so a directory outside every checkout would
    otherwise be the whole way past the rule. */
-test("outside every checkout it refuses rather than standing down", () => {
+test("outside every checkout it asks for the consult rather than standing down", () => {
   const nowhere = tempRoom("no-checkout-");
   const path = join(nowhere, "plan.md");
   writeFileSync(path, PLAN);
-  assert.match(refusalOf(path, nowhere), /is in no git checkout/u);
+  const got = readOrRefuse(path, nowhere);
+  assert.match(got.taught, /is in no git checkout/u);
+  assert.equal(got.unread, `no consult was asked for ${locate(null, path).rel}`, "the write records that nothing read it, by the file's own key");
 });
 
 /* The file's own checkout answers where the caller's directory does not, so a plan named by an
@@ -176,7 +211,7 @@ test("outside every checkout it refuses rather than standing down", () => {
 test("the file's own checkout is the fallback root", () => {
   const { root, path, rel } = room();
   const nowhere = tempRoom("no-checkout-");
-  assert.match(refusalOf(path, nowhere), /No consult has read plan\.md/u);
+  assert.match(toldOf(path, nowhere), /No consult has read plan\.md/u);
   consulted(root, rel, PLAN, { id: "fa11ba" });
   assert.equal(refusalOf(path, nowhere), null);
 });
@@ -189,7 +224,7 @@ test("a relative path is resolved against the caller's directory, not the root",
   mkdirSync(under);
   const near = join(under, "plan.md");
   writeFileSync(near, "a different plan\n");
-  const refusal = refusalOf("plan.md", under);
+  const refusal = toldOf("plan.md", under);
   assert.match(refusal, /sub\/plan\.md/u);
   assert.doesNotMatch(refusal, /^No consult has read plan\.md/u);
   assert.ok(path !== near);
@@ -218,14 +253,15 @@ test("the log this suite wrote is the sandbox's, never the developer's", () => {
    tracker round trip, and the field would carry the file nobody was shown. Unjudged bytes come back
    too, under a refusal, so a caller can refuse the file's own shape before spending a consult on it
    (ISS-483); what keeps them off the tracker is the refusal beside them, which every caller raises. */
-test("what comes back is the text that was judged, and unjudged text arrives under a refusal", () => {
+test("what comes back is the text that was judged, and unjudged text arrives with what the write is told", () => {
   const { root, path, rel } = room();
   consulted(root, rel, PLAN, { id: "byte01" });
   assert.deepEqual(readOrRefuse(path, root), { refusal: null, text: PLAN });
   writeFileSync(path, "swapped after the read\n");
   const seen = readOrRefuse(path, root);
   assert.equal(seen.text, "swapped after the read\n");
-  assert.match(seen.refusal, /its text has changed since/u);
+  assert.match(seen.taught, /its text has changed since/u);
+  assert.equal(seen.unread, "consult byte01 read plan.md whole, and its text has changed since");
   assert.equal(readOrRefuse(root, root).text, null, "and a path no read could reach carries none");
 });
 
@@ -235,11 +271,11 @@ test("the command the refusal prints is quoted, and names the tree it has to run
   const { root } = room();
   const spaced = join(root, "the plan.md");
   writeFileSync(spaced, PLAN);
-  assert.match(refusalOf(spaced, root), /--send bodies '(?:the plan\.md)'/u);
+  assert.match(toldOf(spaced, root), /--send bodies '(?:the plan\.md)'/u);
   const nowhere = tempRoom("no-checkout-");
-  const away = refusalOf(join(root, "plan.md"), nowhere);
+  const away = toldOf(join(root, "plan.md"), nowhere);
   assert.match(away, new RegExp(`cd ${escaped(typed(root))}( |/)?.*&& echo`, "u"), away);
-  assert.doesNotMatch(refusalOf(join(root, "plan.md"), root), /cd .* &&/u);
+  assert.doesNotMatch(toldOf(join(root, "plan.md"), root), /cd .* &&/u);
 });
 
 /* This module hands the two halves back and composes neither: `flow/record/record.mjs` is what pairs the refusal
@@ -274,7 +310,6 @@ const withGateway = (configured, read) => {
     else process.env.CLAUDE_PROXY_ENV = was;
   }
 };
-const reading = (root, consult) => projectRecord(root, sandbox, { slug: "fixture", ...(consult ? { codex: { consult } } : {}) });
 /* A consult row as `forge codex consult` writes one when the gateway gives nothing back. */
 const failed = (root, rel, text, over = {}) => consulted(root, rel, text, { ok: false, reply: undefined, ...over });
 
@@ -326,15 +361,24 @@ test("an advisory reading with no gateway configured takes a file nobody could h
 });
 
 test("a required reading refuses a file whose consult failed, naming the status and the declaration that lets it through", () => {
-  for (const consult of [null, "required"]) {
+  for (const consult of ["required"]) {
     const { root, path, rel } = room();
     reading(root, consult);
     failed(root, rel, PLAN, { id: "req503", status: 503 });
     const refusal = withGateway(true, () => refusalOf(path, root));
-    assert.match(refusal, /got nothing back: gateway unavailable \(503\), consult req503/u, `${consult ?? "absent"}: the status is named`);
+    assert.match(refusal, /got nothing back: gateway unavailable \(503\), consult req503/u, `${consult}: the status is named`);
     assert.match(refusal, /forge doctor --set codex\.consult=advisory/u, "and the declaration that lets the write proceed");
     assert.match(refusal, /forge codex consult --send bodies plan\.md/u, "and the consult, which may answer now");
   }
+});
+
+test("by default a file whose consult failed goes ahead, the gateway's answer its reason", () => {
+  const { root, path, rel } = room();
+  failed(root, rel, PLAN, { id: "dft503", status: 503 });
+  const got = withGateway(true, () => readOrRefuse(path, root));
+  assert.equal(got.refusal, null);
+  assert.equal(got.unread, "gateway unavailable (503), consult dft503", "the comment names the status and the consult");
+  assert.match(got.taught, /forge codex consult --send bodies plan\.md/u, "and the consult, which may answer now");
 });
 
 test("a newer consult that answered speaks for the bytes, so an older failure lets nothing through", () => {

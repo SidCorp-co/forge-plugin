@@ -20,10 +20,10 @@ const FILE_ROUTE = (what) =>
   + "to a file and name the file.";
 
 /* The log's key, quoted, and the root where the caller is not standing in one. `here` is the caller's own root, already computed, and a second probe answers the same directory at another realpath. The owed sentence is the ladder's, which the rung's rounds print too, and it comes before the stand-down so a run reads that no rung buys this read away before it reads the way past it (ISS-1322, ISS-2303). */
-const readIt = (here, root, rel, why) =>
+const readIt = (here, root, rel, why, taught) =>
   `${why}\n\nDo this: \`${here === root ? "" : `cd ${typed(root)} && `}echo "<the issue, and `
   + `what this claims to have verified in code>" | forge codex consult --send bodies ${typed(rel)}\`, `
-  + `then re-send. ${WRITE_READ_OWED} ${OFF}`;
+  + `${taught ? "and re-send the file once a finding changes it" : "then re-send"}. ${WRITE_READ_OWED}${taught ? "" : ` ${OFF}`}`;
 
 /* One file's half of `shortOfWhole`, borrowing its test rather than restating it: what is wanted here is the part itself, for the bytes it carried, and a diffs consult sent none of them. */
 const carriedWhole = (entry, rel) => {
@@ -70,19 +70,30 @@ const readWhole = (mine, sha) => mine.some(({ one, rel }) => carriedWhole(one, r
 const whyNot = (mine, rel) => {
   const { one: last, rel: named } = mine.at(-1) ?? {};
   const of = last && (last.id ?? last.at);
-  if (!last) return `No consult has read ${rel}, and the issue is about to take it as its own.`;
-  if (last.send !== "bodies") return `Consult ${of} named ${rel} but sent its diff, not its text — a `
-    + "reviewer told to fetch a file for itself may never have asked for it.";
-  if (!carriedWhole(last, named)) return `Consult ${of} carried no whole body for ${rel}, so that much of `
-    + "it is unread.";
-  return `Consult ${of} read ${rel} whole, and its text has changed since.`;
+  if (!last) return { short: `no consult was asked for ${rel}`, said: `No consult has read ${rel}, and the issue is about to take it as its own.` };
+  if (last.send !== "bodies") return { short: `consult ${of} sent the diff of ${rel}, not its text`,
+    said: `Consult ${of} named ${rel} but sent its diff, not its text — a reviewer told to fetch a file for itself may never have asked for it.` };
+  if (!carriedWhole(last, named)) return { short: `consult ${of} carried no whole body for ${rel}`,
+    said: `Consult ${of} carried no whole body for ${rel}, so that much of it is unread.` };
+  return { short: `consult ${of} read ${rel} whole, and its text has changed since`,
+    said: `Consult ${of} read ${rel} whole, and its text has changed since.` };
 };
 
-/** The refusal owed before a file becomes an issue's plan or its criteria, and the bytes it judged. */
+// cm:why policy taught: under `teach` the sentence that would refuse prints and the write goes ahead, its issue comment saying no consult read it; `required` and `advisory` are holds a project chose (ISS-110)
+const TEACH = "teach";
+const judged = (consult, said, text, unread) =>
+  (consult === TEACH ? { refusal: null, text, unread, taught: said } : refusing(said, text));
+const policyAt = (at) => codexConsultAt(at).value;
+
+/** What a file owes before it becomes an issue's plan or its criteria, and the bytes it judged: a refusal where the project holds the write, and otherwise the same sentence as `taught` beside the reason it went unread. */
 export const readOrRefuse = (path, cwd = process.cwd()) => {
   if (process.env.FORGE_CODEX_DISABLE === "1") return STOOD_DOWN;
-  if (path === "-") return refusing(FILE_ROUTE("A body piped in on stdin"));
-  if (path.startsWith("@")) return refusing(FILE_ROUTE(`\`${path}\``));
+  if (path === "-" || path.startsWith("@")) {
+    const named = path === "-" ? "A body piped in on stdin" : `\`${path}\``;
+    return judged(policyAt(repoRoot(cwd) ?? cwd), FILE_ROUTE(named), null,
+      `${path === "-" ? "a body piped in on stdin" : `\`${path}\``} names no path a consult could be shown`);
+  }
+  // cm:why kernel: malformed input, a body typed where the file's path goes
   if (bodyItself(path, cwd)) return refusing(notAPath(path, false));
   const real = resolve(cwd, path);
   /* Raised, never swallowed: a stand-down here is a body the reader takes unjudged; `stat` first because `readFileSync` on a fifo does not return. */
@@ -92,6 +103,7 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   const root = here ?? repoRoot(real);
   /* With no root to try first, `locate` names the file by its real path alone. */
   const held = file ? locate(root, real) : null;
+  // cm:why kernel: malformed input, a path to something no reader can take whole
   if (!held) {
     return refusing(`${path} is not a regular file, so no consult can be shown it.\n\nDo this: `
       + `write the text to a file and name that. ${OFF}`);
@@ -104,12 +116,17 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   const configured = !gateway().problem;
   const failed = configured ? failedWhole(entries, held.real, sha) : null;
   const { state, reason } = consultState({ failed, gateway: configured });
-  if (passesUnread(state, codexConsultAt(root ?? cwd).value)) return { refusal: null, text, unread: reason };
+  const consult = policyAt(root ?? cwd);
+  if (passesUnread(state, consult)) return { refusal: null, text, unread: reason };
+  const taught = consult === TEACH;
   const lead = state === FAILED || state === NO_GATEWAY ? `${gatewaySaid(held.rel, state, reason)}\n\n` : "";
+  const why = whyNot(mine, held.rel);
+  const unread = reason ?? why.short;
   if (!root) {
-    return refusing(`${lead}${whyNot(mine, held.rel)} ${path} is in no git checkout, and neither is ${cwd}, `
+    return judged(consult, `${lead}${why.said} ${path} is in no git checkout, and neither is ${cwd}, `
       + "and a consult runs in one.\n\nDo this: run the consult on this path from the checkout the "
-      + `change is for, then re-send from anywhere. ${WRITE_READ_OWED} ${OFF}`, text);
+      + `change is for, then ${taught ? "re-send the file once a finding changes it" : "re-send from anywhere"}. `
+      + `${WRITE_READ_OWED}${taught ? "" : ` ${OFF}`}`, text, unread);
   }
-  return refusing(`${lead}${readIt(here, root, held.rel, whyNot(mine, held.rel))}`, text);
+  return judged(consult, `${lead}${readIt(here, root, held.rel, why.said, taught)}`, text, unread);
 };

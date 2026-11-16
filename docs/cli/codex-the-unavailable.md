@@ -12,13 +12,15 @@ the HTTP status in `status` beside the error's text, so a reader asks a field ra
 prose, and a failure that reached no status at all — a timeout, a refused connection, a stream cut
 off — is named by the first line of its error instead.
 
-**What that state costs is the project's, in `codex.consult`.** `required` is the default because a
-project that has not decided keeps what G-06 asks for, the reading before landing: the plan and
-criteria writes hold such a file exactly as they hold one nobody consulted on, and the
-refusal says what the gateway answered and names the setting that lets it through. `advisory` lets
-the file through and says so where it lands — a comment on the issue for a plan or criteria write.
-A machine with no gateway configured is the same case under
-`advisory`, since no consult can be asked for there.
+**What an unread write costs is the project's, in `codex.consult`.** `teach` is the default because
+the consult is a way of working and only kernel input refuses (ISS-110): a plan or criteria write no
+consult read goes ahead, prints the consult that would read it and why, and posts on the issue that no
+consult read it, with the reason — the gateway's answer where it gave none. `required` is the hold a
+project chooses to keep what G-06 asks for, the reading before landing: the writes refuse such a file
+exactly as they refuse one nobody consulted on, and the refusal says what the gateway answered and
+names the setting that lets it through. `advisory` lets a file the gateway could not read through,
+saying so where it lands. A machine with no gateway configured is the same case under `advisory`,
+since no consult can be asked for there.
 
 **A consult that read these bytes stands; short of one, the newest consult that carried them
 speaks.** An answer is a review that happened, and a failure after it asks nothing more of the same
@@ -28,7 +30,7 @@ the file's real path and the doors on a root and a rel, as each already does for
 answered; the judgement of what the row means is one function both call, so the four surfaces cannot
 drift into four readings of one row.
 
-**A consult nobody asked for is held under both values.** On a machine with a gateway, an advisory
+**A consult nobody asked for is held under both holds.** On a machine with a gateway, an advisory
 reading still refuses a file no consult was asked about, even where the same call also
 carries a file whose consult failed. That is what lets the record tell a reviewer that was down from a
 consult the agent skipped, and it costs one call: asked while the gateway is down, the consult fails

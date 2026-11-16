@@ -82,7 +82,8 @@ export const LIGHTER = [
 const WRITE_READ = "a plan or a criteria write's own read";
 
 export const WRITE_READ_OWED = `${WRITE_READ[0].toUpperCase()}${WRITE_READ.slice(1)} — a consult that read the `
-  + "file whole, taken again once a correction changes the file — is owed at every rung, and no rung drops it.";
+  + "file whole, taken again once a correction changes the file — is asked at every rung, and no rung drops it; a write "
+  + "it has not read lands with a comment on the issue saying so, unless the project's `codex.consult` holds the write.";
 
 /** The whole-set reads a rung under the top allows, as a number, so the line below and the count `forge advance --owed` prints beside it read one value (ISS-1090). */
 export const REVIEW_READS = 1;

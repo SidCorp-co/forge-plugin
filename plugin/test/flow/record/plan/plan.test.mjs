@@ -287,23 +287,29 @@ test("another run's lease refuses the write, and neither field moves", async () 
 test("the kind is on the table `forge record -h` prints, with the plan field's own cap on its own help", async () => {
   const run = await ranAsync(FORGE, ["record", "-h"], env());
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^ {2}plan {9}the plan itself, from a file a consult has read$/mu);
+  assert.match(run.stdout, /^ {2}plan {9}the plan itself, from a file for a consult to read$/mu);
   const one = await ranAsync(FORGE, ["record", "plan", "-h"], env());
   assert.equal(one.status, 0, one.stderr);
   assert.match(one.stdout, /Usage: forge record plan <uuid\|ISS-45>/u);
-  assert.match(one.stdout, /^ {2}plan {9}<file\.md>\(\d+\) {2}the plan itself, from a file a consult has read$/mu,
+  assert.match(one.stdout, /^ {2}plan {9}<file\.md>\(\d+\) {2}the plan itself, from a file for a consult to read$/mu,
     "the cap is the kind's own, where the parse that reads it against is");
 });
 
 /* The rule this shares with `record criteria`, which is what makes the two one payload: the file a
-   consult has not read is refused before the tracker is touched. */
-test("a file no answered consult has read whole is refused, as the criteria file is", async () => {
+   consult has not read goes ahead where the project set nothing, the issue saying so and the run
+   taught the consult; a project that set `required` holds it before the tracker is touched (ISS-110). */
+test("a file no answered consult has read whole goes ahead by default, posting that none read it and printing the consult", async () => {
   heldBy(MINE);
+  state.posted = [];
   const path = planAt();
-  const run = await ranAsync(FORGE, ["record", "plan", "ISS-348", path], env(MINE, { FORGE_CODEX_DISABLE: "0" }));
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /consult/u);
-  assert.match(run.stderr, /forge codex consult --send bodies/u, "and the command that clears it");
+  const profile = join(room, "gateway.env");
+  writeFileSync(profile, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
+  const run = await ranAsync(FORGE, ["record", "plan", "ISS-348", path], env(MINE, { FORGE_CODEX_DISABLE: "0", CLAUDE_PROXY_ENV: profile }));
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(state.issues[0].plan, `${PLAN}\n`, "the plan is written");
+  assert.match(run.stderr, /forge codex consult --send bodies/u, "and the next step is printed");
+  const note = state.posted.find((body) => body.startsWith("## No consult read the plan"));
+  assert.ok((note ?? "").includes("no consult was asked for"), `the comment says why: ${state.posted.join(" | ")}`);
 });
 
 /* ISS-2932: a plan the issue takes with no consult having read it says so on the issue, in a comment
@@ -321,7 +327,7 @@ test("a plan taken under the stand-down posts that no consult read it, and why",
 /* The criteria file is the plan's twin here: one reader decides both, and the write posts the same
    note. `row` is the consult the log holds for the file, where it holds one; `gateway` is whether the
    machine has one configured. */
-const advisoryWrite = async (kind, { row = { status: 503, error: "gateway answered 503: All codex accounts are unavailable" }, gateway = true, said }) => {
+const advisoryWrite = async (kind, { row = { status: 503, error: "gateway answered 503: All codex accounts are unavailable" }, gateway = true, said, consult = "advisory" }) => {
   heldBy(MINE);
   state.posted = [];
   delete state.issues[0].acceptanceCriteria;
@@ -331,7 +337,7 @@ const advisoryWrite = async (kind, { row = { status: 503, error: "gateway answer
   writeFileSync(path, text);
   const profile = join(room, gateway ? "gateway.env" : "no-gateway.env");
   if (gateway) writeFileSync(profile, "ANTHROPIC_BASE_URL=https://gateway.invalid\nANTHROPIC_AUTH_TOKEN=planted\n");
-  projectRecord(neutralRoom(), home, { ...OWN, codex: { consult: "advisory" } });
+  projectRecord(neutralRoom(), home, { ...OWN, ...(consult ? { codex: { consult } } : {}) });
   writeFileSync(join(home, "forge", "codex-log.jsonl"), row ? `${JSON.stringify({
     kind: "consult", id: "gw5031", at: new Date().toISOString(), root: neutralRoom(), ok: false, ...row,
     files: [path], send: "bodies", sent: [{ rel: path, sha: digest(text), chars: text.length, clipped: false }],
@@ -368,6 +374,9 @@ test("a plan an advisory project takes with no gateway configured posts that non
 
 test("criteria an advisory project takes with no gateway configured post that none is",
   () => advisoryWrite("criteria", { row: null, gateway: false, said: NO_GATEWAY_REASON }));
+
+test("criteria a project that set nothing takes with no consult asked post that none was",
+  () => advisoryWrite("criteria", { row: null, consult: null, said: "no consult was asked for" }));
 
 test("criteria taken under the stand-down post that no consult read them, and why", async () => {
   heldBy(MINE);
@@ -415,10 +424,13 @@ const refusedWrite = async (kind, { consult, row, said }) => {
 const FAILED_503 = { status: 503, error: "gateway answered 503: All codex accounts are unavailable" };
 
 test("a required project refuses a plan whose consult failed, through the verb, naming the status and the setting",
-  () => refusedWrite("plan", { row: FAILED_503, said: ["gateway unavailable (503), consult rq5031", "codex.consult=advisory"] }));
+  () => refusedWrite("plan", { consult: "required", row: FAILED_503, said: ["gateway unavailable (503), consult rq5031", "codex.consult=advisory"] }));
 
 test("a required project refuses criteria whose consult failed, through the verb, naming the status and the setting",
   () => refusedWrite("criteria", { consult: "required", row: FAILED_503, said: ["gateway unavailable (503), consult rq5031", "codex.consult=advisory"] }));
+
+test("a required project refuses a plan no consult was asked about, naming the consult that clears it",
+  () => refusedWrite("plan", { consult: "required", row: null, said: ["No consult has read", "forge codex consult --send bodies"] }));
 
 test("an advisory project with a gateway refuses criteria no consult was asked about, naming the consult that clears it",
   () => refusedWrite("criteria", { consult: "advisory", row: null, said: ["No consult has read", "forge codex consult --send bodies"] }));

@@ -28,8 +28,9 @@ const BEFORE = {
   "asks.mode": { values: ["record", "decide", "off"], fallback: "record" },
   release: { values: ["auto", "manual"], fallback: null },
   report: { values: ["off", "daily"], fallback: "off" },
-  /* Added by ISS-2932 with no "before": `required` is what every door and write did with no key. */
-  "codex.consult": { values: ["required", "advisory"], fallback: "required" },
+  /* Added by ISS-2932 with no "before"; ISS-110 added `teach` and made it the fallback, the consult
+     being a way of working that no unset project holds a write over. */
+  "codex.consult": { values: ["teach", "required", "advisory"], fallback: "teach" },
 };
 
 /* A project record holding `value` at the key's own path, `asks.mode` inside its table. */

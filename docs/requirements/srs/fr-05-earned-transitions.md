@@ -90,9 +90,9 @@ agent learns what a status wants.
   WHERE a rung buys fewer rounds than the top one, the line stating its consult allowance SHALL say
   which read that allowance is of and which read it is not of, a number whose subject is unstated
   being one a run cannot tell an overspend from.
-- **AC-05-1-15** · Rev: 1 · Proof: plugin/test/codex/read/codex-read.test.mjs "the refusal says this read is owed at every rung, before it offers the stand-down"
+- **AC-05-1-15** · Rev: 2 · Proof: plugin/test/codex/read/codex-read.test.mjs "the refusal says this read is asked at every rung, before it offers the stand-down"
   WHEN a write of the plan or the criteria is refused for a file no reviewer has read THEN the
-  refusal SHALL say that the read is owed at every rung, before it names anything that would stand
+  refusal SHALL say that the read is asked at every rung, before it names anything that would stand
   the check down.
 - **AC-05-1-16** · Rev: 2 · Proof: plugin/test/flow/resume/resume.test.mjs "the brief headlines the review's outcome and head, and reads past a baseline an earlier build left"
   WHERE the record holds a review, the CLI SHALL headline the latest one when it re-mints the issue's
