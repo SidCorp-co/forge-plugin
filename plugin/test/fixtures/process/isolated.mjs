@@ -9,16 +9,15 @@ import { join } from "node:path";
 
 import { madeIn } from "../room.mjs";
 
-/* Which session a call resolves is the case's to name, never the shell's: a case's outcome turned on
-   whether it ran inside a Claude Code session or from CI (ISS-2570). A borrow is the same kind of
-   thing, and one inherited hands a case the machine's credential under a home it thinks is its own
-   (ISS-2612). */
 delete process.env.CLAUDE_CODE_SESSION_ID;
-delete process.env.FORGE_SESSION_ID;
-delete process.env.FORGE_BORROW_FROM;
-// FB-430
-delete process.env.FORGE_PLUGIN_ROOT;
 delete process.env.CLAUDE_ENV_FILE;
+
+// cm:why the session and every FORGE_* are the case's, not the shell's: a session split CI from Claude Code (ISS-2570), a borrow leaked a credential (ISS-2612), FORGE_STOP_DISABLE turned cases red (ISS-112); a rule covers a later switch
+// cm:why FORGE_GATE_STEP passes: the gate's stop finds a step's orphans by it; no case reads it
+const PASSES = new Set(["FORGE_GATE_STEP"]);
+for (const key of Object.keys(process.env)) {
+  if (key.startsWith("FORGE_") && !PASSES.has(key)) delete process.env[key];
+}
 
 /* The configuration home is the process's own and empty, so a case reading configuration it never
    wrote fails the same way on every machine instead of passing on the developer's credentials. It is

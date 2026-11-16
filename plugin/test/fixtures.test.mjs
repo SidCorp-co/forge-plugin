@@ -176,6 +176,7 @@ test("the environment the fixture hands out names a home of the run's own", () =
    the event it was handed, so a case read one key inside a session and another in CI (ISS-2570). The
    probe stands in a tree naming no run under a home of its own, leaving the variables the only source. */
 const SESSION_VARS = ["CLAUDE_CODE_SESSION_ID", "FORGE_SESSION_ID"];
+const SWITCHES = { FORGE_STOP_DISABLE: "1", FORGE_CODEX_DISABLE: "1", FORGE_A_SWITCH_ADDED_LATER: "1" };
 const RESOLVER = pathToFileURL(join(ROOT, "plugin/src/resolve/config.mjs")).href;
 
 const sessionless = (fixture) => `
@@ -189,21 +190,21 @@ const sessionless = (fixture) => `
     return run.status === 0 ? JSON.parse(run.stdout) : run.stderr;
   };
   process.stdout.write(JSON.stringify({
-    handed: ${JSON.stringify(SESSION_VARS)}.filter((name) => name in env),
+    handed: ${JSON.stringify([...SESSION_VARS, ...Object.keys(SWITCHES)])}.filter((name) => name in env),
     own: sessionSourced(), spawned: spawned({}), named: spawned({ FORGE_SESSION_ID: "the-cases-own" }),
   }));
 `;
 
-test("a suite's spawned processes resolve no session from the shell that started it, only the one a case names", () => {
+test("a suite's spawned processes resolve no session and keep no FORGE_* switch from the shell that started it", () => {
   const room = tempRoom("fixture-session-");
   spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
   const argv = ["--input-type=module", "-e", sessionless(join(ROOT, FIXTURES[0]))];
-  const developer = { CLAUDE_CODE_SESSION_ID: "the-developers-session", FORGE_SESSION_ID: "the-developers-run" };
+  const developer = { CLAUDE_CODE_SESSION_ID: "the-developers-session", FORGE_SESSION_ID: "the-developers-run", ...SWITCHES };
   const run = spawnSync(process.execPath, argv,
     { encoding: "utf8", cwd: room, env: { ...WITHOUT, TMPDIR: room, HOME: room, XDG_CONFIG_HOME: room, ...developer } });
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const { handed, own, spawned, named } = JSON.parse(run.stdout);
-  assert.deepEqual(handed, [], "homeEnv handed a child the session the developer's shell held");
+  assert.deepEqual(handed, [], "homeEnv handed a child the session or a FORGE_* switch the developer's shell held");
   assert.equal(own.id, null, `the test process resolved ${own.id} from ${own.said}`);
   assert.equal(spawned.id, null, `a process spawned from homeEnv resolved ${spawned.id} from ${spawned.said}`);
   assert.deepEqual([named.id, named.source], ["the-cases-own", "asked"],
