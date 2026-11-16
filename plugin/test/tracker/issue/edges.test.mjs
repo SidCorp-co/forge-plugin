@@ -477,12 +477,12 @@ test("an edge write prints the written end's unshown thread and writes the edge 
     state.calls = [];
     const run = await ranAs("iss-edges-delivered", "issue", "ISS-45", "--relates", "ISS-47");
     assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stderr, /^Delivering — this writes to ISS-45/mu, "a delivery, not a hold to send again");
+    assert.match(run.stderr, /^Read the comments below before acting on this write's answer\.\n\nThis writes to ISS-45/mu, "a delivery, not a hold to send again");
     assert.ok(run.stderr.includes("a person asked for this edge an hour ago"), "the comment itself, whole");
     assert.equal(sentTo("/api/issues/u-ISS-45/dependencies", "POST").length, 1, "and the edge went out");
     const again = await ranAs("iss-edges-delivered", "issue", "ISS-45", "--relates", "ISS-46");
     assert.equal(again.status, 0, again.stderr);
-    assert.doesNotMatch(again.stderr, /Delivering/u, "what this run was shown is not delivered to it twice");
+    assert.doesNotMatch(again.stderr, /Read the comments below/u, "what this run was shown is not delivered to it twice");
   });
 });
 
@@ -519,13 +519,13 @@ test("--unlink delivers the subject's thread before the removal is sent", async 
   delete rows[0].relations;
 });
 
-test("an edge write whose written end cannot be read whole is refused before any edge is sent", async () => {
+test("an edge write whose written end cannot be read whole goes ahead, the thread said before its answer", async () => {
   await withThreads({ "u-ISS-45": [said("d6", "one page of a thread with more behind it")] }, async () => {
     state.cut = ["u-ISS-45"];
     state.calls = [];
     const run = await ranAs("iss-edges-cut", "issue", "ISS-45", "--relates", "ISS-47");
-    assert.equal(run.status, 1, run.stdout);
-    assert.ok(run.stderr.includes("one page of a thread with more behind it"), "the refusal carries the thread");
-    assert.equal((state.calls ?? []).filter((one) => one.method === "POST").length, 0, "and nothing was written");
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(run.stderr.includes("one page of a thread with more behind it"), "the delivery carries the thread");
+    assert.ok((state.calls ?? []).some((one) => one.method === "POST"), "and the edge was written");
   });
 });

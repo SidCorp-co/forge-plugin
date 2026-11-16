@@ -88,7 +88,7 @@ test("the refusal says this read is asked at every rung, before it offers the st
   const { root, path } = room();
   reading(root, "required");
   const refusal = refusalOf(path, root);
-  assert.match(refusal, /at every rung, and no rung drops it/u);
+  assert.match(refusal, /asked at every/u);
   assert.ok(refusal.includes(WRITE_READ_OWED),
     "the refusal spells the owed read some other way than the rung's rounds print it (ISS-2303)");
   assert.ok(refusal.indexOf("every rung") < refusal.indexOf("FORGE_CODEX_DISABLE"),

@@ -1,6 +1,6 @@
 # SRS §12 — FR-10 — Comments read before a write
 
-Rev: 2 · Actors: agent · Enforces: BR-01, BR-02, BR-06 · Source: plugin/hooks/how/issue-read-first.md
+Rev: 3 · Actors: agent · Enforces: BR-01, BR-02, BR-06 · Source: plugin/hooks/how/issue-read-first.md
 
 ← [Index](./README.md) · [§11 FR-09 The learning gates](./fr-09-learning-gates.md) · Next: [§13 FR-11 The project's own code rules](./fr-11-project-code-rules.md)
 
@@ -10,12 +10,11 @@ Rev: 2 · Actors: agent · Enforces: BR-01, BR-02, BR-06 · Source: plugin/hooks
 
 A full read of an issue returns no comments at all, so the read that looks complete is not: the two
 halves of an issue differ in age, and the gate's own document has the sentence for it. So a write to
-an issue does not land until this session has been shown that issue's comments. Refusing the write is
-one way to show them and the expensive one, since the run's only move after it is to send the same
-command again; delivering them and carrying on is the other, and it is open to whatever is close
-enough to the write to put text in front of the model without stopping the call. An empty answer
-satisfies it: the condition is having looked, and what can be checked is that the showing
-happened — UC-10-1 states exactly how much that is.
+an issue is handed that issue's comments this session has not been shown, and goes ahead with them in
+hand. Having read them is a way of working, not kernel input, so nothing here refuses the write: the
+refusal that once delivered them cost the run a second call for text it could have had in the first.
+An empty answer satisfies it: the condition is having looked, and what can be checked is that the
+showing happened — UC-10-1 states exactly how much that is.
 
 ## Actors
 
@@ -29,7 +28,7 @@ happened — UC-10-1 states exactly how much that is.
 
 ### UC-10-1 — Show the thread to a write nobody has read it for
 
-Rev: 2 · Actors: agent · Enforces: BR-01, BR-02
+Rev: 3 · Actors: agent · Enforces: BR-01, BR-02
 
 Every key the command names has to have been read, and the listing and the key have to be one
 invocation — a search for either that merely names the other satisfied nothing. What the gate can
@@ -37,18 +36,19 @@ check is that a comments call of this session named the key, which is narrower t
 gate's own document asks for: the condition is having looked, and looking is what a call naming the
 key evidences.
 
-- **AC-10-1-1** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a shell write is not held for a delivery the verb itself will make"
+- **AC-10-1-1** · Rev: 3 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a shell write is handed nothing the verb itself will deliver"
   IF a write names a key that no comments call of this session asked about THEN the product SHALL
-  put that key's comments in front of the model before the write's own answer, and SHALL refuse the
-  write only where nothing standing between the model and the tracker will carry them.
-- **AC-10-1-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "an issue with no comments is not denied, and no round is spent on a read"
+  put that key's comments in front of the model before the write's own answer and SHALL let the write
+  go ahead, the gate delivering them only where no verb standing between the model and the tracker
+  will, and a thread it cannot account for said beside them rather than held.
+- **AC-10-1-2** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "an issue with no comments is handed nothing, and no round is spent on a read"
   WHEN a comments call of this session names that key in the same invocation THEN the gate SHALL
-  allow the write, and an empty listing SHALL satisfy it.
-- **AC-10-1-3** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "two issues in one command are one deny naming both"
+  hand the write nothing, and an empty listing SHALL satisfy it.
+- **AC-10-1-3** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "two issues in one command are one delivery naming both"
   IF the listing named a different issue THEN it SHALL not satisfy this one.
-- **AC-10-1-4** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the re-send passes, and no read of the transcript decided either answer"
-  IF the gate's own refusal is the only place the key appears THEN the next attempt SHALL still be
-  refused.
+- **AC-10-1-4** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the next write passes in silence, and no read of the transcript decided either answer"
+  IF the gate's own delivery is the only place the key appears THEN the next write SHALL pass for
+  the credit that delivery wrote, and never for a transcript naming the key.
 
 ### UC-10-2 — A write is a write by any route
 
@@ -57,9 +57,9 @@ Rev: 1 · Actors: agent · Enforces: BR-06
 The CLI's writing verbs and the tracker's own tool are both writes; a read is not, however full.
 The tracker's tool is judged by the action it names rather than by its name.
 
-- **AC-10-2-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a raw call is judged by its action, and the mark carries its issue inside data"
+- **AC-10-2-1** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a raw call is judged by its action, and the mark carries its issue inside data"
   WHEN the tracker's own tool is called THEN the gate SHALL judge it by its action, so a listing and
-  a read pass and a transition does not.
+  a read are handed nothing and a transition is handed the thread it owes.
 - **AC-10-2-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "only the argument the verb writes to is a target"
   IF a write verb appears in prose THEN the gate SHALL allow the command, and one in a payload the
   command carries SHALL still count.
@@ -67,9 +67,9 @@ The tracker's tool is judged by the action it names rather than by its name.
   WHERE a verb writes the record it SHALL be covered by this gate, the payload verbs included.
 - **AC-10-2-4** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the id the command grants is whose reading counts, and a second harness id is not a second run"
   WHEN the run that reads is the run that writes THEN the gate SHALL be satisfied.
-- **AC-10-2-5** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a command granting an id nobody credited is denied, whatever the harness was shown"
+- **AC-10-2-5** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a command granting an id nobody credited is handed the thread, whatever the harness was shown"
   IF a read was made by another agent rather than the run that writes THEN that read SHALL not
-  satisfy the gate for the writing run.
+  satisfy the gate for the writing run, which SHALL be handed the thread itself.
 
 ### UC-10-3 — Only the tracker's own keys count as keys
 
@@ -131,7 +131,7 @@ thing once; a refusal keeps its one line because every hold owes the command tha
 
 | Rule | How this requirement carries it |
 |---|---|
-| BR-01 | the refusal carries the exact listing call for the key it wants |
+| BR-01 | the delivery carries the comments themselves, so no second call is owed |
 | BR-02 | a write to the record is made by a run that has read the record |
 | BR-06 | the CLI's verbs and the tracker's tool are held alike |
 | BR-13 | the gate stands down where it has no evidence, rather than refusing blind |

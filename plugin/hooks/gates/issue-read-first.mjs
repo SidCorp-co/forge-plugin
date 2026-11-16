@@ -1,8 +1,8 @@
-// Two refusals, two pages: how/issue-read-first.md for where the write's reading sits,
-// how/wrapped-route.md for a verb's action.
+// One refusal and one teaching, two pages: how/wrapped-route.md for a verb's action, and
+// how/issue-read-first.md for the comments a write is handed as it goes ahead.
 
-import { NOWHERE, deny, directoryAt, done, how, shellText, startsAt } from "../_hook.mjs";
-import { owedFor, refusalOf } from "../../src/tracker/comments.mjs";
+import { NOWHERE, context, deny, directoryAt, done, how, shellText, startsAt } from "../_hook.mjs";
+import { deliveryOf, owedFor } from "../../src/tracker/comments.mjs";
 import { sessionSourced } from "../../src/resolve/config.mjs";
 import { liveAlias } from "../../src/flow/lease.mjs";
 import { joined, ownChecked, projectNamedIn, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
@@ -66,6 +66,7 @@ export const run = async (ev) => {
   /* Before anything the tracker answers: this refusal reads no row, and a raw create is refused by it
      whatever its body says, so what that body owes is `forge new`'s to say at its own door (ISS-494). */
   const wrapped = wrappedRefusal(toolOfCall(call.name), actionIn(call.input));
+  // cm:why a raw call of a wrapped action skips the verb's pre-checks of what the tracker refuses, which is kernel input
   if (wrapped) deny(wrapped + how("wrapped-route", "raw-call"));
   if (!refs.length) done();
   const { url, token } = accountCredentials();
@@ -92,7 +93,8 @@ export const run = async (ev) => {
   });
   const looked = await owedFor([...targets.values()], keysFor);
   if (!looked.first.length && ownChecked(call, said)) done();
-  const refusal = await refusalOf(looked, keysFor);
-  if (refusal) deny(refusal + how(null, looked.owed.length ? "unread-comments" : "thread-unaccounted"));
+  // cm:why taught, not refused: the comments are delivered and credited and the write goes ahead with them in hand; having read them is a way of working, not kernel input (FR-10)
+  const delivered = await deliveryOf(looked, keysFor);
+  if (delivered) context(delivered + how(null, looked.owed.length ? "unread-comments" : "thread-unaccounted"));
   done();
 };

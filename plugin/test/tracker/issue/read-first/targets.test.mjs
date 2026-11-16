@@ -12,7 +12,7 @@ import { shellText, startsAt } from "../../../../hooks/_hook.mjs";
 import { OWN } from "../../../fixtures/own-project.mjs";
 import { pathed, projectRoom, tempRoom } from "../../../fixtures.mjs";
 import { assertRouteFirst } from "../../../fixtures/route-first.mjs";
-import { HOME, OTHER, UUID, because, comment, edgeWrite, gate, live, owed, raw, state, whole }
+import { HOME, OTHER, UUID, because, comment, delivered, edgeWrite, gate, live, owed, raw, state, whole }
   from "./gate.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
@@ -156,20 +156,20 @@ test("one command writing to two issues names both, so one refusal answers both"
   assert.deepEqual(targets("forge advance ISS-29 && forge claim ISS-29"), ["ISS-29"], "and one issue once");
 });
 
-/* End to end: the pure functions above decide what is owed, but the deny, its text and the two
+/* End to end: the pure functions above decide what is owed, but the delivery, its text and the two
    stand-downs are the hook's, and only running it against a tracker measures those — the harness
    for that is `./gate.mjs`, which the suite beside this one runs the gate through too. */
 
-test("a write to an issue with comments nobody was shown is denied, and they are in the deny", async () => {
+test("a write to an issue with comments nobody was shown goes ahead, and they are handed to it", async () => {
   owed({ [UUID]: [comment("c1", "read this before you write")] });
   const run = await gate(edgeWrite());
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(delivered(run));
   assert.ok(because(run).includes("read this before you write"), "the comment itself, not a pointer to it");
   assert.ok(!because(run).includes("UNTRUSTED_DATA"), "and the tracker's marker is off it: the transport took it");
   assert.match(because(run), /forge hooks --how issue-read-first/u);
 });
 
-test("the re-send passes, and no read of the transcript decided either answer", async () => {
+test("the next write passes in silence, and no read of the transcript decided either answer", async () => {
   assert.equal((await gate(edgeWrite(), { fresh: false })).out, null);
   const source = readFileSync(new URL("../../../../hooks/gates/issue-read-first.mjs", import.meta.url), "utf8");
   assert.ok(!/transcript/u.test(source), "the gate that read one credited another turn's read and missed its own");
@@ -182,20 +182,20 @@ test("the id the command grants is whose reading counts, and a second harness id
   owed({ [UUID]: [comment("c1", "the record this run wrote thirty seconds ago")] });
   const command = `export FORGE_SESSION_ID=the-run && ${edgeWrite()}`;
   const first = await gate(command, { harness: "harness-one" });
-  assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.ok(delivered(first), "nobody has been shown it yet");
   assert.equal((await gate(command, { harness: "harness-two" })).out, null,
     "and the credit is the run the command names, which outlives the session that spawned it");
 });
 
 /* The other half of the same reading: crediting the harness would satisfy every run under it, and a
    run of its own has been shown nothing by its dispatcher having looked. */
-test("a command granting an id nobody credited is denied, whatever the harness was shown", async () => {
+test("a command granting an id nobody credited is handed the thread, whatever the harness was shown", async () => {
   owed({ [UUID]: [comment("c2", "shown to the harness and to no run of its own")] });
   const shown = await gate(edgeWrite(), { harness: "harness-three" });
-  assert.equal(shown.out.hookSpecificOutput.permissionDecision, "deny", "the harness has not looked either");
+  assert.ok(delivered(shown), "the harness has not looked either");
   assert.equal((await gate(edgeWrite(), { harness: "harness-three" })).out, null, "and now it has");
   const own = await gate(`export FORGE_SESSION_ID=another-run && ${edgeWrite()}`, { harness: "harness-three" });
-  assert.equal(own.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(own),
     "which satisfies nothing for a run that has not");
 });
 
@@ -208,16 +208,16 @@ test("a run whose assignment stands behind a cd is one run across its writes", a
   owed({ [UUID]: [comment("c3", "the record this run wrote a minute ago")] });
   const exported = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=behind-a-cd && ${edgeWrite()}`;
   const held = await gate(exported, { harness: "harness-four" });
-  assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.ok(delivered(held), "nobody has been shown it yet");
   assert.equal((await gate(exported, { harness: "harness-five" })).out, null,
     "and the second write is the same run, whatever session the harness names");
   const prefixed = `cd ${pathed(SAME_PROJECT)} && FORGE_SESSION_ID=on-the-writer /usr/bin/${edgeWrite()}`;
   const alone = await gate(prefixed, { harness: "harness-six" });
-  assert.equal(alone.out.hookSpecificOutput.permissionDecision, "deny", "the prefix names a run of its own");
+  assert.ok(delivered(alone), "the prefix names a run of its own");
   assert.equal((await gate(prefixed, { harness: "harness-seven" })).out, null, "and its own second write passes");
   const other = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=another-worktree-run && ${edgeWrite()}`;
   const stranger = await gate(other, { harness: "harness-four" });
-  assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(stranger),
     "while a third run is shown nothing by either of them having looked");
 });
 
@@ -230,16 +230,16 @@ test("a granted call keeps its name through a redirection and through a quoted m
   owed({ [UUID]: [comment("c4", "the record this run wrote a moment ago")] });
   const redirected = `FORGE_SESSION_ID=through-a-redirect ${edgeWrite()} 2>&1`;
   const held = await gate(redirected, { harness: "harness-eight" });
-  assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.ok(delivered(held), "nobody has been shown it yet");
   assert.equal((await gate(redirected, { harness: "harness-nine" })).out, null,
     "and the re-send is the same run, whatever session the harness names");
   const other = `FORGE_SESSION_ID=another-redirected-run ${edgeWrite()} 2>&1`;
   const stranger = await gate(other, { harness: "harness-eight" });
-  assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(stranger),
     "while a second name is shown nothing by the first having looked");
   const quoted = `FORGE_SESSION_ID=through-a-quote ${edgeWrite()} --why "flags & payload (both)"`;
   const first = await gate(quoted, { harness: "harness-ten" });
-  assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "the value names a run of its own");
+  assert.ok(delivered(first), "the value names a run of its own");
   assert.equal((await gate(quoted, { harness: "harness-eleven" })).out, null, "whose own second write passes");
 });
 
@@ -260,7 +260,7 @@ test("a live lease's own minted holder is trusted as an alias where the hook's o
   state.issues[0].sessionContext = leased(holder);
   const granted = `export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`;
   const first = await gate(granted, { harness: "harness-worktree-a", cwd: noTree });
-  assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.ok(delivered(first), "nobody has been shown it yet");
   const bare = await gate(edgeWrite(), { harness: "harness-worktree-b", cwd: noTree });
   assert.equal(bare.out, null,
     "the hook's own guess falls to the wave id, but the issue's own live lease holder already read this");
@@ -272,7 +272,7 @@ test("a live lease alias never covers a comment its holder has not actually read
   owed({ [UUID]: [comment("c11", "a correction nobody under this holder has read yet")] });
   state.issues[0].sessionContext = leased(holder);
   const run = await gate(edgeWrite(), { harness: "harness-worktree-c", cwd: noTree });
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(run),
     "neither the hook's own guess nor the live holder's own record has seen this comment");
   assert.ok(because(run).includes("a correction nobody under this holder has read yet"));
   delete state.issues[0].sessionContext;
@@ -284,9 +284,9 @@ test("an expired lease's holder is not trusted as an alias, even where that hold
   state.issues[0].sessionContext = leased(holder, "2020-01-01T00:00:00.000Z", 1);
   const granted = `export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`;
   const first = await gate(granted, { harness: "harness-worktree-d", cwd: noTree });
-  assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.ok(delivered(first), "nobody has been shown it yet");
   const bare = await gate(edgeWrite(), { harness: "harness-worktree-e", cwd: noTree });
-  assert.equal(bare.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(bare),
     "a lapsed lease's holder is nobody's proof of who stands here now");
   delete state.issues[0].sessionContext;
 });
@@ -297,9 +297,9 @@ test("a lease held by an id shaped like a shared one, not a minted run, is not t
   state.issues[0].sessionContext = leased(holder);
   const granted = `export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`;
   const first = await gate(granted, { harness: "harness-worktree-f", cwd: noTree });
-  assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.ok(delivered(first), "nobody has been shown it yet");
   const bare = await gate(edgeWrite(), { harness: "harness-worktree-g", cwd: noTree });
-  assert.equal(bare.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(bare),
     "only a minted, run-specific holder is trusted as an alias, and a shared-shaped one is not, "
     + "even if credited");
   delete state.issues[0].sessionContext;
@@ -315,64 +315,64 @@ test("a delivery this call causes credits only this call, never the lease holder
   /* Out of any worktree, as the cases above are: a tree naming a run of its own would make every
      stranger here one run, and the hold a thread cannot be accounted for is once per run. */
   const stranger = await gate(edgeWrite(), { harness: "harness-worktree-h", cwd: noTree });
-  assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny", "a genuine miss, for anyone");
+  assert.ok(delivered(stranger), "a genuine miss, for anyone");
   const asHolder = await gate(`export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`,
     { harness: "harness-worktree-i", cwd: noTree });
-  assert.equal(asHolder.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(asHolder),
     "the stranger's own write was refused, so it credited nobody's alias but its own guess");
   delete state.issues[0].sessionContext;
 });
 
-test("the uuid form is denied where the reference form is", async () => {
+test("the uuid form is handed its comments where the reference form is", async () => {
   const run = await gate(edgeWrite(UUID));
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(delivered(run));
   assert.match(because(run), new RegExp(UUID, "u"));
 });
 
-test("two issues in one command are one deny naming both", async () => {
+test("two issues in one command are one delivery naming both", async () => {
   owed({ [UUID]: [comment("c1", "one issue owes this")], [OTHER]: [comment("c2", "the other owes this")] });
   const run = await gate(`${edgeWrite()} && ${edgeWrite("ISS-30")}`);
   assert.match(because(run), /This writes to ISS-29, ISS-30/u);
 });
 
-test("an issue with no comments is not denied, and no round is spent on a read", async () => {
+test("an issue with no comments is handed nothing, and no round is spent on a read", async () => {
   whole({});
   assert.equal((await gate(edgeWrite())).out, null);
 });
 
 /* The case that fails without ISS-1715 and ISS-1724, and the credit is half of it: a credit written
    here would silence the half that is going to print the thread, and it would reach nobody. */
-test("a shell write is not held for a delivery the verb itself will make", async () => {
+test("a shell write is handed nothing the verb itself will deliver", async () => {
   whole({ [UUID]: [comment("c20", "a person answered while this run was building")] });
   assert.equal((await gate("forge advance ISS-29")).out, null, "the verb's own half is what delivers this");
   assert.equal((await gate(edgeWrite(), { fresh: false })).out, null, "and an edge write's own half delivers it too");
   owed({ [UUID]: [comment("c20", "a person answered while this run was building")] });
   const held = await gate(edgeWrite(), { fresh: false });
-  assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "the thread now cannot be accounted for");
+  assert.ok(delivered(held), "the thread now cannot be accounted for");
   assert.ok(because(held).includes("a person answered while this run was building"),
     "and neither pass credited the comment, so it is still owed to whichever half does deliver it");
 });
 
-/* Nothing stands between the model and the tracker's own tool, so the refusal is still the only
+/* Nothing stands between the model and the tracker's own tool, so the gate's context is the only
    delivery. The action is one no verb claims, every claimed one being refused for its route first. */
-test("a write through the tracker's own tool is held, no verb standing between it and the write", async () => {
+test("a write through the tracker's own tool is handed the thread, no verb standing between it and the write", async () => {
   whole({ [UUID]: [comment("c21", "nothing here will deliver this but the refusal")] });
   const run = await raw({ action: "archive", documentId: UUID }, { session: "probe-tool-delivery" });
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(delivered(run));
   assert.ok(because(run).includes("nothing here will deliver this but the refusal"),
     "the comment itself, quoted whole, as the only delivery this route has");
   assert.doesNotMatch(because(run), /wraps/u, "and it is the comments that answered, not the route");
 });
 
-/* Refused on every route, because no half may deliver it: the credit would evict what it was for. */
-test("a thread past the credits one issue keeps still holds a shell write", async () => {
+/* Said on every route, because no half may deliver it: the credit would evict what it was for. */
+test("a thread past the credits one issue keeps is said to a shell write", async () => {
   whole({
     [UUID]: Array.from({ length: 401 }, (_, at) => comment(`over${at}`, "one of four hundred and one")),
   });
   const run = await gate("forge advance ISS-29");
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny",
+  assert.ok(delivered(run),
     "the verb cannot deliver what nothing can credit, so this is not stood down for");
-  assert.match(because(run), /past the 400 one issue's credits keep/u, "and the refusal names the reason");
+  assert.match(because(run), /past the 400 one issue's credits keep/u, "and the teaching names the reason");
 });
 
 test("with no endpoint saved the gate stands down", async () => {
@@ -439,9 +439,9 @@ test("a raw create is refused before the gate asks the tracker anything, the ope
   assert.deepEqual((state.calls ?? []).slice(before), [], "no request reached the tracker, so no page of the backlog was walked");
 });
 
-/* ISS-2501. The harness report follows a refusal by the name its How line gives, whatever it says
-   above it, so each refusal this gate writes carries a name of its own. */
-test("each refusal this gate writes names its cause on the How line", async () => {
+/* ISS-2501. The harness report follows a message by the name its How line gives, whatever it says
+   above it, so each refusal and teaching this gate writes carries a name of its own. */
+test("each refusal and teaching this gate writes names its cause on the How line", async () => {
   const causeOf = (run) => /\(cause: issue-read-first\/([\w-]+)\)$/mu.exec(because(run))?.[1] ?? because(run);
   whole({ [UUID]: [comment("c30", "a comment only the refusal delivers")] });
   assert.equal(causeOf(await raw({ action: "archive", documentId: UUID }, { session: "probe-cause-unread" })), "unread-comments");
@@ -542,10 +542,10 @@ test("a plan whose body cites five clauses writes only to the issue it names", (
    project for, which is what those cases were about before a directory naming none went silent. */
 const SAME_PROJECT = projectRoom(tempRoom("same-project-"), HOME.path, OWN);
 
-/* AC-07-3-4. Every refusal this gate relays, composed where the verbs that print the same words
+/* AC-07-3-4. Every refusal and teaching this gate relays, composed where the verbs that print the same words
    compose it, each read for the order: the thread to read, a thread past what can be credited, a
    body the flow cannot carry, one that reads as a fix, and a raw route a verb wraps, typed and held back. */
-test("every refusal this gate relays leads with its route", async () => {
+test("every refusal and teaching this gate relays leads with its route", async () => {
   const reasons = {};
   owed({ [UUID]: [comment("c1", "read this before you write")] });
   reasons.thread = because(await gate(edgeWrite()));
@@ -560,5 +560,5 @@ test("every refusal this gate relays leads with its route", async () => {
     { url: "", withheld: { new: "off" }, session: "probe-order-withheld" }));
   for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
   assert.doesNotMatch(reasons["a body that reads as a fix"], /under `clear:`/u, "the fix's own head, not the shape's");
-  assert.match(reasons["a thread past the credits"], /^Hold — re-send the same command/u, "the short thread's own head");
+  assert.match(reasons["a thread past the credits"], /^Read the rest of the thread on the tracker's own screens/u, "the short thread's own head");
 });

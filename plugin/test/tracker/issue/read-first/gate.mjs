@@ -1,4 +1,4 @@
-/* The gate run end to end, which the readers it is built on cannot answer for: the deny, its text
+/* The gate run end to end, which the readers it is built on cannot answer for: the delivery, its text
    and the stand-downs are only measurable by running the hook against a tracker. Two suites share
    one of these rather than each standing up its own, because a second tracker with a second set of
    rows would drift from this one and a case's `state` would mean two things. */
@@ -60,7 +60,11 @@ export const gate = async (command,
   const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd }, env, cwd, { exit, skipped });
   return { ...run, out: answered(run, { exit, skipped }) };
 };
-export const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason ?? "";
+export const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason
+  ?? run.out?.hookSpecificOutput?.additionalContext ?? "";
+/** The write went ahead with something handed to it: the thread is taught, never refused. */
+export const delivered = (run) => run.out?.hookSpecificOutput?.permissionDecision !== "deny"
+  && Boolean(run.out?.hookSpecificOutput?.additionalContext);
 
 export const raw = async (input,
   { name = "mcp__forge__forge_issues", url = live(), withheld = null, exit = 0, skipped = [],
@@ -73,9 +77,9 @@ export const raw = async (input,
 };
 
 /* A shell write for a case about the key the gate reads. Every write verb delivers the thread
-   itself, so the gate stands down for a thread owed only as a delivery (ISS-1715, ISS-1724), and the
-   hold a shell write still meets is a thread that cannot be accounted for: `owed` stands one up, a
-   walk that cannot finish, and its deny carries the comments with it. `whole` is the thread the
+   itself, so the gate stands down for a thread owed only as a delivery (ISS-1715, ISS-1724), and what
+   a shell write is still handed is a thread that cannot be accounted for: `owed` stands one up, a
+   walk that cannot finish, and its teaching carries the comments with it. `whole` is the thread the
    walk finishes. `ISS-31` is the other end, which an edge is never taken against, so nothing
    resolves it. */
 export const edgeWrite = (ref = "ISS-29") => `forge issue ${ref} --relates ISS-31`;

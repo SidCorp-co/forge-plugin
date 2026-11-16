@@ -9,7 +9,7 @@ import test from "node:test";
 
 import { OWN } from "../../../fixtures/own-project.mjs";
 import { pathed, projectRoom, tempRoom } from "../../../fixtures.mjs";
-import { HOME, UUID, because, comment, edgeWrite, gate, issueCalls, owed, raw, state, whole }
+import { HOME, UUID, because, comment, delivered, edgeWrite, gate, issueCalls, owed, raw, state, whole }
   from "./gate.mjs";
 
 /* ISS-1190. Every key resolved under the session's own project, so a command run in a second
@@ -51,7 +51,7 @@ test("a write in a second checkout is held on that checkout's own thread for the
   });
   state.calls = [];
   const run = await gate(`cd ${pathed(SECOND)} && ${edgeWrite()}`);
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(delivered(run));
   assert.ok(because(run).includes("the thread of the checkout the command runs in"),
     "the hold quotes the comments of the project the command will act on");
   assert.ok(!because(run).includes("the thread of the project this session stands in"),
@@ -71,7 +71,7 @@ test("a comment naming --project is held on that project's thread, from whicheve
   });
   state.calls = [];
   const run = await gate(`forge comment --project ${OTHER_SLUG} ISS-29 body.md`);
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(delivered(run));
   assert.ok(because(run).includes("the thread of the project the flag names"),
     "the hold quotes the thread of the project the command names");
   assert.ok(!because(run).includes("the thread of the project this session stands in"));
@@ -132,7 +132,7 @@ test("a command that moves nowhere is resolved in the event's own directory", as
   });
   state.calls = [];
   const run = await gate(edgeWrite());
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(delivered(run));
   assert.ok(because(run).includes("the thread of the project this session stands in"));
   assert.deepEqual([...new Set(issueCalls(0).map((one) => one.slug))], [OWN_SLUG],
     "the event's own directory is the project, exactly as it was before this rule");
@@ -184,7 +184,7 @@ test("one key text in two checkouts is two issues, and both are judged", async (
   });
   state.calls = [];
   const run = await gate(`${edgeWrite()} && cd ${pathed(SECOND)} && ${edgeWrite()}`);
-  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(delivered(run));
   assert.ok(because(run).includes("the thread of the project this session stands in"));
   assert.ok(because(run).includes("the thread of the checkout the command runs in"),
     "a walk remembered under the key alone would drop this one and leave its write unjudged");
