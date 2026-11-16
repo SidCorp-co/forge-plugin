@@ -3094,20 +3094,20 @@
       "digest": "d55b7620c90c0e67911bba17e36d99111437b9d3d1d1d0c2e0f8ceb6b69932bb"
     },
     "AC-05-10-17": {
-      "rev": 1,
-      "digest": "55d30402c93ff5d5fd03b6502253f6a99f9a6b257768dcc399c1cbaa0d5c31b8"
+      "rev": 2,
+      "digest": "45e081fb62481eb15f2caf02d09082de05e38c9d6f04f1d4bd0661c92b123a9c"
     },
     "AC-05-10-18": {
-      "rev": 1,
-      "digest": "9bb29f706c0334cdcb4f8e2c380f719c514112da735d54c9ff506861d68e891a"
+      "rev": 2,
+      "digest": "8c3b72d1cd9c80a2e5f3e364fbd4efab6179f50aa940dd03c1d65923487d41de"
     },
     "AC-05-10-19": {
       "rev": 1,
       "digest": "83bd65beb223814dd28120a7affd2d74735ca6a9f6444cb948227e7d3385b16e"
     },
     "AC-05-10-20": {
-      "rev": 1,
-      "digest": "cdd432dc809d8284c72dea672cb6a70427f2b2c39904b8c1a767374434b51ebd"
+      "rev": 2,
+      "digest": "2d9733feeeabb5944f79c780a9039faf14b453ee2d5ba4ddd17cc23ece4ed4ec"
     },
     "AC-05-10-21": {
       "rev": 1,
@@ -3122,8 +3122,8 @@
       "digest": "1fd538384eec824306182c6de31a7aedee1fed5864681ccfb8174ee5b72c107d"
     },
     "AC-05-10-24": {
-      "rev": 1,
-      "digest": "88686c7e70a395a9b6122bb2557cb876cbe27705416d1878a783d434278a9fd3"
+      "rev": 2,
+      "digest": "4eb537a12edc5a5ea2aa1a00c0bcf8f38732fc73fbb3b3b8cca983b988b412b2"
     },
     "AC-05-10-25": {
       "rev": 1,
@@ -3998,8 +3998,8 @@
       "digest": "741fae789a7f8610e47cfbdda1a3c18c121c0db868f26f3e6f9011b9493cc44e"
     },
     "UC-09-4": {
-      "rev": 1,
-      "digest": "9d235343fcc4c47aad470743ed6e050387e7b253d11b40f94b8e4ddce666265d"
+      "rev": 2,
+      "digest": "a2ce22991101c0db2f75a07851554071ddcf6236e391cf1c0368345a315b679f"
     },
     "AC-09-4-1": {
       "rev": 1,
@@ -4146,12 +4146,12 @@
       "digest": "fefc2ed20acb77135747352d1a17a69472690cc6633ec9a37d6c3f039c43b704"
     },
     "AC-11-2-1": {
-      "rev": 1,
-      "digest": "f1d94361b7a30f8d9e9a6b0c5d0eed4dd47ebe828481cde7cfff89352ec2171c"
+      "rev": 2,
+      "digest": "f0904b8659c9b073eb6c861524a6fcfe48f12361c5fb2a2964b302f6aad20b74"
     },
     "AC-11-2-2": {
-      "rev": 1,
-      "digest": "23808c7f1d8bf5bf0e38de0c70f48883f4dfad0c128ca749560ab079ae551fa3"
+      "rev": 2,
+      "digest": "060fb21414ca8d77e3c8784d8ba933f5a7bc7c3ac1c7df1e8035bd658916c5df"
     },
     "AC-11-2-3": {
       "rev": 1,

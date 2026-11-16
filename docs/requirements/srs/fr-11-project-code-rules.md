@@ -66,12 +66,12 @@ Every kind of claim is settled by running something rather than by an opinion �
 themselves, and what counts as a claim at all, are listed in the gate's own document. The duty here
 is that the file a claim names is the authority over the claim.
 
-- **AC-11-2-1** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a claim the write introduces is refused, named, with one move and where the argument is"
-  IF a write introduces a claim the repository does not bear out THEN the gate SHALL refuse the
-  write, SHALL name the claim, and SHALL name one move that clears it.
-- **AC-11-2-2** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a claim already broken in the committed file is not this write's doing"
-  IF the claim is already broken in the committed file THEN this write SHALL not be refused for it,
-  so the edit that fixes an inherited file lands.
+- **AC-11-2-1** · Rev: 2 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a claim the write introduces is taught, named, with one move and where the argument is"
+  IF a write introduces a claim the repository does not bear out THEN the gate SHALL let the write
+  stand, SHALL name the claim beside it, and SHALL name one move that clears it.
+- **AC-11-2-2** · Rev: 2 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a claim already broken in the committed file is not this write's doing"
+  IF the claim is already broken in the committed file THEN this write SHALL not be taught about it,
+  so the edit that fixes an inherited file is not told about what it inherited.
 - **AC-11-2-3** · Rev: 1 · Proof: plugin/test/checks/claude-md/claims.test.mjs "a rule a checker declares is reported where CLAUDE.md explains it"
   WHERE a rule is already enforced by a checker the report SHALL raise it where a person is reading
   rather than refusing the write.

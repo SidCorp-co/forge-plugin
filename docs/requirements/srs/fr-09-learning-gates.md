@@ -81,11 +81,11 @@ why asking late is still worth it.
 
 ### UC-09-4 — A checker that types out what it could derive
 
-Rev: 1 · Actors: agent · Enforces: BR-13
+Rev: 2 · Actors: agent · Enforces: BR-13
 
 One nudge, once per file, when a check hard-codes cases it could read from the enumeration, the
 switch or the declared type. Where enumerating *is* the point, saying so beside the list silences
-it. It blocks rather than refuses, so nothing is lost to it.
+it. It is said beside the write rather than holding it, so nothing is lost to it.
 
 - **AC-09-4-1** · Rev: 1 · Proof: plugin/test/gates/derive-dont-list.test.mjs "a checker hard-coding what it could derive is asked once, and told where to look"
   WHEN a checker hard-codes a list of cases THEN the gate SHALL ask once, naming the file, the

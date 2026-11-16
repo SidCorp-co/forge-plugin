@@ -41,7 +41,7 @@ const gate = (command, { project = READY, other = null, cwd = REPO } = {}) => {
 const because = (out) => out?.hookSpecificOutput?.additionalContext ?? "";
 const taught = (out) => out?.hookSpecificOutput?.permissionDecision === undefined && Boolean(because(out));
 
-test("the declared gate is refused where the project ships ready", () => {
+test("the declared gate is taught once a session where the project ships ready", () => {
   const out = gate("npm run check");
   assert.equal(taught(out), true, "under ready the gate is the landing's");
   const session = { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm run check" }, session_id: "once", cwd: REPO };
@@ -54,7 +54,7 @@ test("the declared gate is refused where the project ships ready", () => {
     "and as the second command of a line");
 });
 
-test("the refusal names the changed files' suites and the hand-over for the tree's own issue", () => {
+test("the teaching names the changed files' suites and the hand-over for the tree's own issue", () => {
   const said = because(gate("npm run check"));
   assertRouteFirst(said, "landing-gate");
   const [first] = said.split("\n");
@@ -76,7 +76,7 @@ test("under ship self, or with ship unset, the declared gate runs", () => {
     "and a word the key does not take is its fallback, not a guess at ready");
 });
 
-test("a project that declares no gate command is refused nothing", () => {
+test("a project that declares no gate command is taught nothing", () => {
   assert.equal(gate("npm run check", { project: { slug: "fixture", ship: "ready" } }), null, "this repository's own gate is no declaration of theirs");
   assert.equal(gate("npm run check", { project: { ...READY, stats: { commands: { gate: "" } } } }), null,
     "a blank declares nothing");

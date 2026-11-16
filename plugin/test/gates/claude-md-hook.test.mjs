@@ -45,7 +45,7 @@ test("a claim already broken in the committed file is not this write's doing", (
   assert.equal(decide().quiet, true);
 });
 
-test("a claim the write introduces is refused, named, with one move and where the argument is", () => {
+test("a claim the write introduces is taught, named, with one move and where the argument is", () => {
   guide("# CLAUDE.md\n\nThe plan is [here](docs/OLD-PLAN.md).\nRun `npm run verify`, and read `scripts/gate.mjs`.\n");
   const { quiet, reason } = decide();
   assert.equal(quiet, false);

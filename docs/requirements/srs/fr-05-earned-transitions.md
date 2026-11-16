@@ -542,20 +542,21 @@ so a death between the two is recovered by reading back rather than by doing aga
 - **AC-05-10-9** · Rev: 1 · Proof: tools/test/run/landing/land-ready.test.mjs "the merged mark names the judged head, the landed head and that the landing moved nothing"
   WHEN the install has completed THEN the landing SHALL write the merged mark naming the judged head,
   the landed head and whether the landing moved the change's own paths.
-- **AC-05-10-17** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "the declared gate is refused where the project ships ready"
-  WHILE a project ships ready, the CLI SHALL refuse an agent's shell call that runs the gate command
-  that project declared, in whichever tree the call runs it, because the landing gates every change
-  on the base as it then is and a run of that gate before it measures nothing new.
-- **AC-05-10-18** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "the refusal names the changed files' suites and the hand-over for the tree's own issue"
-  WHEN that call is refused THEN the refusal SHALL open with the suites that exercise the files the
-  change touched as the proof to run instead, naming no test runner, and with the hand-over that
-  clears it, keyed to the issue the tree is working.
+- **AC-05-10-17** · Rev: 2 · Proof: plugin/test/gates/landing-gate.test.mjs "the declared gate is taught once a session where the project ships ready"
+  WHILE a project ships ready, the CLI SHALL let an agent's shell call that runs the gate command
+  that project declared go through, in whichever tree the call runs it, and SHALL say once a session
+  beside it that the landing gates every change on the base as it then is, so a run of that gate
+  before it measures nothing new.
+- **AC-05-10-18** · Rev: 2 · Proof: plugin/test/gates/landing-gate.test.mjs "the teaching names the changed files' suites and the hand-over for the tree's own issue"
+  WHEN that call is taught THEN the teaching SHALL open with the suites that exercise the files the
+  change touched as the cheaper proof to run, naming no test runner, and with the hand-over to the
+  landing, keyed to the issue the tree is working.
 - **AC-05-10-19** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "under ship self, or with ship unset, the declared gate runs"
   WHERE a project ships its own changes, or has not said how it ships, the CLI SHALL let its declared
   gate run.
-- **AC-05-10-20** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "a project that declares no gate command is refused nothing"
-  WHERE a project declares no gate command, the CLI SHALL refuse no call as that gate, rather than
-  judge it by the commands this plugin's own repository runs.
+- **AC-05-10-20** · Rev: 2 · Proof: plugin/test/gates/landing-gate.test.mjs "a project that declares no gate command is taught nothing"
+  WHERE a project declares no gate command, the CLI SHALL say nothing of any call as that gate, rather
+  than judge it by the commands this plugin's own repository runs.
 - **AC-05-10-21** · Rev: 1 · Proof: plugin/test/gates/landing-gate.test.mjs "the landing's own verbs are not the gate, and pass under ship ready"
   WHILE a project ships ready, the CLI SHALL let the landing's own verbs through, the gate they run
   being a child of theirs that no shell call carries.
@@ -567,8 +568,8 @@ so a death between the two is recovered by reading back rather than by doing aga
   WHEN a release reports its gate series and no recorded run spent the whole table THEN it SHALL say
   that the next landing whose gate spends every step plants the figure, and SHALL name no `--full`
   run for the lander to start.
-- **AC-05-10-24** · Rev: 1 · Proof: plugin/test/gates/landing/by-run.test.mjs "every spelling that runs the declared gate's script is refused"
-  WHILE a project ships ready, the CLI SHALL refuse a shell call that runs the script that project's
+- **AC-05-10-24** · Rev: 2 · Proof: plugin/test/gates/landing/by-run.test.mjs "every spelling that runs the declared gate's script is taught"
+  WHILE a project ships ready, the CLI SHALL teach a shell call that runs the script that project's
   declared gate runs, however the call spells it: a relative or absolute path resolved against where it
   stands, an interpreter or package manager flag, or a launcher before it.
 - **AC-05-10-25** · Rev: 1 · Proof: plugin/test/gates/landing/by-run.test.mjs "reading the script, or running another, is let through"

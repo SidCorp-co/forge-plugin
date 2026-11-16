@@ -376,8 +376,8 @@ test("a sentence an entry check now enforces is stated by the check and by no gu
 test("the checks point back from the guides, and the evidence table keeps the kinds no check can detect", () => {
   const held = flat(readFileSync(VERIFICATION, "utf8"));
   assert.ok(held.includes("`forge hooks --how landing-gate` says why"),
-    "the verification reference no longer points at the refusal a run meets typing the gate, so it meets it "
-      + "with no page behind it");
+    "the verification reference no longer points at the page behind what a run is taught typing the gate, so "
+      + "it reads that teaching with no reason behind it");
   assert.ok(flat(readFileSync(SCREEN_VERIFICATION, "utf8")).toLowerCase()
     .includes("refuses a verdict under a declared screen change".toLowerCase()),
   "the screen flow's verification reference no longer says a screen's verdict owes an attachment, "
