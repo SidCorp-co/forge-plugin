@@ -103,9 +103,10 @@ test("after a call, every gate's block and context travel together", () => {
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
   const ev = { tool_name: "Bash", tool_input: { command: "touch scripts/check-things.mjs docs/PLAN.md" }, cwd: room, session_id: `g3-${Date.now()}` };
-  const held = answered(run(["derive-dont-list", "../../test/fixtures/gates/note-gate"], ev));
-  assert.equal(held.decision, "block", "derive-dont-list blocked");
-  assert.match(held.reason, /hard-code 3 constants/u);
+  const held = answered(run(["../../test/fixtures/gates/block-gate", "derive-dont-list", "../../test/fixtures/gates/note-gate"], ev));
+  assert.equal(held.decision, "block", "the block gate blocked");
+  assert.match(held.reason, /^Fix what this fixture blocks on/u);
+  assert.match(held.hookSpecificOutput.additionalContext, /hard-code 3 constants/u, "derive-dont-list taught after it");
   assert.match(held.hookSpecificOutput.additionalContext, /You changed a document this turn/u, "and the note gate still spoke");
 });
 
