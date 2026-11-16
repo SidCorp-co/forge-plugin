@@ -13,9 +13,21 @@ const repo = repository();
 
 const decided = (run) => {
   assert.equal(run.status, 0, run.stderr);
-  if (!run.stdout.trim()) return { allowed: true };
+  if (!run.stdout.trim()) return { allowed: true, taught: "" };
   const answer = JSON.parse(run.stdout).hookSpecificOutput;
-  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
+  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason,
+    taught: answer.additionalContext ?? "" };
+};
+
+/* The gate teaches: every dispatch goes, and a message the verb did not print is told the brief to send. */
+const taught = (said, label = "") => {
+  assert.equal(said.allowed, true, `${label}: refused — ${said.reason}`);
+  assert.match(said.taught, /forge brief /u, `${label}: went untaught`);
+  return said.taught;
+};
+const untaught = (said, label = "") => {
+  assert.equal(said.allowed, true, `${label}: refused — ${said.reason}`);
+  assert.equal(said.taught, "", label);
 };
 
 const dispatch = (who, prompt, { role = "forge:runner", session = who.session, cwd = repo.main, tool = "Agent", skipped = [] } = {}) =>
@@ -32,18 +44,17 @@ const printed = (who, cwd = repo.main) => {
 
 test("the brief the verb printed passes, whole", () => {
   const who = homeFor();
-  assert.equal(dispatch(who, printed(who)).allowed, true);
+  untaught(dispatch(who, printed(who)));
 });
 
-test("a hand-written brief carrying method is refused, with the verb to run instead", () => {
+test("a hand-written brief carrying method goes, and is taught the verb to run instead", () => {
   const who = homeFor();
-  const said = dispatch(who, "ISS-7 in wt-ISS-7. The branch needs a rebase before its ship.");
-  assert.equal(said.allowed, false);
-  assert.match(said.reason, /`forge brief ISS-7 --tree <its worktree>`/u);
-  assert.match(said.reason, /send what it prints as the prompt, unchanged/u);
+  const said = taught(dispatch(who, "ISS-7 in wt-ISS-7. The branch needs a rebase before its ship."));
+  assert.match(said, /`forge brief ISS-7 --tree <its worktree>`/u);
+  assert.match(said, /send what it prints as the prompt, unchanged/u);
 });
 
-test("the printed brief with a line added is refused, whatever the line says", () => {
+test("the printed brief with a line added is taught, whatever the line says", () => {
   const who = homeFor();
   const generated = printed(who);
   for (const added of [
@@ -51,94 +62,94 @@ test("the printed brief with a line added is refused, whatever the line says", (
     "Every file stays under 500 lines.",
     "Tangerine lighthouses hum quietly over distant orchards.",
   ]) {
-    assert.equal(dispatch(who, `${generated}\n${added}`).allowed, false, added);
+    taught(dispatch(who, `${generated}\n${added}`), added);
   }
 });
 
-test("a paraphrase of the printed brief is refused", () => {
+test("a paraphrase of the printed brief is taught", () => {
   const who = homeFor();
-  assert.equal(dispatch(who, printed(who).replace("Held by the other trees", "Held by other trees")).allowed, false);
+  taught(dispatch(who, printed(who).replace("Held by the other trees", "Held by other trees")));
 });
 
 /* A sibling tree's held files are read now and move when it commits; the pin is taken without those
    lines, so a brief printed before a sibling moved still passes after, while the header and every
    other line still pin it (ISS-30). */
-test("a sibling tree moving under the printed brief does not refuse it (ISS-30)", () => {
+test("a sibling tree moving under the printed brief is not taught against (ISS-30)", () => {
   const who = homeFor();
   const generated = printed(who);
   const moved = generated.replace("committed: landed.txt", "committed: landed.txt, more.txt");
   assert.notEqual(moved, generated, "the fixture prints a sibling's committed file, which this moves");
-  assert.equal(dispatch(who, moved).allowed, true);
+  untaught(dispatch(who, moved));
 });
 
-test("a brief past its ten minutes is refused", () => {
+test("a brief past its ten minutes is taught", () => {
   const who = homeFor();
   const generated = printed(who);
   const store = join(who.home, ".cache", "forge", "briefs", who.session);
   const old = new Date(Date.now() - 11 * 60_000);
   for (const one of readdirSync(store)) utimesSync(join(store, one), old, old);
-  assert.equal(dispatch(who, generated).allowed, false);
+  taught(dispatch(who, generated));
 });
 
-test("a brief printed for one session is refused when another dispatches it", () => {
+test("a brief printed for one session is taught when another dispatches it", () => {
   const who = homeFor();
-  assert.equal(dispatch(who, printed(who), { session: "session-two" }).allowed, false);
+  taught(dispatch(who, printed(who), { session: "session-two" }));
 });
 
 test("the brief passes though the hook reads a different XDG home than the verb wrote (ISS-29)", () => {
   const who = homeFor();
   const generated = printed(who);
   const elsewhere = { ...who, env: { ...who.env, XDG_CONFIG_HOME: join(who.home, "hook-config") } };
-  assert.equal(dispatch(elsewhere, generated).allowed, true);
+  untaught(dispatch(elsewhere, generated));
 });
 
 test("another plugin's role, a general agent and any other tool pass untouched", () => {
   const who = homeFor();
-  assert.equal(dispatch(who, "anything", { role: "other:runner" }).allowed, true);
-  assert.equal(dispatch(who, "anything", { role: null }).allowed, true);
-  assert.equal(dispatch(who, "anything", { tool: "Bash" }).allowed, true);
+  untaught(dispatch(who, "anything", { role: "other:runner" }));
+  untaught(dispatch(who, "anything", { role: null }));
+  untaught(dispatch(who, "anything", { tool: "Bash" }));
 });
 
-test("outside any checkout a typed brief is refused and the printed one passes", () => {
+test("outside any checkout a typed brief is taught and the printed one passes in silence", () => {
   const who = homeFor();
   const nowhere = tempRoom("brief-gate-nowhere-");
   const generated = brief(["ISS-7"], nowhere, who.env).stdout;
-  assert.equal(dispatch(who, "ISS-7, rebase first.", { cwd: nowhere }).allowed, false);
-  assert.equal(dispatch(who, generated, { cwd: nowhere }).allowed, true);
+  taught(dispatch(who, "ISS-7, rebase first.", { cwd: nowhere }));
+  untaught(dispatch(who, generated, { cwd: nowhere }));
 });
 
 test("the switch turns the gate off, and it fires while the switch does not name it", () => {
   const who = homeFor();
-  assert.equal(dispatch(who, "ISS-7, rebase first.").allowed, false);
+  taught(dispatch(who, "ISS-7, rebase first."));
   mkdirSync(join(who.config, "forge"), { recursive: true });
   writeFileSync(join(who.config, "forge", "config.json"), JSON.stringify({ hooksOff: ["brief"] }));
-  assert.equal(dispatch(who, "ISS-7, rebase first.", { skipped: ["brief"] }).allowed, true);
+  untaught(dispatch(who, "ISS-7, rebase first.", { skipped: ["brief"] }));
 });
 
-/* AC-07-3-4. The gate refuses on one shape, so its one refusal is the case. */
-test("every refusal this gate writes leads with its route", () => {
+/* AC-07-3-4. A teaching opens with its route as a refusal did. */
+test("every teaching this gate writes leads with its route", () => {
   const who = homeFor();
-  const said = dispatch(who, "ISS-7 in wt-ISS-7. The branch needs a rebase before its ship.");
-  assert.match(said.reason, /^Hold — run `forge brief ISS-7/u);
-  assertRouteFirst(said.reason, "a typed brief");
+  const said = taught(dispatch(who, "ISS-7 in wt-ISS-7. The branch needs a rebase before its ship."));
+  assert.match(said, /^Run `forge brief ISS-7/u);
+  assertRouteFirst(said, "a typed brief");
 });
 
 /* AC-19-3-6. A judge handed a builder's brief worked in its tree, and one handed no address brought up
-   a local stack (ISS-3145): the judging role is held to the one form that names the deployment. */
-test("a dispatch to the judging role passes only on the judge's form of the brief", () => {
+   a local stack (ISS-3145): the judging role is taught the one form that names the deployment. */
+test("a dispatch to the judging role goes untaught only on the judge's form of the brief", () => {
   const who = homeFor();
   const judge = brief(["ISS-7", "--judge", "--url", "https://staging.example.com", "--criteria", "1,2"], repo.main, who.env);
   assert.equal(judge.status, 0, judge.stderr);
-  assert.equal(dispatch(who, judge.stdout, { role: "forge:qa" }).allowed, true, "the judge's own brief is refused");
+  const own = dispatch(who, judge.stdout, { role: "forge:qa" });
+  assert.equal(own.allowed, true, own.reason);
+  assert.doesNotMatch(own.taught, /^Run /u, "the judge's own brief is taught another");
   for (const builder of [printed(who), brief(["ISS-7"], repo.main, who.env).stdout]) {
-    const said = dispatch(who, builder, { role: "forge:qa" });
-    assert.equal(said.allowed, false, "a builder's brief reaches the judge");
-    assert.match(said.reason, /^Hold — run `forge brief ISS-7 --judge --url <what the deployment answers at> --criteria /u);
-    assert.match(said.reason, /a builder's brief/u, "the refusal does not say which brief it was");
-    assertRouteFirst(said.reason, "a builder's brief to the judge");
+    const said = taught(dispatch(who, builder, { role: "forge:qa" }), "a builder's brief to the judge");
+    assert.match(said, /^Run `forge brief ISS-7 --judge --url <what the deployment answers at> --criteria /u);
+    assert.match(said, /a builder's brief/u, "the teaching does not say which brief it was");
+    assertRouteFirst(said, "a builder's brief to the judge");
   }
-  const typed = dispatch(who, "ISS-7: judge on staging only.", { role: "forge:qa" });
-  assert.equal(typed.allowed, false);
-  assert.match(typed.reason, /^Hold — run `forge brief ISS-7 --judge /u);
-  assertRouteFirst(typed.reason, "a typed brief to the judge");
+  const typed = taught(dispatch(who, "ISS-7: judge on staging only.", { role: "forge:qa" }), "a typed brief to the judge");
+  assert.match(typed, /^Run `forge brief ISS-7 --judge /u);
+  assertRouteFirst(typed, "a typed brief to the judge");
 });

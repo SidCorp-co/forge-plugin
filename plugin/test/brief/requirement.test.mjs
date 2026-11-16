@@ -86,21 +86,22 @@ const printed = (argv) => {
   return run.stdout;
 };
 
-test("the gate takes a requirement's brief for the judge, and refuses it to a builder", async () => {
+test("the gate takes a requirement's brief for the judge, and teaches a builder handed it", async () => {
   state.issues = issues();
   const sent = printed(["--requirement", "REQ-79", "--criterion", "BC-6", "--url", URL_AT]);
   assert.equal((await dispatch(sent, "forge:qa")).allowed, true);
   const builder = await dispatch(sent, "forge:runner");
-  assert.equal(builder.allowed, false);
-  assert.match(builder.reason, /^Hold — a requirement's brief is a judge's/u);
+  assert.equal(builder.allowed, true, builder.reason);
+  assert.match(builder.context, /^Send a requirement's brief to `qa`/u);
+  assert.match(builder.context, /a requirement's brief is a judge's/u);
 });
 
-test("an issue's brief to a judge whose facts name a requirement is refused, naming the requirement", async () => {
+test("an issue's brief to a judge whose facts name a requirement is taught, naming the requirement", async () => {
   state.issues = issues("judge REQ-79 BC-6 at staging, not the issue's own criteria");
   const said = await dispatch(printed(["ISS-7", "--judge", "--url", URL_AT, "--criteria", "1"]), "forge:qa");
-  assert.equal(said.allowed, false);
-  assert.match(said.reason, /^Hold — run `forge brief --requirement REQ-79 \[--criterion BC-n\] --url /u);
-  assert.match(said.reason, /The facts left on ISS-7 for this judge name REQ-79/u);
+  assert.equal(said.allowed, true, said.reason);
+  assert.match(said.context, /^Run `forge brief --requirement REQ-79 \[--criterion BC-n\] --url /u);
+  assert.match(said.context, /the facts left on ISS-7 for this judge name REQ-79/u);
 });
 
 test("an issue's brief to a judge passes where its facts name no requirement, or say nothing", async () => {

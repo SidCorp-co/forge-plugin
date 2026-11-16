@@ -71,11 +71,12 @@ time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
   WHEN the judging role's text asks for an artifact THEN it SHALL name the route that takes one from
   the equipment the role is granted, and SHALL name what stands where no route reaches the state a
   criterion is about.
-- **AC-19-3-6** · Rev: 1 · Proof: plugin/test/brief/gate.test.mjs "a dispatch to the judging role passes only on the judge's form of the brief"
-  WHEN a dispatch to the judging role is checked THEN the gate SHALL pass it only where its message is
-  the judge's form of the brief, which names where the change is deployed and the criteria to judge
-  there and carries no tree, because a judge handed a tree or no address judges a checkout instead of
-  the deployment.
+- **AC-19-3-6** · Rev: 2 · Proof: plugin/test/brief/gate.test.mjs "a dispatch to the judging role goes untaught only on the judge's form of the brief"
+  WHEN a dispatch to the judging role is checked THEN the gate SHALL let it go and SHALL teach the
+  judge's form of the brief wherever its message is not that form, which names where the change is
+  deployed and the criteria to judge there and carries no tree, because a judge handed a tree or no
+  address judges a checkout instead of the deployment, and which brief a dispatcher sends is a way of
+  working, not kernel input.
 
 ### EI-04 — The project's linter
 

@@ -49,12 +49,12 @@ test("the judging role is waived alike", async () => {
   assert.equal((await dispatch("ISS-7: judge it on staging.", "forge:qa")).allowed, true);
 });
 
-test("yolo with fast delivery turned off still asks for the brief, naming why", async () => {
+test("yolo with fast delivery turned off still teaches the brief, naming why", async () => {
   answering({ profile: "yolo", fast: false });
   const said = await dispatch("ISS-7: fix the parser and land it.");
-  assert.equal(said.allowed, false);
-  assert.match(said.reason, /^Hold — run `forge brief ISS-7/u);
-  assert.match(said.reason, /Not waived: forge-plugin is gated `yolo` with fast delivery off/u);
+  assert.equal(said.allowed, true, said.reason);
+  assert.match(said.context, /^Run `forge brief ISS-7/u);
+  assert.match(said.context, /Not waived: forge-plugin is gated `yolo` with fast delivery off/u);
 });
 
 test("a standard project on fast delivery is waived too, named by its own profile", async () => {
@@ -64,26 +64,26 @@ test("a standard project on fast delivery is waived too, named by its own profil
   assert.match(said.context, /No brief asked: forge-plugin is gated `standard` on fast delivery/u);
 });
 
-test("a strict project still asks for the brief", async () => {
+test("a strict project is still taught the brief", async () => {
   answering({ profile: "strict" });
   const said = await dispatch("ISS-7: fix the parser and land it.");
-  assert.equal(said.allowed, false);
-  assert.match(said.reason, /Not waived: forge-plugin is gated `strict`/u);
+  assert.equal(said.allowed, true, said.reason);
+  assert.match(said.context, /Not waived: forge-plugin is gated `strict`/u);
 });
 
-test("a profile the tracker did not give keeps the brief", async () => {
+test("a profile the tracker did not give keeps the teaching", async () => {
   for (const profile of [null, undefined]) {
     answering({ profile });
     const said = await dispatch("ISS-7: fix the parser and land it.");
-    assert.equal(said.allowed, false, String(profile));
-    assert.match(said.reason, /Not waived: the tracker did not answer for forge-plugin/u);
+    assert.equal(said.allowed, true, String(profile));
+    assert.match(said.context, /Not waived: the tracker did not answer for forge-plugin/u);
   }
 });
 
 test("the profile is read from the tracker on each dispatch, never remembered", async () => {
   answering({ profile: "yolo" });
-  assert.equal((await dispatch("ISS-7: one.")).allowed, true);
+  assert.match((await dispatch("ISS-7: one.")).context, /^No brief asked/u);
   answering({ profile: "strict" });
-  assert.equal((await dispatch("ISS-7: two.")).allowed, false);
+  assert.match((await dispatch("ISS-7: two.")).context, /Not waived/u);
   assert.ok(state.calls.some((one) => one.name === "forge_config" && one.args.action === "gates"));
 });

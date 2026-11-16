@@ -55,7 +55,9 @@ const dispatched = (who, prompt) => {
   }, who.env, process.cwd(), { skipped: [] });
   assert.equal(run.status, 0, run.stderr);
   if (!run.stdout.trim()) return true;
-  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecision !== "deny";
+  const answer = JSON.parse(run.stdout).hookSpecificOutput;
+  assert.notEqual(answer.permissionDecision, "deny", "the brief gate teaches and never refuses");
+  return !answer.additionalContext;
 };
 
 const COPY_LINE = /plugin copy|restart|1\.0\.[01]/iu;
@@ -71,8 +73,8 @@ test("a restart owed is said to the dispatcher in versions, and the brief it can
   assert.match(said, /not part of the brief: send only what standard output printed/u);
   assert.doesNotMatch(said, /hooks\/|src\/|skills\/|agents\/|\.json|\.mjs|\.md/u, "the plugin's own paths are no dispatcher's to place");
   assert.doesNotMatch(run.stdout, COPY_LINE, "the brief a run is handed says nothing of the dispatcher's copy");
-  assert.equal(dispatched(who, run.stdout), true, "what standard output printed passes the hook unchanged");
-  assert.equal(dispatched(who, `${said}\n${run.stdout}`), false, "and with the restart line pasted in it is refused");
+  assert.equal(dispatched(who, run.stdout), true, "what standard output printed passes the hook untaught");
+  assert.equal(dispatched(who, `${said}\n${run.stdout}`), false, "and with the restart line pasted in it is taught");
   assert.equal(dispatched(who, `${run.stdout}\n${said}`), false, "wherever the line is pasted");
 });
 
