@@ -20,13 +20,6 @@ event's cwd. Three gates need that — whose work a `git stash` takes, which tre
 where a relative write lands — so it is the harness's. Read wrong it is silent in the dangerous
 direction: a clean checkout stands the rules down and nothing is refused.
 
-## A gate refuses kernel input and teaches the rest
-
-A gate denies or blocks only over kernel input, and the `cm:why` beside that verdict names which. A
-way of working the agent should choose is taught: the call goes ahead, and the message that would have
-refused it, action first, arrives as context in the same place. A teaching is said once per thing it
-is about, since an agent told twice reads the second as noise, and the refusal log does not count it.
-
 ## Writing a refusal, and the document behind it
 
 Both are literals in their hook, never loaded from a file: the wording belongs beside the decision

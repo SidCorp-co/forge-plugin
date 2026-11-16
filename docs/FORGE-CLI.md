@@ -133,6 +133,7 @@ how many topics there may be.
 | [the proof escapes](cli/the-proof-escapes.md) | Why the count of criteria owed to an issue that can no longer keep the promise is a report rather than a gate, what one reading of the backlog costs it, and why a tracker that did not answer judges none of them. |
 | [the landing lines](cli/the-landing-lines.md) | Why where the merge sits is derived from the branches rather than asked for, and why whether an independent agent judges is the tracker record's alone. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why one place alone answers whether a gate is off. |
+| [teach or refuse](cli/teach-or-refuse.md) | Why a gate refuses only kernel input, and how a way of working is taught in the place the refusal stood. |
 | [the test credentials](cli/test-credentials.md) | Why a host is told from a secret by the shape of the value, and where the trim stops. |
 | [the project's brief](cli/the-brief.md) | Why `--refresh` takes the answer it is meant to produce, which files a digest covers and which it deliberately does not, and why a store that will not answer is not a store with no brief. |
 | [the narrow writes to the brief](cli/the-stale-line.md) | Why a stale line is fixed one line at a time, why `--line` makes the caller retype the prose it replaces, why a new fact is added by `--after` rather than over a blank, and what a digest keyed by path rather than by line decides. |

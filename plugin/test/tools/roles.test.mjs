@@ -268,9 +268,9 @@ test("the judging method keeps the judge on the deployment and off a checkout's 
     assert.match(reach, /Write it `skipped`/u, `${flow}: a checkout-only criterion is given no verdict shape`);
     assert.match(reach, /who owes\s+that evidence/u, `${flow}: the skip names nobody to show it`);
     const drive = paragraphOf(/one thing you drive/u);
-    for (const banned of [/never run the project's gate, a test suite or anything that brings up a stack/u,
-      /never build the\s+commit/u, /never work in a builder's worktree/u]) {
-      assert.match(drive, banned, `${flow}: ${banned} is not said`);
+    for (const taught of [/a test runner and a local stack are a builder's equipment,\s+and a judge has no use for them/u,
+      /a build of the commit is not\s+the deployment/u, /a builder's worktree is somebody's uncommitted work/u]) {
+      assert.match(drive, taught, `${flow}: ${taught} is not said`);
     }
     assert.match(paragraphOf(/plainly does not carry/u), /stop and report that\s+before judging anything/u,
       `${flow}: a deployment without the change is judged anyway`);
