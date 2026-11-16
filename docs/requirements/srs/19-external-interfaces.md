@@ -85,7 +85,7 @@ Reached through its own entry point, which resolves the workspace, the binary an
 configuration. Which copy of it answers is `README.md`'s; a project with neither is silence
 (NFR-09).
 
-- **AC-19-4-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
+- **AC-19-4-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is taught after the write, naming its rule, and said once per content"
   WHEN a file is linted THEN the finding SHALL come from the project's own configuration, and the
   product SHALL add no rule of its own.
 

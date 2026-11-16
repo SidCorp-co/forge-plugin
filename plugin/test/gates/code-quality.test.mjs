@@ -1,5 +1,5 @@
-/* Once answered in the delegate's own protocol — stderr and exit 2 — and so the one refusal that
-   for months left no line, while docs/HOOKS.md promised every one was written down. */
+/* The delegate answers in its own protocol — stderr and exit 2 — and the gate turns a finding into a
+   teaching after the write: the file landed, and what to fix is said beside it. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
@@ -17,36 +17,34 @@ const LOG = join(HOME.XDG_CONFIG_HOME, "forge", "hook-log.jsonl");
 /* Seven, two past the cap. */
 const NAMES = ["a", "b", "c", "d", "e", "f", "g"].map((one) => `${one}.mjs`);
 
-/* A probe that means to be refused says 1300 characters of comment, because that is what a
+/* A probe that means to be reported says 1300 characters of comment, because that is what a
    comment costs now. On one line, which is how the same file passed the ceiling before it. */
 const DENSE = `// ${"the unit is what the comment says and never the column its author wrapped it at. ".repeat(20)}\nexport const x = 1;\n`;
 
 
 /* Inside this repository, so the delegate finds this project's ESLint and its density limit. */
-test("a finding is refused in the delegate's protocol and written to the log like every other", () => {
+test("a finding is taught after the write, naming its rule, and said once per content", () => {
   const file = join(REPO, "plugin", "test", `cq-probe-${randomUUID().slice(0, 8)}.mjs`);
+  const session = randomUUID();
   writeFileSync(file, DENSE);
   try {
     const run = callHook(
       HOOK,
-      { session_id: randomUUID(), tool_name: "Write", tool_input: { file_path: file }, cwd: REPO },
+      { session_id: session, tool_name: "Write", tool_input: { file_path: file }, cwd: REPO },
       HOME,
     );
     assert.equal(run.status, 0, `exit ${run.status}: ${run.stderr}`);
     const out = JSON.parse(run.stdout);
-    assert.equal(out.decision, "block");
-    assert.match(out.reason, /code-quality\//u, "the delegate's finding, verbatim");
-    assert.ok(existsSync(LOG), "a refusal writes the log");
-    const entry = JSON.parse(readFileSync(LOG, "utf8").trim().split("\n").pop());
-    assert.equal(entry.hook, "code-quality");
-    assert.equal(entry.decision, "block");
-    assert.match(entry.refused, /code-quality: .*cq-probe.* — code-quality\/comment-density/u, "the log names the rule, not only the file");
-    /* The same content named again — a grep, say — is not a second block. */
-    const again = callHook(HOOK, { session_id: entry.session, tool_name: "Bash", tool_input: { command: `grep -n one ${pathed(file)}` }, cwd: REPO }, HOME);
+    assert.equal(out.decision, undefined, "a finding refuses nothing: the write already landed");
+    const said = out.hookSpecificOutput?.additionalContext ?? "";
+    assert.match(said, /code-quality: .*cq-probe.* — code-quality\/comment-density/u, "the delegate's finding, verbatim, naming the rule");
+    assert.equal(existsSync(LOG), false, "a teaching is not a refusal, so the refusal log holds nothing");
+    /* The same content named again — a grep, say — is not said twice. */
+    const again = callHook(HOOK, { session_id: session, tool_name: "Bash", tool_input: { command: `grep -n one ${pathed(file)}` }, cwd: REPO }, HOME);
     assert.equal(again.stdout.trim(), "", "reported once per content");
     writeFileSync(file, `${readFileSync(file, "utf8")}// five\n`);
-    const changed = callHook(HOOK, { session_id: entry.session, tool_name: "Write", tool_input: { file_path: file }, cwd: REPO }, HOME);
-    assert.equal(JSON.parse(changed.stdout).decision, "block", "changed content is reported again");
+    const changed = callHook(HOOK, { session_id: session, tool_name: "Write", tool_input: { file_path: file }, cwd: REPO }, HOME);
+    assert.match(JSON.parse(changed.stdout).hookSpecificOutput?.additionalContext ?? "", /comment-density/u, "changed content is reported again");
   } finally {
     rmSync(file, { force: true });
   }
@@ -83,14 +81,15 @@ test("a project that configured no linter hears nothing, and the same file speak
   assert.equal(existsSync(log), false, "and nothing is written down about it either");
 
   writeFileSync(join(room, "eslint.config.mjs"), "export default [];\n");
-  assert.match(JSON.parse(call().stdout).reason, /configures ESLint, but ESLint is not installed/u,
+  const taught = (run) => JSON.parse(run.stdout).hookSpecificOutput?.additionalContext ?? "";
+  assert.match(taught(call()), /configures ESLint, but ESLint is not installed/u,
     "the config alone turns the silence into speech, so the file was always reachable");
 
   symlinkSync(join(REPO, "node_modules"), join(room, "node_modules"));
   writeFileSync(join(room, "eslint.config.mjs"),
     'import { configure } from "eslint-plugin-code-quality";\nexport default configure({ "comment-density": "error" });\n');
-  assert.match(JSON.parse(call().stdout).reason, /code-quality\/comment-density/u,
-    "and with a linter behind it the same file is refused, so the silence was the decision");
+  assert.match(taught(call()), /code-quality\/comment-density/u,
+    "and with a linter behind it the same file is reported, so the silence was the decision");
 });
 
 /* Every session started in a checkout carries that checkout as CLAUDE_PROJECT_DIR, and every run a
@@ -116,7 +115,7 @@ test("a file in a worktree beside the session's directory is linted by the tree 
     { ...home, CLAUDE_PROJECT_DIR: session },
   );
   assert.equal(run.status, 0, run.stderr);
-  assert.match(JSON.parse(run.stdout).reason, /code-quality\/comment-density/u,
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput?.additionalContext ?? "", /code-quality\/comment-density/u,
     "the worktree's own configuration answers for a file the session's directory does not hold");
 });
 
@@ -203,7 +202,7 @@ test("a file already reported at its content takes no place under the cap", () =
 });
 
 /* AC-07-3-4. The findings are the linter's words, so the route ahead of them is the gate's own. */
-test("every refusal this gate writes leads with its route", () => {
+test("every teaching this gate writes leads with its route", () => {
   const file = join(REPO, "plugin", "test", `cq-order-${randomUUID().slice(0, 8)}.mjs`);
   writeFileSync(file, DENSE);
   try {
@@ -212,10 +211,9 @@ test("every refusal this gate writes leads with its route", () => {
       { session_id: randomUUID(), tool_name: "Write", tool_input: { file_path: file }, cwd: REPO },
       HOME,
     );
-    const out = JSON.parse(run.stdout);
-    assert.equal(out.decision, "block");
-    assertRouteFirst(out.reason, "a finding");
-    assert.match(out.reason, /\n\ncode-quality: /u, "the finding follows the route");
+    const said = JSON.parse(run.stdout).hookSpecificOutput?.additionalContext ?? "";
+    assertRouteFirst(said, "a finding");
+    assert.match(said, /\n\ncode-quality: /u, "the finding follows the route");
   } finally {
     rmSync(file, { force: true });
   }

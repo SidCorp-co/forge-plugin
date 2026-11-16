@@ -41,17 +41,17 @@ Linting is the slowest thing a post-call gate does and the whole line shares one
 deadline, so the number of files one call can carry is capped — which is why the cap is a clause
 here rather than an implementation detail.
 
-- **AC-11-1-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
+- **AC-11-1-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is taught after the write, naming its rule, and said once per content"
   WHEN a call writes code files THEN the gate SHALL hand them to the project's own linter, up to the
   cap the event's deadline imposes.
 - **AC-11-1-5** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a call writing more code files than the cap is told which went unlinted, and a call inside it hears nothing"
   IF a call wrote more files than that cap THEN the gate SHALL name the files it did not lint.
 - **AC-11-1-2** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a project that configured no linter hears nothing, and the same file speaks once it configures one"
   IF the project configures no linter THEN the gate SHALL say nothing.
-- **AC-11-1-3** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
+- **AC-11-1-3** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is taught after the write, naming its rule, and said once per content"
   WHEN a file has already been reported at its current content THEN naming it again SHALL not be
   answered twice.
-- **AC-11-1-4** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
+- **AC-11-1-4** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is taught after the write, naming its rule, and said once per content"
   WHEN a finding is reported THEN the report SHALL name the rules that fired, and a clean file SHALL
   produce nothing.
 - **AC-11-1-6** · Rev: 1 · Proof: none yet — ISS-2123

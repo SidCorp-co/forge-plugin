@@ -1,11 +1,11 @@
-// Hands every code file a call wrote to the linter the project configured, and says when a call wrote where no gate could see. Owns the routes, never the rules; how/code-quality.md says why the split falls there.
+// Hands every code file a call wrote to the linter the project configured, teaches what it found, and says when a call wrote where no gate could see. Owns the routes, never the rules; how/code-quality.md says why the split falls there.
 
 import { readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
 import { digestOf } from "../../src/keys/digest.mjs";
 import { UNREAD, lintConfigured, linting, MAX_FILES, unreadWhy } from "../../src/hooks/lint-delegate.mjs";
-import { askedAlready, block, context, remaining, touched, unseenWrites } from "../_hook.mjs";
+import { askedAlready, context, remaining, touched, unseenWrites } from "../_hook.mjs";
 
 const SPARE_MS = 5_000;
 
@@ -70,7 +70,7 @@ export const run = (ev) => {
     if (after) askedAlready(ev, `${file}@${after}`, "code-quality");
   }
   const note = [unread.length ? unlinted(ev, unread) : "", unseen(ev)].filter(Boolean).join("\n\n");
-  /* The findings are the linter's words; the route ahead of them is this gate's. */
-  if (reasons.length) block([FIX, ...reasons, note].filter(Boolean).join("\n\n"));
+  // cm:why taught, not refused: a lint finding is the project's way of working, and the write it follows already landed (FR-11)
+  if (reasons.length) context([FIX, ...reasons, note].filter(Boolean).join("\n\n"));
   if (note) context(note);
 };

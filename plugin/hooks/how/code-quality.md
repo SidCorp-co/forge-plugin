@@ -3,13 +3,13 @@
 Why: the shipped hook watches the tool routes only, so a file written by `sed` or a heredoc was never
 linted. This forwards to the project's own copy — its config, its thresholds.
 
-How to clear it: fix what each finding names, at the source. `--fix` is refused. Comment density
-inverts, so read that one twice: shortening a string raises the ratio, and the header comment is what
-to trim in the same edit.
+The write goes ahead and each finding is said after it: fix it at the source, not with `--fix`.
+Comment density inverts, so read that one twice: shortening a string raises the ratio, and the
+header comment is what to trim in the same edit.
 
 It writes: the project's `prettier` output, unless that adds a finding the edit's own text lacks,
-so a `sed` write comes back formatted. A file is reported once per content in a session, and the log
-line carries the rules that fired.
+so a `sed` write comes back formatted. A file is reported once per content in a session, naming the
+rules that fired.
 
 Not read is said: one call lints its first five code files by path, and a file past that, past the
 clock or past the linter's time limit is named after the call, refusing nothing. Not seen too:
