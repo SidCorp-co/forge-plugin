@@ -94,8 +94,7 @@ export const browseOf = (row) => {
 /* What reading a citation backwards needs and `browseOf` may not grow: docs/cli/spec-the-status.md. */
 export const citingOf = (row) => ({
   ...named(row),
-  ...pick(row, ["title", "status", "mergedAt", "mergedCommitSha", "landingShape", "mergedLanding", "matchedFields",
-    "description", "plan", "acceptanceCriteria"]),
+  ...pick(row, ["title", "status", "mergedAt", "mergedCommitSha", "landingShape", "mergedLanding", "matchedFields"]),
   ...placed(row),
 });
 

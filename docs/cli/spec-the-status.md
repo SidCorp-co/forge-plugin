@@ -9,9 +9,12 @@ trip inside every write that resolves a citation.
 created from here, and a walk of every issue is not a route on a project that answers `hasMore` at
 the token cap on a single status. What there is, since the tracker indexed the plan and the criteria
 fields, is a search that reaches a citation wherever it was written, and answers each row with the
-field it matched. So the set is obtained by asking the index for the identifier and then resolving
-each row's own three fields against the tree — the search decides the candidates and the tree decides
-the answer, because an index matches text and only a clause resolves.
+fields it matched. So the set is obtained by asking the index for the identifier and then resolving
+each candidate's own three fields against the tree — the search decides the candidates and the tree decides
+the answer, because an index matches text and only a clause resolves. The row carries none of those
+fields since forge ISS-1256, so each candidate is read whole, once however many clauses found it; a
+row the search matched in none of its text is no candidate. A candidate whose record could not be
+read is a citation unknown, never one absent, and costs the clause its rung as a cut set does.
 
 **The ask is per clause, and the saving is deliberately not taken.** The index appears to narrow on
 each part of an identifier, so `AC-14` answers a superset of `AC-14-4`, which answers a superset of

@@ -114,6 +114,8 @@ const trackerFor = async (state) => {
 
 const searches = (calls) => calls.filter((one) => (one.path ?? "").endsWith("/issues/search"));
 const threads = (calls) => calls.filter((one) => /\/comments$/u.test(one.path ?? ""));
+const wholeReads = (calls) => calls.filter((one) => /^\/api\/issues\/[^/]+$/u.test(one.path ?? ""))
+  .map((one) => one.path.split("/")[3]);
 
 test("the citing set is what the tree resolves, not what the index matched", async () => {
   const { tracker, held, env, project: roomOf } = await trackerFor({});
@@ -155,13 +157,33 @@ test("the comment read is spent on the issues that could prove the clause and on
 });
 
 test("a requirement costs one ask per clause under it and never a walk of the project", async () => {
-  const { tracker, held, env, project: roomOf } = await trackerFor({});
+  const ELSEWHERE = issue({ issueId: "ISS-5", title: "found for a key the search reads no text of",
+    releaseNotes: "AC-01-1-1~1" });
+  const { tracker, held, env, project: roomOf } = await trackerFor({ issues: [PROVER, MENTIONS, PROSE, ELSEWHERE] });
   const run = await ranAsync(FORGE, ["spec", "FR-01", "--status"], env, roomOf("citing-per-clause-"));
   tracker.close();
   assert.deepEqual(searches(held.calls).map((one) => one.query.q).sort(), ["AC-01-1-1", "AC-01-1-2"]);
+  assert.deepEqual(wholeReads(held.calls).sort(), ["iss-1-uuid", "iss-2-uuid", "iss-3-uuid"],
+    "each candidate read whole once though both asks found ISS-3, and none whose matchedFields came back empty");
   assert.match(run.stdout, /AC-01-1-2 {2}partial {3}cited by ISS-3/u,
     "each clause under it read on its own ask, and the sibling's citer found there and not here");
   assert.match(run.stdout, /Status of FR-01: partial/u, "the requirement at the lowest rung any took");
+});
+
+test("a candidate whose record could not be read leaves the clause unknown, never unclaimed", async () => {
+  const { tracker, held, env, project: roomOf } = await trackerFor({
+    answer: { forge_issues: (args) => (args.action === "get" && args.documentId === "iss-1-uuid"
+      ? { refused: "the record is withheld" }
+      : undefined) },
+  });
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-unread-"));
+  tracker.close();
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /AC-01-1-1 {2}no rung {2}cited by ISS-2/u);
+  assert.match(run.stdout, /could not be read whole, so whether they cite it is unknown/u);
+  assert.match(run.stdout, /ISS-1: .*the record is withheld/u);
+  assert.ok(!run.stdout.includes("unclaimed"), `an unread body may not read as no citation:\n${run.stdout}`);
+  assert.equal(threads(held.calls).length, 0, "and nothing is judged off a set that may be short");
 });
 
 test("a citing set the route cut short earns no rung and says it was cut", async () => {

@@ -9,9 +9,9 @@ import { SLUG as CONTRACT, partsOf, readContract } from "../../guides/contract.m
 import { localSlugs } from "../../guides/guides.mjs";
 import { referencesOf } from "../../guides/skill-guides.mjs";
 import { PLUGIN_ROOT } from "../../tools/plugin-copy.mjs";
+import { pooled } from "../../wire/pooled.mjs";
 
 const FORGE = join(PLUGIN_ROOT, "bin", "forge");
-const AT_ONCE = 8;
 export const HELP = "help";
 export const GUIDE = "guide";
 
@@ -88,21 +88,6 @@ const ranText = (argv, cwd) => new Promise((done) => {
   child.on("error", (dropped) => done({ text: "", unread: dropped.message }));
   child.on("close", (code) => done({ text: `${Buffer.concat(out)}${code === 0 ? "" : Buffer.concat(err)}`, code }));
 });
-
-/** Each item through `each`, `AT_ONCE` at a time, answered in the order given. */
-export const pooled = async (items, each) => {
-  const answered = new Array(items.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) {
-      const index = next;
-      next += 1;
-      answered[index] = await each(items[index]);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(AT_ONCE, items.length) }, worker));
-  return answered;
-};
 
 /** Each node with its text, read from the directory the caller stands in. */
 export const readNodes = (nodes, cwd = process.cwd(), read = ranText) =>

@@ -13,25 +13,22 @@ const captures = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "fixt
 
 const held = (name) => JSON.parse(readFileSync(join(captures, `${name}.json`), "utf8"));
 
-/* The envelope verdict says the page came through; what the reverse read is for is the row,
-   and a projection that dropped a citation field would leave the narrowing with nothing to resolve
-   and every candidate kept. */
-describe("the citing projection carries what a citation is resolved out of", () => {
-  it("each row keeps the three fields a citation may sit in and the field the search matched", () => {
+// cm:why since forge ISS-1256 a search row carries none of the three fields a citation sits in; a projection answering them would hand the reverse read a null it takes for "no citation"
+describe("the citing projection carries what picks a candidate and nothing a citation is resolved out of", () => {
+  it("each row keeps the field the search matched and the merged mark, and no body field", () => {
     const { issues } = ROUTES["forge_issues.citing"]
       .answers({ page: held("issues-citing").rest.answer }, {});
     assert.ok(issues.length > 1, "one row cannot show a projection that varies by row");
     for (const row of issues) {
       assert.match(row.issueId, /^ISS-\d+$/u);
+      assert.ok(row.documentId, `${row.issueId} carries no id to read the issue whole by`);
       for (const field of ["description", "plan", "acceptanceCriteria"]) {
-        assert.ok(Object.hasOwn(row, field), `${row.issueId} lost ${field}, which is where a citation sits`);
+        assert.ok(!Object.hasOwn(row, field), `${row.issueId} carries ${field}, which no search row holds`);
       }
       assert.ok(Array.isArray(row.matchedFields), `${row.issueId} carries no matchedFields`);
       assert.ok(Object.hasOwn(row, "status") && Object.hasOwn(row, "mergedAt"),
         `${row.issueId} carries neither the status nor the merged mark a verdict is judged against`);
     }
-    assert.ok(issues.some((row) => (row.matchedFields ?? []).includes("plan")),
-      "no row matched on the plan, so this capture cannot show the field the browse route never had");
   });
 });
 

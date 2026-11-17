@@ -1,7 +1,8 @@
 /* `forge stats surface` — what the texts an agent is served cost, in tokens counted by the provider
    that bills them, and what repeats across them. Why a count and never an estimate, which texts are
    walked, and what a priced read means: docs/cli/stats-the-surface.md. */
-import { GUIDE, pooled, readNodes, surfaceNodes } from "./nodes.mjs";
+import { GUIDE, readNodes, surfaceNodes } from "./nodes.mjs";
+import { pooled } from "../../wire/pooled.mjs";
 import { countSettings, counterFor, unmeasuredWhy } from "./count.mjs";
 import { checkoutFrom, profileOf, runsUnder, windowFrom } from "../runs.mjs";
 import { classesFor } from "../corpus/classes.mjs";

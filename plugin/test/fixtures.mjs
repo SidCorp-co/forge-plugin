@@ -11,11 +11,13 @@ import { answeringThrows, body } from "./fixtures/served.mjs";
 import { neutralRoom } from "./fixtures/rooms/neutral.mjs";
 import { labelsOf } from "./fixtures/tracker/labels.mjs";
 import { foundOf } from "./fixtures/tracker/find-door.mjs";
+import { bodiless, matchedIn } from "./fixtures/tracker/searched.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 /* The rooms a case stands in — a checkout, a git repository, a home directory — and this process's
    own share of the machine's temporary root: moved out for the line cap, re-exported here unchanged. */
 export * from "./fixtures/rooms/lifecycle.mjs";
+export { searchedRows } from "./fixtures/tracker/searched.mjs";
 import { tempHome } from "./fixtures/rooms/lifecycle.mjs";
 
 const PLAN_BODY = {
@@ -238,16 +240,6 @@ const emptyJson = ({ method, headers }) => (method === "POST" || method === "DEL
   && String(headers["content-type"] ?? "").startsWith("application/json")
   && !headers["transfer-encoding"] && Number(headers["content-length"] ?? 0) === 0;
 
-/* The columns core's search reads the term in, as its `matchedFields` names them: a row the term
-   reached through any other key holds it in none of its own text. */
-const SEARCHED_FIELDS = ["title", "description", "plan", "acceptanceCriteria"];
-const matchedIn = (row, wanted) =>
-  SEARCHED_FIELDS.filter((field) => String(row?.[field] ?? "").toLowerCase().includes(wanted));
-
-/** Rows as core's search answers them for `wanted`, `matchedIn` said on each. */
-export const searchedRows = (rows, wanted) =>
-  rows.map((one) => ({ ...one, matchedFields: matchedIn(one, String(wanted ?? "").toLowerCase()) }));
-
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
  *  changes the state changes the answer; a handler in `state.answer` keyed by tool wins over the
  *  defaults, and `state.calls` collects every call for a case to assert on. */
@@ -412,10 +404,10 @@ export const fakeTracker = async (state) => {
     [/^\/api\/projects\/[^/]+\/issues\/standing\/([^/]+)$/u, (q, sent, method, [key]) =>
       answered("forge_issues", { action: "moves", key: decodeURIComponent(key) })],
     [/^\/api\/forge\/feedback$/u, (q, sent) => answered("forge_feedback", { action: "submit", data: sent })],
-    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) => windowOn(q, q.get("withModules")
-      ? answered("forge_issues", { action: "attributed", statuses: q.getAll("status"),
-        statusNot: q.getAll("statusNot"), module: q.get("module") })
-      : answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))],
+    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) => (q.get("withModules")
+      ? windowOn(q, answered("forge_issues", { action: "attributed", statuses: q.getAll("status"),
+        statusNot: q.getAll("statusNot"), module: q.get("module") }))
+      : bodiless(windowOn(q, answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))))],
     [/^\/api\/projects\/[^/]+\/labels$/u, (q, sent, method) =>
       answered("forge_labels", method === "POST" ? { action: "create", data: sent } : { action: "list" })],
     [/^\/api\/labels\/([^/]+)$/u, (q, sent, method, [id]) =>

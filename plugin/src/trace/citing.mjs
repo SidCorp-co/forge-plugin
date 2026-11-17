@@ -9,6 +9,7 @@ import { viewFrom } from "../flow/earned.mjs";
 import { specTreeIfAny } from "../spec/tree.mjs";
 import { lookup, withDescendants } from "../spec/index.mjs";
 import { clauseStatus, couldProve, lowestOf } from "./status.mjs";
+import { pooled } from "../wire/pooled.mjs";
 
 /* Soft: a report exiting on a refusal would take the clause read down and word no cut. */
 const pageAt = async (id, offset, held) => scoped("forge_issues", {
@@ -27,7 +28,7 @@ const citedIn = (row, index, id) => CITED_FIELDS
   });
 
 /* Ends on `hasMore`: one stopping on a short page reports what it read as the whole answer. */
-const walk = async (id, index, held) => {
+const walk = async (id, held) => {
   const rows = [];
   let read = 0;
   let pages = 0;
@@ -37,30 +38,57 @@ const walk = async (id, index, held) => {
     if (payload?.refused) return { rows, pages, whole: false, refused: payload.refused };
     const page = rowsOf(payload, "issues");
     read += page.length;
-    for (const row of page) {
-      const cited = citedIn(row, index, id);
-      if (cited.length) rows.push({ ...row, cited });
-    }
+    rows.push(...page);
     if (searchCapped({ search: id }, payload, read - page.length)) return { rows, pages, whole: false, capped: true };
     if (payload?.hasMore === false) return { rows, pages, whole: true };
     if (!page.length) return { rows, pages, whole: false };
   }
 };
 
-/** The count and the way out for a citing set the route did not finish; status.mjs rules on it. */
-const cutSaid = (read, id) => (read.whole ? null
-  : read.capped ? `${cappedSaid(read, `The issues citing ${id}`)}\nNo status is derived from a set that may be short.`
-  : `The issues citing ${id} reached ${readSaid(read)} and the reading is incomplete: `
-    + (read.refused
-      ? `the tracker refused it — ${read.refused}.`
-      : "a page reported rows behind it and the next offset returned none.")
-    + "\nNo status is derived from a set that may be short.");
+// cm:why since forge ISS-1256 a search row carries none of CITED_FIELDS, so a citation is read off the issue whole; a row whose matchedFields core answered empty holds the term in none of its text
+const candidate = (row) => !Array.isArray(row?.matchedFields) || row.matchedFields.length > 0;
 
-/** The issues citing this clause; `null` is a project with no tree, saying nothing rather than none. */
-const issuesCiting = async (id, index = specTreeIfAny(), held = {}) => {
-  if (!index) return null;
-  const read = await walk(id, index, held);
-  return { id, ...read, cut: cutSaid(read, id) };
+// cm:guard one read per issue however many clauses found it, a bounded few at a time
+const wholeOf = async (reads, held) => {
+  const wanted = [...new Map(reads.flatMap((read) => read.rows).filter(candidate)
+    .map((row) => [row.documentId, row])).values()];
+  const records = await pooled(wanted, (row) =>
+    scoped("forge_issues", { action: "get", documentId: row.documentId, fields: [] }, held.soft !== false, held));
+  return new Map(wanted.map((row, at) => [row.documentId, records[at]]));
+};
+
+// cm:guard a candidate whose record could not be read is unknown, never uncited: it costs the clause its rung
+const resolved = (read, id, index, records) => {
+  const rows = [];
+  const unread = [];
+  for (const row of read.rows.filter(candidate)) {
+    const record = records.get(row.documentId);
+    if (!record || record.refused) {
+      unread.push(`${row.issueId ?? row.documentId}: ${record?.refused ?? "no record came back"}`);
+      continue;
+    }
+    const whole = { ...row, ...record };
+    const cited = citedIn(whole, index, id);
+    if (cited.length) rows.push({ ...whole, cited });
+  }
+  return { ...read, rows, unread };
+};
+
+const NOTHING = "\nNo status is derived from a set that may be short.";
+
+/** The count and the way out for a citing set the route did not finish; status.mjs rules on it. */
+const cutSaid = (read, id) => {
+  if (read.capped) return `${cappedSaid(read, `The issues citing ${id}`)}${NOTHING}`;
+  if (!read.whole) {
+    return `The issues citing ${id} reached ${readSaid(read)} and the reading is incomplete: `
+      + (read.refused
+        ? `the tracker refused it — ${read.refused}.`
+        : "a page reported rows behind it and the next offset returned none.")
+      + NOTHING;
+  }
+  if (!read.unread.length) return null;
+  return `The issues citing ${id}: ${read.unread.length} the search found could not be read whole, `
+    + `so whether they cite it is unknown —\n${read.unread.map((one) => `  ${one}`).join("\n")}${NOTHING}`;
 };
 
 /* One comment read per issue that could prove the clause, and none for the rest; a thread the walk
@@ -93,7 +121,12 @@ const judged = (index, id) => {
 export const statusOf = async (id, index = specTreeIfAny(), held = {}) => {
   if (!index) return null;
   const ids = judged(index, id);
-  const reads = await Promise.all(ids.map((one) => issuesCiting(one, index, held)));
+  const found = await Promise.all(ids.map((one) => walk(one, held)));
+  const records = await wholeOf(found, held);
+  const reads = found.map((read, at) => {
+    const whole = resolved(read, ids[at], index, records);
+    return { id: ids[at], ...whole, cut: cutSaid(whole, ids[at]) };
+  });
   const clauses = await Promise.all(reads.map(async (read, at) => {
     if (read.cut) return clauseStatus(ids[at], read);
     const { views, short } = await viewsFor(read.rows, ids[at]);
