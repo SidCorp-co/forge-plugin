@@ -60,7 +60,9 @@ test("--new tells a fold it declined from one it was never going to make, and fr
   const block = { suggestions: [nearest], notes: [], place: "p" };
   const said = (options) => suggestionLines(block, { fresh: true, ...options }).join("\n");
   assert.match(said({ nearest, foldable: true }),
-    /--new declined the fold: ISS-2 is the nearest of the neighbours naming the place this filing's cause names/u);
+    /^Not folded onto ISS-2, the nearest open issue naming the place this filing's cause names: the find door returns no similarity to fold on; ISS-1256\./mu,
+    "a fold held off is said as that, never as one the flag declined");
+  assert.doesNotMatch(said({ nearest, foldable: true }), /--new declined the fold/u);
   assert.match(said({ nearest, foldable: false }),
     /would have qualified, and this filing is of a kind whose body names no cause/u);
   assert.match(said({ nearest, foldable: false, routed: true }),
@@ -68,8 +70,10 @@ test("--new tells a fold it declined from one it was never going to make, and fr
     "the two reasons it was never foldable are two lines: one sends the filer to a kind, one to a flag");
   assert.match(said({ nearest: null, foldable: true }),
     /--new declined nothing: no open issue both reads like this filing by the find door's judgement/u);
-  /* Without the flag none of the four is owed: what is open is said and no more. */
-  assert.doesNotMatch(suggestionLines(block, { nearest, foldable: true }).join("\n"), /--new/u);
+  /* Without the flag none of the four is owed, and the fold held off is said all the same. */
+  const plain = suggestionLines(block, { nearest, foldable: true }).join("\n");
+  assert.doesNotMatch(plain, /--new/u);
+  assert.match(plain, /^Not folded onto ISS-2, .*ISS-1256\./mu);
 });
 
 /* Asked with no neighbour, so the answer is the decision and nothing is posted. */

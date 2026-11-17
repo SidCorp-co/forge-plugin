@@ -100,7 +100,7 @@ how many topics there may be.
 | [codex — the replay](cli/codex-the-replay.md) | What proves a past payload can be rebuilt, which two cases refuse a row rather than replay it loosely, the one text the log keeps and its caps, and what a share of a window is worth. |
 | [codex — the image](cli/codex-the-image.md) | Why a picture over the review gateway is an action of `codex` and names no other verb, which endings say no picture was made, why the model is a label and the size a hint, and why drawing one is not a review. |
 | [`beside`](cli/beside.md) | The two questions the create path asks the find door before it files, and whose judgement a neighbour is. |
-| [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, and what declines it. |
+| [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, what declines it, and why none does while the find door answers no similarity. |
 | [`alike`](cli/alike.md) | Whose judgement a sweep of the open backlog reports by, what the find door's order does not establish, and what a reading shorter than the backlog is owed. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue, not a file, where its destination is held, which kinds the project allows, what no refusal loses. |
 | [`feedback` — core's door](cli/feedback-the-door.md) | Where a note goes when the credential cannot see this plugin's project, and which flags that path refuses. |

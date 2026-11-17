@@ -127,11 +127,12 @@ test("a --module the project does not define is refused before anything is filed
   }
 });
 
-test("a filing given --module that folds onto a neighbour says no module was written", async () => {
+test("a filing given --module that would have folded is filed under its module", async () => {
   before({});
   state.memory = { semantic: [[NEIGHBOUR.issueId, 0.83]], keyword: [[NEIGHBOUR.issueId, 0.0608]] };
   const run = await filed("--module", "surface", "--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(created(), undefined, "it folded");
-  assert.match(run.stdout, /^No module was written: the filing folded onto ISS-45 as a comment, and a comment carries none\./mu);
+  assert.ok(created(), "the fold is off, so it is filed");
+  assert.match(run.stdout, /the find door returns no similarity to fold on; ISS-1256/u);
+  assert.doesNotMatch(run.stdout, /No module was written/u, "and its module is written with it");
 });

@@ -105,7 +105,6 @@ const filing = (extra) => script(`filing-${Math.random().toString(36).slice(2)}`
 `);
 
 const created = () => state.calls.find((one) => one.name === "forge_issues" && one.args.action === "create");
-const commented = () => state.calls.find((one) => one.name === "forge_comments" && one.args.action === "create");
 
 test("a filing whose create landed and whose next step fails prints neither its body nor a null", async () => {
   state.calls = [];
@@ -119,18 +118,3 @@ test("a filing whose create landed and whose next step fails prints neither its 
   assert.match(run.stderr, /a line another part of the call kept/u, "a line its caller never dropped went too");
 });
 
-test("a filing that folded as a comment and whose next step fails prints neither its body nor a null", async () => {
-  state.calls = [];
-  state.memory = { semantic: [[OPEN.issueId, 0.83]], keyword: [[OPEN.issueId, 0.0608]] };
-  try {
-    const run = await filing({ complexity: "s" });
-    assert.equal(created(), undefined, "the filing did not fold");
-    assert.ok(commented(), `no comment landed, so nothing here is past a landed write: ${run.stderr}`);
-    assert.equal(run.status, 1, run.stdout);
-    assert.match(run.stderr, /a later step failed/u);
-    assert.doesNotMatch(run.stderr, /KEPT-BODY-MARK/u, "the body of a fold that landed was printed back");
-    assert.doesNotMatch(run.stderr, /^null$/mu);
-  } finally {
-    state.memory = {};
-  }
-});

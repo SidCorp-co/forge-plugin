@@ -5,6 +5,14 @@ What is asked of the tracker, on what terms, and what the reply shows for it are
 another issue instead of an issue of its own. It is the only write this CLI has no verb to take
 back, so every line here is about what has to be true before it fires.
 
+**The fold is off until the find door answers a similarity per hit again** (`FOLDS` in
+`neighbours.mjs`). The door returns its order and no nearness past it, and the floor it answers by
+sits under the band where neighbours share machinery rather than subject, so the place alone is too
+thin a bar for an act nothing takes back. A filing that would have folded is filed as an issue of
+its own, is shown the neighbours naming its place in the door's order, and is told by name why it
+did not fold and that `forge comment <key> <body>` lands it there by hand. Everything below is the
+fold's condition for the day it is on again.
+
 **What folds is a filing that says where its subject comes from, and the complexity it carries
 decides nothing.** The complexity used to be the condition, on the reasoning that a small filing is
 cheap to move and a large one is somebody's plan. That was the wrong axis: the duplicates it was meant
@@ -48,14 +56,6 @@ among what came back. Both would have been filed. What changes is that the secon
 been shown the issue they were duplicating, on their own screen, while the command was still in
 their hand. That is the whole of what this buys, and it is worth saying plainly rather than claiming a fold
 that fires more often than it does.
-
-**The fold's bar on nearness is the door's own judgement, and that is a price paid too.** The find
-door answers no nearness past its order, so the fold lands on the nearest neighbour naming the place
-among those the door judged a match by its own floor on issues, and holds no floor above it: one
-here would be a number read off nothing the door answers. That floor was set against queries naming
-nothing the project holds, not against neighbours by machinery, so a machinery neighbour that also
-names the place can take the finding. The place is what holds that cost down, the block printed
-before the act is what shows it, and `--new` is what declines it.
 
 **A destination nobody chose is read before it is written to.** The hold every write to an issue
 takes — the thread delivered once, then the same command again — costs a fold one round and buys the

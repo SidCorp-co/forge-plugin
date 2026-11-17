@@ -262,8 +262,6 @@ const stores = ({ posts = true } = {}) => {
   return posted;
 };
 
-const both = (key, score) => ({ semantic: [[key, score]], keyword: [[key, 0.0608]] });
-
 test("a filing that lands ends its stdout with the key, read back, and not with the trailer", async () => {
   before();
   stores({ posts: false });
@@ -324,27 +322,6 @@ test("a filing whose read-back throws stays at exit zero, and the last line stil
   const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(lastOf(run.stdout), /uuid-814/u);
-});
-
-const marked = () => bodyFile(`${BODY}\n\nSize: fix.`);
-
-test("a fold ends its stdout with the comment id it posted", async () => {
-  before();
-  const posted = stores();
-  state.memory = both(NEAR.issueId, 0.83);
-  const run = await ranAsync(FORGE, ["new", marked(), "--title", TITLE, "--category", "bug"], ENV);
-  assert.equal(run.status, 0, run.stderr);
-  assert.equal(posted.length, 1, "the fold posted, and no issue was filed");
-  assert.equal(lastOf(run.stdout), `Comment ${posted[0].documentId} is posted on ${NEAR.issueId}, read back from the tracker.`);
-});
-
-test("a fold whose comment write the tracker refuses exits non-zero", async () => {
-  before();
-  state.memory = both(NEAR.issueId, 0.83);
-  state.answer = { forge_comments: (args) => (args.action === "list" ? page([], false) : { refused: "comment too long" }) };
-  const run = await ranAsync(FORGE, ["new", marked(), "--title", TITLE, "--category", "bug"], ENV);
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /comment too long/u);
 });
 
 test("forge comment ends its stdout with the comment id it posted", async () => {
@@ -444,16 +421,6 @@ test("a note that files ends its stdout with the key it created", async () => {
   const run = await noted();
   assert.equal(run.status, 0, run.stderr);
   assert.equal(lastOf(run.stdout), "ISS-810 is filed at uuid-810, read back from the tracker.");
-});
-
-test("a note that folds ends its stdout with the comment id it posted", async () => {
-  before();
-  const posted = stores();
-  state.memory = both(NEAR.issueId, 0.83);
-  const run = await noted();
-  assert.equal(run.status, 0, run.stderr);
-  assert.equal(posted.length, 1);
-  assert.equal(lastOf(run.stdout), `Comment ${posted[0].documentId} is posted on ${NEAR.issueId}, read back from the tracker.`);
 });
 
 /* A shared title is not a shared subject, and the note it swallowed was the finding: the fold a

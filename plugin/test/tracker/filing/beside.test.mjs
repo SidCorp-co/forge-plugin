@@ -12,7 +12,6 @@ import { join } from "node:path";
 import { fakeTracker, neutralRoom, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
-import { parseAll } from "../../../src/flow/record/page.mjs";
 
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -159,35 +158,30 @@ test("the two queries and the resolve cost the filing one issue-list call", asyn
   }
 });
 
-test("a sized filing whose nearest open neighbour names its place lands there as a finding", async () => {
+test("a filing that would have folded is filed as its own issue, and says by name why it did not fold", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(created(), undefined, "no second issue was filed");
-  const said = commented();
-  assert.equal(said.args.data.issue, OPEN.documentId);
-  assert.match(said.args.data.body, new RegExp(`^## ${TITLE.slice(0, 8)}`, "u"),
-    "the filing's own title is the comment's first line, so the run sees each defect as one item");
-  assert.doesNotMatch(said.args.data.body, /Size:/u, "and nothing writes the size the filer named into it");
-  assert.deepEqual(parseAll(said.args.data.body).map((one) => [one.kind, one.fields.title]), [["folded", TITLE]],
-    "and it ends in the record that makes it a finding the issue owes an answer (ISS-167)");
-  assert.equal(state.calls.some((one) => one.args.action === "update"), false,
-    "nor onto the issue it joined: a filing that folded sized nothing, the issue it joined being sized already");
-  assert.match(run.stdout, /^ISS-45 is open, names the same place and is the nearest of the neighbours that do, #1 in the find door's order/mu);
-  /* The block prints on every filing, this one included: the reply names the destination and the
-     block is what says what else was open, with the titles and the door's order. */
+  assert.ok(created(), "the fold is off, so the filing is made");
+  assert.equal(commented(), undefined, "and nothing is posted onto the neighbour it would have joined");
+  assert.match(run.stdout, /^Not folded onto ISS-45, the nearest open issue naming the place this filing's cause names: the find door returns no similarity to fold on; ISS-1256\./mu,
+    "the fold is held off until the door answers a similarity again, and the filing is told so by name");
+  assert.match(run.stdout, /`forge comment ISS-45 <body>` lands it there by hand/u, "with the route that folds it by hand");
+  /* The block still goes out first: the neighbours are what the filer folds by hand from. */
   assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place {2}the attach verb refuses a name already on the issue$/mu);
+  assert.ok(run.stdout.indexOf("Open beside this filing") < run.stdout.indexOf("Not folded onto"));
 });
 
-test("--new declines the fold, files the issue and names what it would have joined", async () => {
+test("--new on a filing that would have folded says the fold is off, not that it declined one", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const run = await filed("--complexity", "s", "--new");
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(created(), "the filing was made after all");
+  assert.ok(created());
   assert.equal(commented(), undefined);
-  assert.match(run.stdout, /--new declined the fold: ISS-45 is the nearest of the neighbours/u);
+  assert.match(run.stdout, /Not folded onto ISS-45, .*the find door returns no similarity to fold on; ISS-1256/u);
+  assert.doesNotMatch(run.stdout, /--new declined the fold/u, "there was no fold for the flag to decline");
   /* And the flag reaches the payload no more than it reaches the flags a filing is said to take. */
   assert.equal("new" in created().args.data, false);
 });
@@ -257,29 +251,6 @@ test("a sized filing routed onto another issue's branch is filed and never folde
   assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu, "the block still prints");
 });
 
-/* The consequential case of the fold not reading a size: this filing names none at all, so it is a
-   `feature` by the tier the flow costs most for, and it folds all the same. */
-test("a filing that names its cause folds whatever size it claims, this one none", async () => {
-  before();
-  state.memory = both(OPEN.issueId, 0.99);
-  const run = await filed();
-  assert.equal(run.status, 0, run.stderr);
-  assert.equal(created(), undefined, "a size is not what buys the fold");
-  assert.equal(commented().args.data.issue, OPEN.documentId);
-  assert.doesNotMatch(commented().args.data.body, /Size:/u, "and no size was invented to justify it");
-});
-
-test("and the same body at the largest of the five folds too", async () => {
-  before();
-  state.memory = both(OPEN.issueId, 0.99);
-  const run = await filed("--complexity", "xl");
-  assert.equal(run.status, 0, run.stderr);
-  assert.equal(created(), undefined);
-  assert.equal(commented().args.data.issue, OPEN.documentId);
-  assert.doesNotMatch(commented().args.data.body, /Size:|xl/u,
-    "the value the filer named decides nothing here and is written nowhere, the fold making no issue to hold it");
-});
-
 /* Criterion 21, and the case the predicate exists for: `tools/run.mjs` files the ship's own batch
    reading as a `review` with no mark, and consecutive readings differ only in two abbreviated shas.
    Without the predicate the reading of a new range would land on the previous range's issue and no
@@ -336,14 +307,14 @@ const noteFile = () => {
 const noted = (...argv) =>
   ranAsync(FORGE, ["feedback", noteFile(), "--title", TITLE, ...argv], ENV);
 
-test("a note whose title is open nowhere folds onto the neighbour that shares its place", async () => {
+test("a note that would have folded onto the neighbour sharing its place is filed, and says why", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const run = await noted();
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(created(), undefined);
-  assert.equal(commented().args.data.issue, OPEN.documentId);
-  assert.match(run.stdout, /^ISS-45 is open, names the same place/mu);
+  assert.ok(created());
+  assert.equal(commented(), undefined);
+  assert.match(run.stdout, /^Not folded onto ISS-45, .*the find door returns no similarity to fold on; ISS-1256/mu);
 });
 
 /* An exact title is a neighbour like any other and routes nothing on its own (ISS-334); the note
@@ -376,7 +347,7 @@ test("a note declines the fold with --new, and prints the block above what it fi
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created());
   assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu);
-  assert.match(run.stdout, /--new declined the fold/u);
+  assert.match(run.stdout, /Not folded onto ISS-45, .*the find door returns no similarity to fold on/u);
   /* Criterion 13, on the outcome with the most to print: once, and before the line about the body. */
   assert.equal(run.stdout.match(/Open beside this filing/gu).length, 1);
   assert.ok(run.stdout.indexOf("Open beside this filing") < run.stdout.indexOf("The note is a new bug"),
@@ -391,59 +362,6 @@ test("the note verb still refuses a flag that is none of its four", async () => 
      held to, and the usage row under it — which is what a filer needs to write the call again. */
   assert.match(run.stderr, /No feedback flag named --size\. The set is --title, --kind, --with, --module, --new\./u);
   assert.match(run.stderr, /^Usage: forge feedback /mu);
-});
-
-/* A destination the filer did not name is one whose thread may already carry this finding. */
-test("the fold reads the target's thread, delivers it, and writes to it in the same call", async () => {
-  before();
-  state.memory = both(OPEN.issueId, 0.83);
-  state.comments = { [OPEN.documentId]: [{ documentId: "c-1", body: "already reported here", createdAt: "2026-09-04T00:00:00Z" }] };
-  const run = await filed("--complexity", "s");
-  state.comments = {};
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /already reported here/u, "the thread is delivered rather than described");
-  assert.doesNotMatch(run.stderr, /re-send the same command/u, "and it costs no second call (ISS-1715)");
-  assert.equal(commented().args.data.issue, OPEN.documentId, "the fold went through under the thread");
-  /* Criterion 12: the block goes out before the fold acts, so a fold that could not write has
-     already printed it — the one filing whose neighbours most want reading. */
-  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu,
-    "the block goes out before the fold acts");
-});
-
-/* Criterion 12's own case: the block goes out before the fold acts. A thread past what the ledger can
-   credit delivers no body, which is exactly the fold whose neighbours most want reading; it is said
-   and the fold goes ahead, an unaccounted thread being no kernel input (ISS-110). */
-test("a fold whose thread cannot be accounted for has already printed the block, says so, and folds", async () => {
-  before();
-  state.memory = both(OPEN.issueId, 0.83);
-  state.comments = { [OPEN.documentId]: Array.from({ length: 401 }, (_, at) =>
-    ({ documentId: `k${at}`, body: "one of four hundred and one", createdAt: "2026-09-04T00:00:00Z" })) };
-  const path = join(room, "body.md");
-  writeFileSync(path, `${BODY}\n`);
-  const argv = ["new", path, "--title", TITLE, "--category", "bug", "--complexity", "s"];
-  const run = await ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: "beside-over-keep" });
-  state.comments = {};
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /past the 400 one issue's credits keep/u, "the accounting, not the delivery");
-  assert.notEqual(commented(), undefined, "and the fold was written all the same");
-  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu, "the block goes out before the fold acts");
-});
-
-test("and a second filing in that session folds with no thread printed again", async () => {
-  before();
-  state.memory = both(OPEN.issueId, 0.83);
-  state.comments = { [OPEN.documentId]: [{ documentId: "c-1", body: "already reported here", createdAt: "2026-09-04T00:00:00Z" }] };
-  const env = { ...ENV, FORGE_SESSION_ID: "beside-fold" };
-  const path = join(room, "body.md");
-  writeFileSync(path, `${BODY}\n`);
-  const argv = ["new", path, "--title", TITLE, "--category", "bug", "--complexity", "s"];
-  assert.equal((await ranAsync(FORGE, argv, env)).status, 0, "the first delivers and folds");
-  const again = await ranAsync(FORGE, argv, env);
-  state.comments = {};
-  assert.equal(again.status, 0, again.stderr);
-  assert.doesNotMatch(again.stderr, /already reported here/u, "shown once, and not again");
-  assert.equal(created(), undefined, "no second issue");
-  assert.equal(commented().args.data.issue, OPEN.documentId);
 });
 
 /* The same two questions, spawned rather than in process: the verb has to pass them separately.
@@ -536,21 +454,16 @@ test("that refusal answers on a stdin nothing ever closes", async () => {
 /* One decision, so one reply: the two routes fold through the same call, and a correction of what
    either says is a correction of both. Anything either route prints ahead of the fold sentence is
    its own — a comment payload here, a title verdict there — and everything from it on is shared. */
-test("the two filing routes fold with the same words, so neither can be corrected alone", async () => {
-  const tailFrom = (out) => {
-    const at = out.indexOf(`${OPEN.issueId} is open, names the same place`);
-    assert.notEqual(at, -1, `no fold reply in:\n${out}`);
-    return out.slice(at);
-  };
+test("the two filing routes hold the fold back with the same words, so neither can be corrected alone", async () => {
+  const lineOf = (out) => out.split("\n").find((line) => line.startsWith(`Not folded onto ${OPEN.issueId}`));
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const verb = await filed("--complexity", "s");
   assert.equal(verb.status, 0, verb.stderr);
-  assert.equal(commented().args.data.issue, OPEN.documentId);
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const note = await noted();
   assert.equal(note.status, 0, note.stderr);
-  assert.equal(commented().args.data.issue, OPEN.documentId);
-  assert.equal(tailFrom(note.stdout), tailFrom(verb.stdout));
+  assert.ok(lineOf(verb.stdout), `no held-back line in:\n${verb.stdout}`);
+  assert.equal(lineOf(note.stdout), lineOf(verb.stdout));
 });

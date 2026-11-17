@@ -83,6 +83,15 @@ export const neighboursOf = async ({ seed, place }, live, settled = []) => {
 export const foldOnto = (suggestions) =>
   suggestions.find((one) => one.samePlace && one.rank !== null) ?? null;
 
+/** Whether a filing lands on its destination as a finding. Off until the find door answers a
+ *  similarity per hit again: the comment cannot be taken back, and the door's own floor sits under
+ *  the band where neighbours share machinery rather than subject, so the place alone is too thin a
+ *  bar for it. docs/cli/the-fold.md. */
+const FOLDS = false;
+
+/** Why a filing that would have folded did not, by name. */
+const FOLD_OFF = "the find door returns no similarity to fold on; ISS-1256";
+
 const row = (one) =>
   `  ${one.issueId.padEnd(KEY)} ${rankSaid(one.rank)}  `
   + `${one.samePlace ? "same place  " : "            "}${one.title}`;
@@ -123,6 +132,13 @@ const declinedLine = (nearest, foldable, routed) => {
     + " rather than as an issue of its own.";
 };
 
+/* What a filing that would have folded is told instead: where it would have gone, why it did not,
+   and the route that puts it there by hand. */
+const heldBackLine = (nearest) =>
+  `Not folded onto ${nearest.issueId}, the nearest open issue naming the place this filing's cause`
+  + ` names: ${FOLD_OFF}. It is filed as an issue of its own; \`forge comment ${nearest.issueId} <body>\``
+  + " lands it there by hand.";
+
 /* The hold `--new` declined is a second thing it did, so a fold it had nothing to decline goes
    unsaid beside it rather than reading as the flag having done nothing. */
 const heldLine = ({ where, key, title, score }) =>
@@ -141,7 +157,9 @@ export const suggestionLines = ({ suggestions, notes, place, dropped = [], close
   ];
   for (const note of notes) out.push(`${note} — this filing was made as it would have been without it.`);
   if (declined) out.push(heldLine(declined));
-  if (fresh && (!declined || (nearest && foldable))) out.push(declinedLine(nearest, foldable, routed));
+  const heldBack = !FOLDS && nearest && foldable;
+  if (heldBack) out.push(heldBackLine(nearest));
+  else if (fresh && (!declined || (nearest && foldable))) out.push(declinedLine(nearest, foldable, routed));
   return out;
 };
 
@@ -167,7 +185,7 @@ export const foldFiling = async (beside,
   const foldable = !routed && owesCause(kind);
   /* Handed to the callback and nowhere else: printing off a return value is the double print ISS-628 removed, so the decision leaves by the one seam that has a reader. */
   onBeside?.(beside, { nearest, foldable, routed, fresh: Boolean(fresh), declined });
-  if (!foldable || fresh || !nearest) return { joined: null, answer: null };
+  if (!FOLDS || !foldable || fresh || !nearest) return { joined: null, answer: null };
   await mustBeShown([{ ref: nearest.issueId, documentId: nearest.documentId }]);
   const answer = await postComment(nearest.documentId, foldedBody(title, body), null, soft);
   return { joined: nearest, answer };
