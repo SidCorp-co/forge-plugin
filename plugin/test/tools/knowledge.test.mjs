@@ -191,8 +191,9 @@ test("search asks the route that exists, and prints the records it answers with"
   });
   const run = await ran(["knowledge", "search", "what the module owns", "--limit", "3"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^0\.71 {2}issue.*ISS-152.*What this module owns$/mu, run.stdout);
-  assert.match(run.stdout, /^0\.40 {2}comment.*uuid-9.*a finding about the store$/mu, run.stdout);
+  assert.match(run.stdout, /^#1 {3}issue.*ISS-152.*What this module owns$/mu, run.stdout);
+  assert.match(run.stdout, /^#2 {3}comment.*uuid-9.*a finding about the store$/mu, run.stdout);
+  assert.doesNotMatch(run.stdout, /0\.71|0\.40|0\.4\b/u, "the fused score orders the hits and is never printed as a figure");
   assert.match(run.stdout, /2 hit\(s\) for `what the module owns`, fewer than the 3 asked for, so the limit cut nothing from this answer\./u,
     run.stdout);
   const asked = state.calls.filter((one) => one.name === "forge_memory.search");
@@ -215,7 +216,7 @@ test("an answer longer than the limit prints the limit, and says the store may h
   });
   const run = await ran(["knowledge", "search", "over-served", "--limit", "5"]);
   assert.equal(run.status, 0, run.stderr);
-  const rows = run.stdout.split("\n").filter((one) => /^0\.\d\d {2}issue/u.test(one));
+  const rows = run.stdout.split("\n").filter((one) => /^#\d+ +issue/u.test(one));
   assert.equal(rows.length, 5, `eighteen came back and five were asked for:\n${run.stdout}`);
   assert.match(run.stdout, /5 hit\(s\) for `over-served`, the whole of what was asked for, so the limit may have cut more\./u,
     run.stdout);

@@ -156,11 +156,12 @@ const search = async ([query, ...rest]) => {
   const asked = limitFrom(limit);
   const answer = await scoped("forge_memory.search", { query, topK: asked });
   const hits = (answer?.hits ?? []).slice(0, asked);
-  for (const hit of hits) {
+  // cm:why since forge ISS-1256 `score` is the find door's fused reciprocal rank, about 0.01 to 0.03 on every hit: it orders and measures nothing, so the place in core's order is what is printed
+  hits.forEach((hit, at) => {
     const opens = String(hit.text ?? "").split("\n").find((one) => one.trim()) ?? "";
-    console.log(`${(hit.score ?? 0).toFixed(2)}  ${String(hit.source ?? "").padEnd(KIND_WIDTH)} `
+    console.log(`#${String(at + 1).padEnd(3)} ${String(hit.source ?? "").padEnd(KIND_WIDTH)} `
       + `${String(hit.sourceRef ?? "").padEnd(SLUG_WIDTH)} ${opens.slice(0, 90)}`);
-  }
+  });
   console.log(countLine(query, hits.length, asked));
 };
 
