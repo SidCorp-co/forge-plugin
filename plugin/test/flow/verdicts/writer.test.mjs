@@ -161,7 +161,8 @@ test("where the project asks for no second judge, an inherited verdict is writte
   state.config.pipelineConfig = { autoProdDeploy: true };
   inGit.sessionContext.lease = liveLease(MASTER);
   const before = posted(inGit);
-  const run = await as(MASTER, true)(...VERDICT_GIT);
+  /* One identity flag: a write that owes no runtime refuses a verdict naming both (ISS-1259). */
+  const run = await as(MASTER, true)(...VERDICT_GIT.filter((one, i) => one !== "--runtime" && VERDICT_GIT[i - 1] !== "--runtime"));
   assert.equal(run.status, 0, said(run));
   assert.match(verdictSince(inGit, before), /^judge-from: inherited$/mu, "the verdicts went up as inherited");
 });

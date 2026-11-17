@@ -74,3 +74,18 @@ test("the door records a draft-runtime probe verdict as a storefront_draft ident
     kind: "storefront_draft", workflowId: "catalog-sync", draftVersion: "v12", environment: "preview",
   });
 });
+
+/* ISS-1259: four forge judges named the runtime they saw beside the commit their brief gave, and the door
+   kept the runtime and dropped the commit without a word, so every pass was a runtime verdict the release
+   never counted. Both are refused by name before anything is sent, but where the write owes the runtime
+   beside the commit (an independent judgement whose checkpoint names the deployment). */
+test("a verdict naming both --commit and --runtime is refused by name, and kept where the write owes both", () => {
+  const both = [{ criterion: "2", verdict: "pass", commit: SHA, runtime: "d".repeat(40), evidence: ["seen.txt"] }];
+  assert.throws(() => verdictDoorPrepared(both, { reference: "ISS-1258", classes: null, run: null }),
+    /criterion 2 names both --commit and --runtime, and a verdict counts at one identity: .*`Verdict kind` line gives, as its `Record with` line prints it, and put the other sha in --why/su);
+  assert.doesNotThrow(() => verdictDoorPrepared(both, { reference: "ISS-1258", classes: null, run: null, owesRuntime: true }));
+  for (const one of [{ commit: SHA }, { runtime: SHA }]) {
+    assert.doesNotThrow(() => verdictDoorPrepared([{ criterion: "2", verdict: "pass", evidence: ["seen.txt"], ...one }],
+      { reference: "ISS-1258", classes: null, run: null }));
+  }
+});

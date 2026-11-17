@@ -101,14 +101,23 @@ const doorDraft = (got, probe, run) => {
   return { criterion, verdict: got.verdict, payload, rendered: render("verdict", [got], null) };
 };
 
+/** Refused unless `judged/runtime.mjs` owes both: one kept, one silently dropped, and four forge
+ *  judges' passes were lost as uncounted runtime verdicts (ISS-1259, ISS-805 before it). */
+export const namesBoth = (got) => got.commit !== undefined && got.runtime !== undefined;
+
+const BOTH = (number) => `criterion ${number} names both --commit and --runtime, and a verdict counts at one `
+  + "identity: the runtime would be kept and the commit dropped. Name only the one your brief's `Verdict kind` "
+  + "line gives, as its `Record with` line prints it, and put the other sha in --why";
+
 /* Every block core would refuse, named in one line of its own, by the same code core names it by: a
    malformed probe, a pass or short on an observable criterion resting on a probe nobody sent or kept, a
    pass, short or fail on one citing no clip, and a probe on a verdict with no commit or runtime for the
    door to record it against. */
-const faultsOf = (blocks, classes, parsed) => {
+const faultsOf = (blocks, classes, parsed, owesRuntime) => {
   const out = [];
   for (const got of blocks) {
     const number = criterionNumber(got.criterion);
+    if (namesBoth(got) && !owesRuntime) out.push(BOTH(number));
     const sent = got.probe !== undefined;
     const verdict = got.verdict;
     if (sent) {
@@ -150,10 +159,10 @@ const refuseProbeWithoutDoor = (blocks, refused, reference) => {
  *  at fault named so the caller fixes them in one retry (ISS-7). `classes` is null where the criteria
  *  read could not be had: the clip and probe-required rules are then core's to apply, and only a
  *  malformed probe and a missing identity are still refused here. */
-export const verdictDoorPrepared = (blocks, { reference, classes, refused = null, run = runOf() }) => {
+export const verdictDoorPrepared = (blocks, { reference, classes, refused = null, run = runOf(), owesRuntime = false }) => {
   refuseProbeWithoutDoor(blocks, refused, reference);
   const parsed = new Map();
-  const faults = faultsOf(blocks, classes, parsed);
+  const faults = faultsOf(blocks, classes, parsed, owesRuntime);
   if (faults.length) {
     const were = faults.length === 1 ? "block core would refuse once its evidence was"
       : "blocks core would refuse once their evidence was";

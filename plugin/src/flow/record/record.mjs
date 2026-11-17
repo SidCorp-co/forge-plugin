@@ -49,7 +49,8 @@ import { landingOf } from "../landing/checkpoint.mjs";
 import { LANDED, recordLanded } from "./landed/by-hand.mjs";
 import { REVIEW_ROUTE_FLAG, recordReviewRoute } from "./review/route.mjs";
 import { coreClasses } from "../earned/core-verdicts.mjs";
-import { verdictDoorPrepared } from "./verdict/door.mjs";
+import { namesBoth, verdictDoorPrepared } from "./verdict/door.mjs";
+import { owesRuntime } from "../qa/verdicts.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
@@ -449,8 +450,10 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   /* Verdict blocks routed, `verdict/door.mjs`'s to decide: the probe-carrying ones to the door and the
      rest to the comment, every refusal it owes raised here before a byte is uploaded (ISS-7). */
   const criteriaRead = kind === "verdict" ? await coreClasses(documentId) : null;
+  const owes = kind === "verdict" && blocks.some(namesBoth)
+    && owesRuntime(await releasePolicy(), body, landingOf(body?.[SESSION]));
   const door = kind === "verdict"
-    ? verdictDoorPrepared(blocks, { reference, classes: criteriaRead.classes, refused: criteriaRead.refused })
+    ? verdictDoorPrepared(blocks, { reference, classes: criteriaRead.classes, refused: criteriaRead.refused, owesRuntime: owes })
     : { drafts: [], commentBlocks: blocks };
   const stamp = shape.stamp ? await stampOf(kind, { documentId, body, comments, names: onIssue }, shape, reference) : null;
   /* The comment this write posts, or none where every block went to the door. */
