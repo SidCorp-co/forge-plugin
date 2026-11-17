@@ -181,9 +181,13 @@ test("a judge's brief names the verdict kind and build core says the release cou
     const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
     const ask = () => ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--url", "https://staging.example.com", "--criteria", "1"], env, repo.main);
     state.answer["forge_issues.judged_build"] = () => ({ sha: "a".repeat(40), source: "judged-on", basis: "staging serves it" });
-    assert.match((await ask()).stdout, new RegExp(`^Verdict kind: runtime, at ${"a".repeat(40)} — staging serves it$`, "mu"));
+    const onTesting = (await ask()).stdout;
+    assert.match(onTesting, new RegExp(`^Verdict kind: runtime, at ${"a".repeat(40)} — staging serves it$`, "mu"));
+    assert.match(onTesting, new RegExp(`^Record with --runtime ${"a".repeat(40)} only, never --commit and --runtime together$`, "mu"));
     state.answer["forge_issues.judged_build"] = () => ({ sha: "b".repeat(40), source: "landed", basis: "the landing is the build" });
-    assert.match((await ask()).stdout, new RegExp(`^Verdict kind: commit, at ${"b".repeat(40)} — the landing is the build$`, "mu"));
+    const landed = (await ask()).stdout;
+    assert.match(landed, new RegExp(`^Verdict kind: commit, at ${"b".repeat(40)} — the landing is the build$`, "mu"));
+    assert.match(landed, new RegExp(`^Record with --commit ${"b".repeat(40)} only, never --commit and --runtime together$`, "mu"));
     const { tempHome } = await import("../fixtures.mjs");
     const { OWN } = await import("../fixtures/own-project.mjs");
     const elsewhere = tempHome("brief-aimed").path;
@@ -194,6 +198,39 @@ test("a judge's brief names the verdict kind and build core says the release cou
     assert.match(aimed.stdout, /^Dispatcher facts: served de70833e at staging$/mu);
     assert.match(aimed.stdout, new RegExp(`^Project: ${OWN.slug} — `, "mu"));
     assert.match(aimed.stderr, new RegExp(`brief: aimed at project ${OWN.slug} for this call alone; nothing saved was changed\\.`, "u"));
+  } finally {
+    tracker.close();
+  }
+});
+
+/* ISS-1259: forge-dev deploys every push, so a judge is often sent at a release head the environment
+   has deployed past. Core's judged-build says whether the served build carries the change unchanged,
+   and the brief says, per case, to judge it at the head or to stop. */
+test("a judge sent past a later deploy is told to judge a served build carrying the change unchanged, and to stop on any other", async () => {
+  const { ranAsync } = await import("../fixtures.mjs");
+  const { trackerFor } = await import("../fixtures/own-project.mjs");
+  const state = { issues: [{ documentId: "uuid-7", issueId: "ISS-7", status: "in_progress", title: "t" }], answer: {} };
+  const { tracker, env } = await trackerFor(state, [repo.main]);
+  const HEAD = "c".repeat(40);
+  const LIVE = "d".repeat(40);
+  const answer = (served) => () => ({ sha: HEAD, source: "shipped", version: "0.4.0-dev.702", basis: "release 0.4.0-dev.702 shipped it",
+    served: { environment: "dev", sha: LIVE, touched: [], why: "core's reading", ...served } });
+  try {
+    const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+    const ask = async () => {
+      const run = await ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--url", "https://dev.example.com", "--criteria", "1"], env, repo.main);
+      assert.equal(run.status, 0, run.stderr);
+      return run.stdout.split("\n").filter((line) => /^(?:Served: |Record with )/u.test(line));
+    };
+    state.answer["forge_issues.judged_build"] = answer({ carries: "unchanged" });
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which carries this issue's change unchanged — judge what it serves, `
+      + `record with --commit ${HEAD} only, never --commit and --runtime together, and name ${LIVE} and that it descends from ${HEAD} in --why`]);
+    state.answer["forge_issues.judged_build"] = answer({ carries: "touched", touched: ["src/a.ts"] });
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, whose added commits change src/a.ts, of this issue's files — stop: record no verdict, and report it to the dispatcher`]);
+    state.answer["forge_issues.judged_build"] = answer({ carries: "not-descendant" });
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which does not descend from ${HEAD} — stop: record no verdict, and report it to the dispatcher`]);
+    state.answer["forge_issues.judged_build"] = answer({ carries: "unread" });
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which Forge cannot show carries this issue's change unchanged — stop: record no verdict, and report it to the dispatcher`]);
   } finally {
     tracker.close();
   }

@@ -272,8 +272,10 @@ test("the judging method keeps the judge on the deployment and off a checkout's 
       /a build of the commit is not\s+the deployment/u, /a builder's worktree is somebody's uncommitted work/u]) {
       assert.match(drive, taught, `${flow}: ${taught} is not said`);
     }
-    assert.match(paragraphOf(/plainly does not carry/u), /stop and report that\s+before judging anything/u,
+    assert.match(paragraphOf(/plainly does not carry/u), /stops you: report that\s+before judging anything/u,
       `${flow}: a deployment without the change is judged anyway`);
+    assert.match(paragraphOf(/plainly does not carry/u), /carries the change unchanged\*\*[^*]+is judged: exercise what it serves/u,
+      `${flow}: ISS-1259, a served build carrying the change unchanged is still a stop`);
     assert.match(paragraphOf(/refuses you nothing/u), /never work an\s+identity out of the source or out of a local build/u,
       `${flow}: a judge with no identity may still work one out`);
   }

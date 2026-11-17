@@ -162,14 +162,39 @@ const projectLine = (project) => `Project: ${project} — record each verdict wi
 // cm:edge contract -> plugin/src/tracker/routes.mjs — core's judged-build names `judged-on` where the project's testing environment is the judged build, judged there as a runtime verdict; every other source counts a commit verdict (FB-78)
 const JUDGED_ON = "judged-on";
 
-/** The verdict kind and build a release counts for the issue, off core's judged-build, or why it could not be read. */
-const judgedBuildLine = (read) => {
+/* The flag a judge copies, one of the two: `verdict/door.mjs:namesBoth` says why (ISS-1259). */
+const recordWith = (kind, sha) => `record with --${kind} ${sha} only, never --commit and --runtime together`;
+
+/* What the served build is, where core says it is not the one named, phrased by core's `carries`. */
+const NOT_CARRIED = {
+  touched: (served) => `whose added commits change ${served.touched.join(", ")}, of this issue's files`,
+  "not-descendant": (_served, sha) => `which does not descend from ${sha}`,
+};
+
+/** Where core's judged-build names a served build other than the build counted (ISS-1259): judge it
+ *  at the counted build where it carries the change unchanged, and stop otherwise. */
+const servedLine = (served, kind, sha) => {
+  const at = `Served: ${served.environment} serves ${served.sha}`;
+  if (served.carries === "unchanged") {
+    return `${at}, which carries this issue's change unchanged — judge what it serves, ${recordWith(kind, sha)}, `
+      + `and name ${served.sha} and that it descends from ${sha} in --why`;
+  }
+  const what = NOT_CARRIED[served.carries]?.(served, sha) ?? "which Forge cannot show carries this issue's change unchanged";
+  return `${at}, ${what} — stop: record no verdict, and report it to the dispatcher`;
+};
+
+/** The verdict kind and build a release counts for the issue, off core's judged-build, or why it could
+ *  not be read; then how to record it, or, where the environment serves another build, whether to. */
+const judgedBuildLines = (read) => {
   if (!read || read.refused) {
     const why = String(read?.refused ?? "no answer").split("\n")[0];
-    return `Verdict kind: not read (${why}) — ask the dispatcher which build the release counts before recording`;
+    return [`Verdict kind: not read (${why}) — ask the dispatcher which build the release counts before recording`];
   }
   const kind = read.source === JUDGED_ON ? "runtime" : "commit";
-  return `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${read.basis ?? "core gave no basis"}`;
+  const kindLine = `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${read.basis ?? "core gave no basis"}`;
+  if (!read.sha) return [kindLine];
+  if (read.served?.sha) return [kindLine, servedLine(read.served, kind, read.sha)];
+  return [kindLine, `R${recordWith(kind, read.sha).slice(1)}`];
 };
 
 export const judgeText = (key, { urls, program, tree, criteria, identity, run = null, project = null, judged = undefined }, facts = null) => [
@@ -181,7 +206,7 @@ export const judgeText = (key, { urls, program, tree, criteria, identity, run = 
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
-  ...(judged === undefined ? [] : [judgedBuildLine(judged)]),
+  ...(judged === undefined ? [] : judgedBuildLines(judged)),
   `Criteria: ${criteria.join(", ")}`,
   program && tree ? `Run the program in: ${tree}` : "Tree: none",
   ...(facts?.next && !facts.named ? [`Dispatcher facts: ${facts.next}`] : []),

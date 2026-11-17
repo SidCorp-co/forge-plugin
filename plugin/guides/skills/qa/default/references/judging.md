@@ -21,19 +21,32 @@ was missing; a local run is not the fallback.
 ## An identity your brief carries is what every verdict names
 
 Where your brief names the deployment identity, read the identity the deployment itself reports
-serving and name it on each verdict's `--runtime`, whole: every hex digit, because an abbreviation of
-what is serving would let a verdict taken somewhere else read as standing. Read it off the thing
-running rather than deriving one of your own from a branch or a deploy log, and never copy it off
-your brief or the record: an identity you worked out or copied is a claim about what is running that
-nobody read off the thing running. The evidence is then what you exercised, not the sha.
+serving, whole: every hex digit, because an abbreviation of what is serving would let a verdict taken
+somewhere else read as standing. Read it off the thing running rather than deriving one of your own
+from a branch or a deploy log, and never copy it off your brief or the record: an identity you worked
+out or copied is a claim about what is running that nobody read off the thing running. The evidence
+is then what you exercised, not the sha.
+
+**A verdict names one identity flag, the one your brief's `Verdict kind` line gives**, and its
+`Record with` line is the flag to copy: `--commit <sha>` or `--runtime <sha>`, never both. A verdict
+naming both is refused before it is sent, because the door would keep the runtime and drop the commit
+without a word, and a runtime verdict counts for nothing where the release counts commits. The other
+sha you read goes in `--why`. The one exception is the write's own: under an independent judgement
+whose landing checkpoint names the deployment, the write itself asks for `--runtime` beside the
+commit, and its own message prints the call to copy.
 
 A run that read no identity off the deployment exercised no runtime, and a commit cannot stand in for
 one: write that criterion `skipped`, its `--why` saying what you lacked.
 
-Where what you find running does not answer to the identity you were given, or plainly does not carry
-the change at all, stop and report that before judging anything. You were sent to judge one artifact
-and there is a different one there, and a build of the commit somewhere else is not that artifact
-either.
+Where what you find running is not the build your brief names, its `Served` line says which case it
+is. **A served build that carries the change unchanged** (it descends from the build named, and the
+commits it adds touch none of the issue's files) is judged: exercise what it serves, record at the
+build named with the flag the `Served` line gives, and name in `--why` the build you found running and
+that it descends from the one named. **Any other** (its added commits touch the issue's files, it does
+not descend, or Forge cannot say) stops you: report that before judging anything. You were sent to
+judge one artifact and there is a different one there, and a build of the commit somewhere else is not
+that artifact either. With no `Served` line, the same holds of what you find running that does not
+answer to the identity you were given or plainly does not carry the change.
 
 **A brief carrying no identity refuses you nothing.** Most issues have none to carry, and what your
 verdicts are then held to is the commit each already names. That commit is what a verdict records,

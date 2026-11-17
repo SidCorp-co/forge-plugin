@@ -126,10 +126,11 @@ test("a verification or a finding written after a runtime verdict leaves its sta
   assert.equal(said(moved).filter((one) => /superseded/u.test(one)).length, 1, said(moved).join("\n"));
 });
 
-test("the qa judging reference sends a judge to --runtime, whole, and to a skip where it read none", () => {
+test("the qa judging reference reads the runtime whole, names one identity flag, and skips where it read none", () => {
   for (const variant of ["default", "screen"]) {
     const text = readFileSync(new URL(`../../../../guides/skills/qa/${variant}/references/judging.md`, import.meta.url), "utf8");
-    assert.match(text, /name it on each verdict's `--runtime`, whole/u, variant);
+    assert.match(text, /the identity the deployment itself reports\s+serving, whole/u, variant);
+    assert.match(text, /`--commit <sha>` or `--runtime <sha>`, never both/u, `${variant}: ISS-1259, the flag the brief gives and no other`);
     assert.match(text, /write that criterion `skipped`, its `--why` saying what you lacked/u, variant);
   }
 });
