@@ -430,6 +430,10 @@ const undone = async (documentId, ref, said, { next, patch }) => {
 };
 
 /* What the row's commit field holds, said beside the note: empty is the tracker writing only a commit it observed, and its own sentence says which kind of mark this call left. */
+/* What core's mark answers about the issue's module (ISS-1256): its terms and rules, and the call
+   that records one the landing named. Said as core words it, or nothing where core sent none. */
+export const moduleMapSaid = (stamp) => stamp?.answer?.moduleMap?.said ?? null;
+
 const heldSaid = ({ answer, held }) => (held
   ? `The row's commit field holds ${held}.`
   : `The row's commit field is empty. The tracker's word on this mark: ${answer?.detail ?? "none given"}`);
@@ -440,6 +444,7 @@ const marked = async (documentId, ref, note, clauses, { next, patch }) => {
   console.log(`${ref}  marked merged at ${clauses.at}, and \`${clause("moved").said}\` is git's reading `
     + `between ${movedFrom(clauses).sha} and ${clauses.at}: ${pathsSaid(clauses.moved)}. Its note:\n  ${note}`);
   console.log(heldSaid(stamp));
+  if (moduleMapSaid(stamp)) console.log(moduleMapSaid(stamp));
 };
 
 /* Every flag of the git mark, the three it reads from git or the config included: none of them means
@@ -464,8 +469,9 @@ const gitRefused = (reference) => refuse(`--landing names where a change landed 
 
 const landed = async (documentId, ref, landing, { next, patch }) => {
   await renew(documentId, ref, next, patch);
-  await markMerged(documentId, ref, LANDED_NOTE, { leased: true, landing });
+  const stamp = await markMerged(documentId, ref, LANDED_NOTE, { leased: true, landing });
   console.log(`${ref}  marked merged outside git, at ${landing}. Its note:\n  ${LANDED_NOTE}`);
+  if (moduleMapSaid(stamp)) console.log(moduleMapSaid(stamp));
 };
 
 /* The mark of an issue landing outside git: the landing and nothing else. */

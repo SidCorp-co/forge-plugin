@@ -16,7 +16,7 @@ import { isCommit, sameCommit } from "../../../tracker/evidence.mjs";
 import { releasePolicy } from "../../../tracker/project-config.mjs";
 import { commitCarries } from "../../../git/carries.mjs";
 import { issueOf } from "../thread/posting.mjs";
-import { markMerged } from "../merged.mjs";
+import { markMerged, moduleMapSaid } from "../merged.mjs";
 import { FIELD, HOLDING, MINUTES, claimed, describe, freeRefusal, leaseOf, oweRelease, readContext, releaseOwed, renew,
   setLease, stateOf, takeableFree } from "../../lease.mjs";
 import { sessionOf } from "../../../resolve/config.mjs";
@@ -198,8 +198,9 @@ const run = async (ref, given) => {
   }
   if (sameCommit(issue.mergedCommitSha, facts.sha)) done.push(`already marked merged at ${facts.sha}`);
   else {
-    await step("2, merged", () => markMerged(documentId, ref, noteOf(facts.sha, base), { leased: true, commit: facts.sha }));
+    const stamp = await step("2, merged", () => markMerged(documentId, ref, noteOf(facts.sha, base), { leased: true, commit: facts.sha }));
     done.push(`marked merged at ${facts.sha} on ${base}`);
+    if (moduleMapSaid(stamp)) done.push(moduleMapSaid(stamp));
   }
   if (issue.status === RESTS_AT) done.push(`already at ${RESTS_AT}`);
   else {
