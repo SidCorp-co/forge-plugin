@@ -21,6 +21,20 @@ export const keysIn = (text) => (String(text ?? "").match(new RegExp(`\\b${KEY}\
 /* Beside `keysIn` rather than with its filing caller: a hook on the stop clock reaches this module and no heavier one. */
 export const distinctKeysIn = (text) => [...new Set(keysIn(text))];
 
+/** The most issues core's issue search answers: since forge ISS-1256 it is the find door's issue
+ *  filter, which keeps at most this many and says nothing of what that cap left out. A searched set
+ *  that is exactly this many, one first page with nothing behind it, is a reading that may be short;
+ *  a later page of that size is a core still paging a substring match, whose `hasMore` is the whole
+ *  of it. */
+export const SEARCH_MOST = 50;
+
+export const searchCapped = (filters, payload, offset = 0) => Boolean(filters?.search) && !offset
+  && payload?.hasMore === false && Number(payload?.returned ?? rowsOf(payload).length) === SEARCH_MOST;
+
+/** A searched row that holds the term in its own text, rather than one the find door answered for
+ *  meaning alone: `matchedFields` names the columns the term was read in, and is empty for the rest. */
+export const holdsTerm = (row) => Array.isArray(row?.matchedFields) && row.matchedFields.length > 0;
+
 export const rowsOf = (payload, key = "issues") =>
   payload?.[key] ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
 
@@ -96,7 +110,8 @@ const window = async (held, offset) => {
     held.rows.set(row?.documentId ?? String(row?.issueId ?? "").toUpperCase(), row);
   }
   held.read += page.length;
-  return { rows, whole: payload?.hasMore === false };
+  if (searchCapped(held.filters, payload, offset)) held.capped = true;
+  return { rows, whole: payload?.hasMore === false && !held.capped };
 };
 
 /* One walk per ask, sharing the promise the WHOLE walk resolves: the offset is the count already
@@ -108,7 +123,7 @@ const walkFor = (filters, bound) => {
     walks.set(keyFor(filters), (async () => {
       const held = { filters, bound, rows: new Map(), pages: 0, read: 0 };
       held.page = await window(held, 0);
-      while (!held.page.whole) {
+      while (!held.page.whole && !held.capped) {
         const before = held.read;
         held.page = await window(held, held.read);
         if (held.read === before) break;
@@ -126,6 +141,7 @@ const readOf = (held) => ({
   whole: held.page.whole,
   pages: held.pages,
   ...(held.refused ? { refused: held.refused } : {}),
+  ...(held.capped ? { capped: true } : {}),
 });
 
 /** Every row matching `filters`, paged to the end; `whole` false is a ceiling, not absence. `again`
@@ -171,7 +187,13 @@ export const readSaid = (read) => `${read.rows.length} issue(s) over ${read.page
 
 /** What an incomplete reading owes its reader, null where it was whole; the route says nothing
  *  about a cut, so the count and the way out are all of it. */
+export const cappedSaid = (read, what) =>
+  `${what} reached ${readSaid(read)} and the reading may be short: core's issue search is the find`
+  + ` door's issue filter, which answers at most ${SEARCH_MOST} issues and does not say what that cap`
+  + " left out (forge ISS-1256).\nA narrower search term comes back whole where this one did not.";
+
 export const shortOf = (read, what) => (read.whole ? null
+  : read.capped ? cappedSaid(read, what)
   : `${what} reached ${readSaid(read)} and the reading is incomplete: a page still reported rows`
     + " behind it and the next offset returned none.\nA narrower ask comes back whole where this one"
     + " did not — add filters until `hasMore` is false:\n  forge issue --status open");

@@ -215,7 +215,7 @@ const FIELDS_OF = {
   advance: "documentId, key",
   spec: "filters, limit, offset",
   attach: "bytes",
-  alike: null,
+  alike: "limit, q",
   next: "limit, module, offset, statusNot, statuses",
   brief: "documentId",
   guide: "slug",

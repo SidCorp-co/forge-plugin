@@ -179,6 +179,22 @@ test("a citing set the route cut short earns no rung and says it was cut", async
   assert.equal(threads(held.calls).length, 0, "and nothing is judged off a set that may be short");
 });
 
+/* forge ISS-1256: core's search is the find door's issue filter, capped at fifty and silent on what
+   the cap left out, so fifty rows and nothing behind them earn no rung either. */
+test("a citing set the find door's cap filled earns no rung and says the cap is why", async () => {
+  const full = Array.from({ length: 50 }, (unused, at) => ({ ...PROVER, issueId: `ISS-${at + 200}`, documentId: `u-${at}` }));
+  const { tracker, env, project: roomOf } = await trackerFor({
+    answer: { forge_issues: (args) => (args.action === "list"
+      ? { issues: full, returned: full.length, hasMore: false }
+      : { documentId: args.documentId }) },
+  });
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-capped-"));
+  tracker.close();
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /AC-01-1-1 {2}no rung/u);
+  assert.match(run.stdout, /may be short:/u);
+});
+
 test("a prover whose record came back a prefix earns the clause no rung either", async () => {
   const { tracker, env, project: roomOf } = await trackerFor({
     answer: { forge_comments: (args) => (args.action === "list"

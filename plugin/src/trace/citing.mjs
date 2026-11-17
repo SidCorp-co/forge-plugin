@@ -1,6 +1,6 @@
 /* Which issues cite one clause. Why a search narrowed, and why per clause: docs/cli/spec-the-status.md. */
 import { scoped } from "../tracker/rest.mjs";
-import { MAX_LIMIT, readSaid, rowsOf } from "../tracker/issues.mjs";
+import { MAX_LIMIT, cappedSaid, readSaid, rowsOf, searchCapped } from "../tracker/issues.mjs";
 import { CITED_FIELDS } from "../spec/checked.mjs";
 import { identifiersIn } from "../spec/parse.mjs";
 import { namesClause } from "../spec/citation.mjs";
@@ -41,6 +41,7 @@ const walk = async (id, index, held) => {
       const cited = citedIn(row, index, id);
       if (cited.length) rows.push({ ...row, cited });
     }
+    if (searchCapped({ search: id }, payload, read - page.length)) return { rows, pages, whole: false, capped: true };
     if (payload?.hasMore === false) return { rows, pages, whole: true };
     if (!page.length) return { rows, pages, whole: false };
   }
@@ -48,6 +49,7 @@ const walk = async (id, index, held) => {
 
 /** The count and the way out for a citing set the route did not finish; status.mjs rules on it. */
 const cutSaid = (read, id) => (read.whole ? null
+  : read.capped ? `${cappedSaid(read, `The issues citing ${id}`)}\nNo status is derived from a set that may be short.`
   : `The issues citing ${id} reached ${readSaid(read)} and the reading is incomplete: `
     + (read.refused
       ? `the tracker refused it — ${read.refused}.`

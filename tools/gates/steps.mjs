@@ -56,7 +56,7 @@ const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs
   "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/test/fixtures/process/isolated.mjs",
   "plugin/test/fixtures/own-keys.mjs", "plugin/test/fixtures/own-project.mjs", "plugin/test/fixtures/room.mjs",
   "plugin/test/fixtures/rooms/lifecycle.mjs", "plugin/test/fixtures/rooms/neutral.mjs",
-  "plugin/test/fixtures/served.mjs", "plugin/test/fixtures/tracker/labels.mjs", "tools"];
+  "plugin/test/fixtures/served.mjs", "plugin/test/fixtures/tracker/find-door.mjs", "plugin/test/fixtures/tracker/labels.mjs", "tools"];
 
 /* The four the machine table's own files once earned are gone: a node child carries the audit
    whatever environment its caller handed it, so those files derive their own sets now (ISS-2119).

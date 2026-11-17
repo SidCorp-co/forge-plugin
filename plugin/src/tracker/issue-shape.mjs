@@ -9,7 +9,7 @@ import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vend
 import { sentences } from "../checks/duplication.mjs";
 import { COMPLEXITY_NAMES, FIX, MARK_LINE, complexityFor, belowTop, rungFrom } from "../ladder.mjs";
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
-import { MAX_LIMIT, distinctKeysIn, everyIssue, listIssues, rowsOf, shortOf } from "./issues.mjs";
+import { MAX_LIMIT, distinctKeysIn, everyIssue, holdsTerm, listIssues, rowsOf, searchCapped, shortOf } from "./issues.mjs";
 import { declaredFor } from "./rest.mjs";
 import { KIND_ROUTE, priorityFor } from "./declared/value-sets.mjs";
 import { DEFAULT_KIND, KIND_NAMES } from "./declared/kinds.mjs";
@@ -486,12 +486,16 @@ export const duplicateOf = ({ title, body }, live, threshold = DEFAULT_OVERLAP_T
 };
 
 /* One page at the route's own cap, so the bound is a count of rows; and neither a failure nor rows
-   left unserved reads as a backlog holding nothing like this, which `whole` tells apart (ISS-565). */
+   left unserved reads as a backlog holding nothing like this, which `whole` tells apart (ISS-565).
+   Read through the projection that keeps `matchedFields`, because core's search answers the find
+   door's issue filter, whose hits by meaning name the token nowhere (forge ISS-1256), and a page the
+   door's cap filled is no proof that nothing else names it. */
 const searched = async (token, most = CANDIDATES) => {
-  const payload = await listIssues({ search: token }, MAX_LIMIT);
+  const filters = { search: token };
+  const payload = await listIssues(filters, MAX_LIMIT, { action: "citing" });
   return {
-    open: openTitles(rowsOf(payload)).slice(0, most),
-    whole: payload?.hasMore === false,
+    open: openTitles(rowsOf(payload).filter(holdsTerm)).slice(0, most),
+    whole: payload?.hasMore === false && !searchCapped(filters, payload),
   };
 };
 

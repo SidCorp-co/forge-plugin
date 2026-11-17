@@ -24,7 +24,10 @@ together.
 
 **A reading that came back short earns no rung at all.** A clause nobody has claimed and a clause
 whose issues this did not reach answer alike, and only one of them is true, so the count is said and
-nothing is derived. The same reason the walk ends on `hasMore` and never on a short page — and the
+nothing is derived. A search the find door's cap filled is
+such a reading too: core answers at most fifty and says nothing of what it left out (forge ISS-1256),
+which [`reading-a-whole-set`](reading-a-whole-set.md) carries. The same reason the walk ends on
+`hasMore` and never on a short page — and the
 same reason a prover whose own record came back a prefix costs the clause its rung too: a thread
 holding a pass and stopping before the fail after it would earn a rung the record never gave.
 

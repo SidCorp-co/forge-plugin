@@ -1,6 +1,5 @@
 /* The two searches this CLI asks core, both filters of its one find door (forge ISS-1256), as declared
-   rows. Their own file to keep `routes.mjs` within one reading, and handed the helper they build with
-   rather than copying it, so there is still one `one`. docs/cli/one-transport.md. */
+   rows spread into `routes.mjs` the way `coolify-routes.mjs`'s are. docs/cli/one-transport.md. */
 
 /* A hit as its readers resolve it: the uuid and key of its issue, and the arms that found it. The
    fused score it carries is left behind, because it orders the hits and measures nothing. */

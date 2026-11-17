@@ -21,6 +21,13 @@ walked where its answer is the set — the issues carrying dependency prose *are
 and left as one answer where it only reaches past a walk that already fell short, since a name is
 the last axis left there and never a claim about the backlog.
 
+**A search the find door's cap filled is not whole either.** Core's issue search is the find door's
+issue filter (forge ISS-1256): it answers issues by meaning beside those holding the term, at most
+fifty of them, and says nothing of what that cap left out. So a searched set of exactly fifty rows,
+one first page with nothing behind it, is read as a reading that may be short, and a reader after
+the issues that hold the term keeps the rows whose `matchedFields` name a column, a hit by meaning
+holding it in none.
+
 The route narrows on three of the filters the browse verb takes — either route, the search one
 included, which is why one query builder serves both: a filter the second route dropped would come
 back as a whole answer to a narrower ask than was made. The rest are applied to the rows that came

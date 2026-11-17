@@ -61,7 +61,7 @@ globalThis.fetch = async (address) => {
   return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify(body) };
 };
 
-const { DATE_FILTERS, documentIdOf, everyIssue, keeps, queued } = await import("../../src/tracker/issues.mjs");
+const { DATE_FILTERS, SEARCH_MOST, documentIdOf, everyIssue, keeps, queued, shortOf } = await import("../../src/tracker/issues.mjs");
 
 const lookups = () => asked.filter((one) => one.query.limit === "1").length;
 const pages = () => asked.filter((one) => one.query.limit !== "1" && one.path.endsWith("/issues")).length;
@@ -188,6 +188,25 @@ test("two readers of one ask share the walk, and a second ask is walked on its o
   const shared = pages();
   await everyIssue({ status: "closed" });
   assert.ok(pages() > shared, "a different ask is a different walk");
+});
+
+/* forge ISS-1256: core's issue search is the find door's issue filter, which answers at most fifty
+   and says nothing of what its cap left out, so a searched walk that came back at exactly that many
+   is a reading that may be short; one that came back with more is a core still paging a substring
+   match, which its own `hasMore` settles. */
+test("a searched walk the find door's cap filled is not whole, and says the cap is why", async () => {
+  SET = Array.from({ length: SEARCH_MOST }, (unused, at) => row(at + 1));
+  FITS = 200;
+  const capped = await everyIssue({ search: "the marker" }, {}, { again: true });
+  assert.equal(capped.whole, false, "fifty rows and nothing behind them is what a cut answer looks like");
+  assert.equal(capped.capped, true);
+  assert.match(shortOf(capped, "The search"), /may be short: core's issue search is the find door's issue filter, which answers at most 50/u);
+  SET = Array.from({ length: SEARCH_MOST + 11 }, (unused, at) => row(at + 1));
+  const paging = await everyIssue({ search: "the marker" }, {}, { again: true });
+  assert.equal(paging.whole, true, "sixty-one rows is a core that pages its search, and its hasMore is the answer");
+  SET = Array.from({ length: SEARCH_MOST }, (unused, at) => row(at + 1));
+  assert.equal((await everyIssue({ status: "open" }, {}, { again: true })).whole, true,
+    "and fifty rows of an unsearched list are only fifty rows");
 });
 
 /* The five filters the route does not narrow on are applied to the rows that came back, so the

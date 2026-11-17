@@ -238,6 +238,16 @@ const emptyJson = ({ method, headers }) => (method === "POST" || method === "DEL
   && String(headers["content-type"] ?? "").startsWith("application/json")
   && !headers["transfer-encoding"] && Number(headers["content-length"] ?? 0) === 0;
 
+/* The columns core's search reads the term in, as its `matchedFields` names them: a row the term
+   reached through any other key holds it in none of its own text. */
+const SEARCHED_FIELDS = ["title", "description", "plan", "acceptanceCriteria"];
+const matchedIn = (row, wanted) =>
+  SEARCHED_FIELDS.filter((field) => String(row?.[field] ?? "").toLowerCase().includes(wanted));
+
+/** Rows as core's search answers them for `wanted`, `matchedIn` said on each. */
+export const searchedRows = (rows, wanted) =>
+  rows.map((one) => ({ ...one, matchedFields: matchedIn(one, String(wanted ?? "").toLowerCase()) }));
+
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
  *  changes the state changes the answer; a handler in `state.answer` keyed by tool wins over the
  *  defaults, and `state.calls` collects every call for a case to assert on. */
@@ -248,7 +258,8 @@ export const fakeTracker = async (state) => {
   const listed = (filters = {}) => {
     const wanted = String(filters.search ?? "").toLowerCase();
     const pool = wanted ? [...(state.issues ?? []), ...(state.hidden ?? [])] : (state.issues ?? []);
-    const narrowed = pool.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
+    const narrowed = pool.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted))
+      .map((one) => (wanted ? { ...one, matchedFields: matchedIn(one, wanted) } : one));
     const rows = filters.key ? narrowed.filter((one) => one.issueId === filters.key) : narrowed;
     return { issues: rows, returned: rows.length, hasMore: false };
   };

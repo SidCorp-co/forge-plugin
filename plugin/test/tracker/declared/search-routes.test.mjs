@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ROUTES } from "../../src/tracker/routes.mjs";
-import { undeclaredIn } from "../../src/tracker/declared/no-route.mjs";
+import { ROUTES } from "../../../src/tracker/routes.mjs";
+import { undeclaredIn } from "../../../src/tracker/declared/no-route.mjs";
 
 /* forge ISS-1256: memory search is the find door's memory filter, which ranks one way and reads
    curated memory alone. A strategy or a mirror source is refused before it leaves, on a core that

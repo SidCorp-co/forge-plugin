@@ -66,7 +66,7 @@ export const VERBS = [
   /* Owns no route: the search it spends is the knowledge verb's to declare. */
   ["alike", "",
     "every open issue measured against every other, and what reads alike grouped; writes nothing",
-    "forge_issues", { group: BACKLOG }],
+    "forge_issues", { group: BACKLOG, wraps: { "forge_find.issues": "`forge alike`" } }],
   ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG, wraps: { attributed: "`forge next`" } }],

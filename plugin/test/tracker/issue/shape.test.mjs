@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, neutralRoom, projectRecord, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, neutralRoom, projectRecord, ranAsync, searchedRows, shortPage, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
 
@@ -392,7 +392,7 @@ test("a duplicate past a reading the walk could not finish is still found, throu
       const wanted = String(args.filters?.search ?? "").toLowerCase();
       if (!wanted) return short(args);
       const pool = [...state.issues, ...state.hidden];
-      const found = pool.filter((one) => JSON.stringify(one).toLowerCase().includes(wanted));
+      const found = searchedRows(pool.filter((one) => JSON.stringify(one).toLowerCase().includes(wanted)), wanted);
       return { issues: found, returned: found.length, hasMore: false };
     },
   };
@@ -508,7 +508,7 @@ test("a filing refusal names its cause: a duplicate, a shape the body misses, or
 /* Six settled rows is what the old ask fitted, being CANDIDATES + the length of the settled list. */
 test("settled rows ahead of an open one no longer hide it, the ask being a count of rows", async () => {
   const rows = [...SETTLED_SIX, OPEN_BEHIND];
-  const run = await routed(() => ({ issues: rows }));
+  const run = await routed(() => ({ issues: searchedRows(rows, "forge issue") }));
   assert.equal(run.status, 1);
   assert.match(run.stderr, /Naming forge issue, still open: ISS-88/u,
     "the seventh row is inside the page the route reads, and openTitles keeps it");
@@ -530,6 +530,19 @@ test("a page the route served whole with no open row on it still says no open is
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No open issue names forge issue, so --complexity s is the route unless you know one\./u);
   assert.doesNotMatch(run.stderr, /is unread/u, "the reading reached its answer, and the answer is none");
+});
+
+/* forge ISS-1256: core's search is the find door's issue filter, which answers issues by meaning as
+   well as by the words they hold. One holding the token in none of its columns names it nowhere, and
+   a page the door's cap filled is no proof that nothing else does. */
+test("an open row the search answered by meaning alone is not one naming the token", async () => {
+  const run = await routed(() => ({ issues: [{ ...OPEN_BEHIND, matchedFields: [] }] }));
+  assert.equal(run.status, 1);
+  assert.doesNotMatch(run.stderr, /still open: ISS-88/u, "ISS-88 holds the token in no column the search read");
+  assert.match(run.stderr, /No open issue names forge issue/u);
+  const full = Array.from({ length: 50 }, (unused, at) => ({ ...SETTLED_SIX[0], issueId: `ISS-7${at}`, documentId: `u-7${at}` }));
+  const cut = await routed(() => ({ issues: searchedRows(full, "forge issue") }));
+  assert.match(cut.stderr, /Whether an open issue names forge issue is unread/u, "fifty is the door's cap, so the reading did not settle it");
 });
 
 /* The duplicate check's own line, in process: it is a console.error beside a refusal that may be
