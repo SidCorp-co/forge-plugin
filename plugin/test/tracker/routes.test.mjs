@@ -202,7 +202,7 @@ const SHAPES = {
   "labels-list": { key: "forge_labels.list", keys: ["labels"] }, "issues-attributed": { key: "forge_issues.attributed", keys: ["issues", "returned", "limit", "hasMore"] },
   /* The status history, a project's and one issue's: the events and the cursor a walk moves by. */
   "issues-activity": { key: "forge_issues.activity", keys: ["events", "nextBefore"] },
-  "issues-issue-activity": { key: "forge_issues.issue_activity", keys: ["events", "nextBefore"] },
+  "issues-issue-activity": { key: "forge_issues.issue_activity", keys: ["events", "nextBefore"] }, "find-issues": { key: "forge_find.issues", keys: ["hits", "degraded"] },
 };
 
 describe("the route table answers with the shape the tool answered with", () => {

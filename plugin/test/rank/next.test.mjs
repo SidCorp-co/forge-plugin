@@ -107,8 +107,8 @@ test("a batch of three rides together and the fourth prints as related", async (
   assert.equal(run.status, 0, run.stderr);
   const [head] = run.stdout.split("\n").filter((line) => line.startsWith("ISS-"));
   assert.match(head, /^ISS-1\b/u);
-  assert.match(run.stdout, /\+ ISS-2\s+reads like ISS-1 at 0\.91/u);
-  assert.match(run.stdout, /\+ ISS-3\s+reads like ISS-1 at 0\.90/u);
+  assert.match(run.stdout, /\+ ISS-2\s+reads like ISS-1, #1 in the find door's order for it/u);
+  assert.match(run.stdout, /\+ ISS-3\s+reads like ISS-1, #2 in the find door's order for it/u);
   assert.match(run.stdout, /~ ISS-4\s+related, not batched: the batch is full/u);
   assert.doesNotMatch(run.stdout, /\+ ISS-4/u, "the cap is three members, and it holds");
 });
@@ -191,7 +191,7 @@ test("a related issue at the top rung is named rather than batched", async () =>
   );
   const run = await ran(["next", "--count", "1"]);
   assert.match(run.stdout,
-    /~ ISS-2\s+related, not batched: it reads like ISS-1 at 0\.90, and a batch stays below the top rung/u);
+    /~ ISS-2\s+related, not batched: it reads like ISS-1, #1 in the find door's order for it, and a batch stays below the top rung/u);
 });
 
 /* The mark is a word; the line beside it is where its meaning is stated, and a signal whose

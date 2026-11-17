@@ -58,7 +58,7 @@ export const backlogMatcher = async (registered, { read = everyIssue, near = nei
         },
         match: async (text) => {
           const found = await near({ seed: text, place: null }, open);
-          const nearest = found.suggestions.find((one) => one.score !== null) ?? null;
+          const nearest = found.suggestions.find((one) => one.rank !== null) ?? null;
           /* A search that could not run found nothing and is not a backlog without a match. */
           if (!nearest && found.notes.length) throw new Error(found.notes[0]);
           return nearest ? { key: nearest.issueId, title: nearest.title } : null;

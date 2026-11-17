@@ -267,7 +267,8 @@ const both = (key, score) => ({ semantic: [[key, score]], keyword: [[key, 0.0608
 test("a filing that lands ends its stdout with the key, read back, and not with the trailer", async () => {
   before();
   stores({ posts: false });
-  state.memory = both(NEAR.issueId, 0.72);
+  /* A neighbour only the place query reached: the block prints, and nothing ranked it to fold onto. */
+  state.memory = { semantic: [], keyword: [[NEAR.issueId, 0.0608]] };
   const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, new RegExp(escaped(TRAILER), "u"),

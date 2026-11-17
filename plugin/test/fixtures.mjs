@@ -10,6 +10,7 @@ import { reachOf } from "./fixtures/answer-reach.mjs";
 import { answeringThrows, body } from "./fixtures/served.mjs";
 import { neutralRoom } from "./fixtures/rooms/neutral.mjs";
 import { labelsOf } from "./fixtures/tracker/labels.mjs";
+import { foundOf } from "./fixtures/tracker/find-door.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 /* The rooms a case stands in — a checkout, a git repository, a home directory — and this process's
@@ -278,16 +279,7 @@ export const fakeTracker = async (state) => {
     held.push(row);
     return row;
   };
-  /* `state.memory` is `[issue, score]` per strategy; the uuid a hit carries is resolved here. */
-  const memory = ({ strategy }) =>
-    ((state.memory ?? {})[strategy] ?? []).map(([key, score]) => ({
-      source: "issue",
-      sourceRef: [...(state.issues ?? []), ...(state.hidden ?? [])]
-        .find((one) => one.issueId === key)?.documentId ?? key,
-      text: `${key} as it was embedded`,
-      score,
-      stale: false,
-    }));
+  const found = foundOf(state);
 
   /* One row per call, carrying both the route it went to and the tool and action it stood for, so a
      test asserting on either reads the same list; a route two tools answer on writes two. The route
@@ -353,7 +345,7 @@ export const fakeTracker = async (state) => {
         : policy(args);
     }
     if (said !== undefined) return said;
-    if (name === "forge_memory.search") return { hits: memory(args) };
+    if (name === "forge_find.issues") return found(args);
     if (name === "forge_issues") return issues(args);
     if (name === "forge_labels") return labels(args);
     if (name === "forge_comments") return comments(args);
@@ -485,6 +477,7 @@ export const fakeTracker = async (state) => {
       ? answered("forge_questions", { action: "ask", data: sent })
       : answered("forge_questions", { action: "list", issueId: q.get("issueId") }))],
     [/^\/api\/memory\/search$/u, (q, sent) => answered("forge_memory.search", sent)],
+    [/^\/api\/projects\/[^/]+\/find$/u, (q, sent) => answered("forge_find.issues", sent)],
     [/^\/api\/guides\/([^/]+)$/u, (q, sent, method, [slug]) => answered("forge_guide", { action: "get", slug })],
     [/^\/api\/guides$/u, () => answered("forge_guide", { action: "list" })],
     [/^\/api\/projects\/[^/]+\/pm\/([a-z-]+)$/u, (q, sent, method, [what]) =>

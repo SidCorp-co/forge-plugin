@@ -1,6 +1,6 @@
 /* The fold acted on, spawned against a tracker. It is a comment nothing here can take back, so
    every case that keeps it from firing is worth as much as the one that makes it: a same-place hit
-   the semantic query never ranked, an issue the projection says is closed, a kind whose body names
+   the meaning query never ranked, an issue the projection says is closed, a kind whose body names
    no cause, a search that could not run at all. What the fold decides before it acts, and what each
    reply says of it, is fold.test.mjs; the reasoning is docs/cli/the-fold.md's. */
 import assert from "node:assert/strict";
@@ -101,22 +101,22 @@ test("a filing is told what is open beside it, on a filing that was refused noth
   const run = await filed("--new");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the filing was made");
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place {2}the attach verb refuses a name already on the issue$/mu);
-  assert.match(run.stdout, /^ {2}ISS-52 {3}0\.71 {14}the consult log records the effort it asked for$/mu);
+  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place {2}the attach verb refuses a name already on the issue$/mu);
+  assert.match(run.stdout, /^ {2}ISS-52 {3}#2 {16}the consult log records the effort it asked for$/mu);
   /* The title came from the projection: the hit's own text is the body as it was embedded. */
   assert.doesNotMatch(run.stdout, /as it was embedded/u);
 });
 
-test("a hit under the floor is not shown, and one the projection calls closed is shown as closed", async () => {
+test("a hit the door does not answer is not shown, and one the projection calls closed is shown as closed", async () => {
   before();
-  state.memory = { semantic: [[SETTLED.issueId, 0.95], [ELSEWHERE.issueId, 0.69]], keyword: [[SETTLED.issueId, 0.06]] };
+  state.memory = { semantic: [[SETTLED.issueId, 0.95], [ELSEWHERE.issueId, 0.5]], keyword: [[SETTLED.issueId, 0.06]] };
   const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "a closed neighbour takes no finding, so the filing is made");
   assert.equal(commented(), undefined);
   assert.doesNotMatch(run.stdout, /Open beside this filing/u, "a closed issue is never an open suggestion");
-  assert.match(run.stdout, /Filed before and closed[^\n]*\n {2}ISS-70 {3}0\.95 {2}same place {2}the browse projection/u);
-  assert.doesNotMatch(run.stdout, /ISS-52/u, "and 0.69 is under the floor");
+  assert.match(run.stdout, /Filed before and closed[^\n]*\n {2}ISS-70 {3}#1 {4}same place {2}the browse projection/u);
+  assert.doesNotMatch(run.stdout, /ISS-52/u, "and 0.5 is under the door's own floor, so it answered none");
 });
 
 test("a dropped neighbour is shown with the reason off its own thread, and the filing is made", async () => {
@@ -129,7 +129,7 @@ test("a dropped neighbour is shown with the reason off its own thread, and the f
     assert.equal(run.status, 0, run.stderr);
     assert.ok(created(), "a dropped neighbour takes no finding, whatever it scores");
     assert.equal(commented(), undefined);
-    assert.match(run.stdout, /^ {2}ISS-71 {3}0\.90 {2}same place {2}attach refuses a doubled name\n {4}why: Duplicate of ISS-45\.$/mu);
+    assert.match(run.stdout, /^ {2}ISS-71 {3}#1 {4}same place {2}attach refuses a doubled name\n {4}why: Duplicate of ISS-45\.$/mu);
     const listed = state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "list");
     assert.equal(listed.length, 1, "the settled rows are the duplicate check's own page, read once");
   } finally {
@@ -146,10 +146,17 @@ test("the two queries and the resolve cost the filing one issue-list call", asyn
   const listed = state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "list");
   assert.equal(listed.filter((one) => !one.args.filters).length, 1,
     "the duplicate check's page and the open-issues resolve are the same page");
-  const searches = state.calls.filter((one) => one.name === "forge_memory.search");
-  assert.deepEqual(searches.map((one) => one.args.strategy).sort(), ["keyword", "semantic"]);
-  assert.deepEqual(searches.map((one) => one.args.sourceFilter), [["issue"], ["issue"]]);
-  assert.ok(searches.every((one) => one.args.projectId), "the tool requires the project id");
+  /* forge ISS-1256: issues are the find door's issue type, asked of the door; memory search takes no
+     strategy and no issue copy, and a request carrying either is refused there. */
+  assert.equal(state.calls.some((one) => one.name === "forge_memory.search"), false,
+    "the duplicate check asks the find door, never memory search");
+  const searches = state.calls.filter((one) => one.name === "forge_find.issues");
+  assert.deepEqual(searches.map((one) => one.args.limit).sort((one, two) => one - two), [10, 50],
+    "the meaning query at the block's width, the place query at the door's most");
+  for (const one of searches) {
+    assert.deepEqual(Object.keys(one.args).sort(), ["limit", "q", "type"], `the door is asked q, type and limit alone: ${JSON.stringify(one.args)}`);
+    assert.deepEqual(one.args.type, ["issue"]);
+  }
 });
 
 test("a sized filing whose nearest open neighbour names its place lands there as a finding", async () => {
@@ -167,10 +174,10 @@ test("a sized filing whose nearest open neighbour names its place lands there as
     "and it ends in the record that makes it a finding the issue owes an answer (ISS-167)");
   assert.equal(state.calls.some((one) => one.args.action === "update"), false,
     "nor onto the issue it joined: a filing that folded sized nothing, the issue it joined being sized already");
-  assert.match(run.stdout, /^ISS-45 is open, names the same place and is the nearest of the neighbours that do, at 0\.83/mu);
+  assert.match(run.stdout, /^ISS-45 is open, names the same place and is the nearest of the neighbours that do, #1 in the find door's order/mu);
   /* The block prints on every filing, this one included: the reply names the destination and the
-     block is what says what else was open, with the titles and the scores. */
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place {2}the attach verb refuses a name already on the issue$/mu);
+     block is what says what else was open, with the titles and the door's order. */
+  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place {2}the attach verb refuses a name already on the issue$/mu);
 });
 
 test("--new declines the fold, files the issue and names what it would have joined", async () => {
@@ -204,7 +211,7 @@ test("forge comment takes the write over, and asks the tracker nothing about nei
   const run = await posted();
   assert.equal(run.status, 0, run.stderr);
   assert.ok(commented());
-  assert.equal(state.calls.some((one) => one.name === "forge_memory.search"), false);
+  assert.equal(state.calls.some((one) => one.name === "forge_find.issues"), false);
   assert.doesNotMatch(run.stdout, /Open beside this filing/u);
 });
 
@@ -223,9 +230,10 @@ test("a dropped neighbour whose thread the tracker refuses still leaves the fili
   }
 });
 
-/* A place match nothing ranked is the case the fold is bought against: the keyword query answers
-   every hit at one score, so a fold on it alone would post onto whichever came back first. */
-test("a same-place hit the semantic query never ranked is printed and not folded onto", async () => {
+/* A place match nothing ranked is the case the fold is bought against: the place query reads whether
+   an issue holds the term and not what it is about, so a fold on it alone would post onto whichever
+   came back first. */
+test("a same-place hit the meaning query never ranked is printed and not folded onto", async () => {
   before();
   state.memory = { semantic: [], keyword: [[OPEN.issueId, 0.0608]] };
   const run = await filed("--complexity", "s");
@@ -246,7 +254,7 @@ test("a sized filing routed onto another issue's branch is filed and never folde
   assert.ok(created(), "it was filed rather than folded");
   assert.equal(commented(), undefined, "and nothing was posted onto the neighbour it reads like");
   assert.deepEqual(created().args.data.relations, [{ kind: "relates", blocksId: ELSEWHERE.documentId }]);
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu, "the block still prints");
+  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu, "the block still prints");
 });
 
 /* The consequential case of the fold not reading a size: this filing names none at all, so it is a
@@ -287,19 +295,19 @@ test("a kind whose body names no cause folds onto nothing, however near the neig
     assert.equal(run.status, 0, run.stderr);
     assert.ok(created(), `a ${kind} was folded away instead of filed`);
     assert.equal(commented(), undefined, `a ${kind} became a comment on ${OPEN.issueId}`);
-    assert.match(run.stdout, /^ {2}ISS-45 {3}0\.99 {2}same place/mu, "and it is still shown the neighbour");
+    assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu, "and it is still shown the neighbour");
   }
 });
 
 test("a search the tracker refuses files the issue and says the check could not run", async () => {
   before();
-  state.answer = { "forge_memory.search": () => ({ refused: "forge_memory.search is not available to this credential" }) };
+  state.answer = { "forge_find.issues": () => ({ refused: "forge_find.issues is not available to this credential" }) };
   const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the filing lands whatever the check did");
-  assert.match(run.stdout, /the semantic query could not run: .*forge_memory.search is not available/u,
+  assert.match(run.stdout, /the meaning query could not run: .*forge_find.issues is not available/u,
     "the tracker's own code and message, and no words of ours in front of them");
-  assert.match(run.stdout, /the keyword query could not run/u);
+  assert.match(run.stdout, /the place query could not run/u);
   assert.match(run.stdout, /this filing was made/u);
   assert.doesNotMatch(run.stdout, /the check ran and found none/u, "which it did not");
 });
@@ -308,11 +316,11 @@ test("a search the tracker refuses files the issue and says the check could not 
    read killed the filing and, from stdin, the body with it. 400 rather than 503, which is retried. */
 test("a search the transport loses files the issue too, and does not exit before the write", async () => {
   before();
-  state.answer = { "forge_memory.search": () => ({ http: 400 }) };
+  state.answer = { "forge_find.issues": () => ({ http: 400 }) };
   const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the write happened, so nothing exited on the read beside it");
-  assert.match(run.stdout, /the semantic query could not run: Forge answered 400/u);
+  assert.match(run.stdout, /the meaning query could not run: Forge answered 400/u);
   assert.doesNotMatch(run.stdout, /may have been processed/u,
     "a read named by its tool rather than by an action field is still a read");
 });
@@ -339,7 +347,7 @@ test("a note whose title is open nowhere folds onto the neighbour that shares it
 });
 
 /* An exact title is a neighbour like any other and routes nothing on its own (ISS-334); the note
-   below is measured under the fold's floor, so nothing else could have acted either. */
+   below is measured under the door's own floor, so nothing else could have acted either. */
 test("a note whose title is already open on that project is filed rather than commented there", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.5);
@@ -367,7 +375,7 @@ test("a note declines the fold with --new, and prints the block above what it fi
   const run = await noted("--new");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created());
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu);
+  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu);
   assert.match(run.stdout, /--new declined the fold/u);
   /* Criterion 13, on the outcome with the most to print: once, and before the line about the body. */
   assert.equal(run.stdout.match(/Open beside this filing/gu).length, 1);
@@ -385,18 +393,6 @@ test("the note verb still refuses a flag that is none of its four", async () => 
   assert.match(run.stderr, /^Usage: forge feedback /mu);
 });
 
-/* The band the block prints from is the band the measurement calls machinery rather than subject,
-   so the fold has its own threshold above it: printing costs a glance and this costs a comment. */
-test("a same-place neighbour inside the printed band is shown and not folded onto", async () => {
-  before();
-  state.memory = both(OPEN.issueId, 0.72);
-  const run = await filed("--complexity", "s");
-  assert.equal(run.status, 0, run.stderr);
-  assert.ok(created(), "0.72 is over the printing floor and under the fold's");
-  assert.equal(commented(), undefined);
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.72 {2}same place/mu);
-});
-
 /* A destination the filer did not name is one whose thread may already carry this finding. */
 test("the fold reads the target's thread, delivers it, and writes to it in the same call", async () => {
   before();
@@ -410,7 +406,7 @@ test("the fold reads the target's thread, delivers it, and writes to it in the s
   assert.equal(commented().args.data.issue, OPEN.documentId, "the fold went through under the thread");
   /* Criterion 12: the block goes out before the fold acts, so a fold that could not write has
      already printed it — the one filing whose neighbours most want reading. */
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu,
+  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu,
     "the block goes out before the fold acts");
 });
 
@@ -430,7 +426,7 @@ test("a fold whose thread cannot be accounted for has already printed the block,
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /past the 400 one issue's credits keep/u, "the accounting, not the delivery");
   assert.notEqual(commented(), undefined, "and the fold was written all the same");
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu, "the block goes out before the fold acts");
+  assert.match(run.stdout, /^ {2}ISS-45 {3}#1 {4}same place/mu, "the block goes out before the fold acts");
 });
 
 test("and a second filing in that session folds with no thread printed again", async () => {

@@ -1,24 +1,26 @@
-/* The scored links a sweep collected, turned into the families it prints and the accounting under
-   them. Nothing here calls anything and nothing here holds a number: the floor is the create path's
-   own export. Why a family is a transitive join and what the score does not say: docs/cli/alike.md. */
-import { FLOOR } from "../tracker/filing/neighbours.mjs";
+/* The ranked links a sweep collected, turned into the families it prints and the accounting under
+   them. Nothing here calls anything and nothing here holds a number: what makes a link is the find
+   door's own judgement, and a link carries only its place in the door's order. Why a family is a set
+   that reads alike all round and what the order does not say: docs/cli/alike.md. */
+import { rankSaid } from "../tracker/filing/neighbours.mjs";
 
 const KEY = 8;
 const PAIR = "~";
 
-const scoreSaid = (score) => score.toFixed(2);
+const linkRank = (rank) => rankSaid(rank).trim();
 
 /** One link per unordered pair, at the better of the two readings and carrying the end whose query
- *  saw it: the search answers one direction at a time and the two disagree. */
+ *  saw it: the search answers one direction at a time and the two disagree. Better is nearer the
+ *  front of the door's order. */
 export const linksFrom = (found) => {
   const held = new Map();
   for (const link of found) {
     const at = [link.from, link.to].sort().join(` ${PAIR} `);
     const before = held.get(at);
-    if (!before || link.score > before.score) held.set(at, link);
+    if (!before || link.rank < before.rank) held.set(at, link);
   }
   return [...held.values()].sort((one, two) =>
-    two.score - one.score || `${one.from}${one.to}`.localeCompare(`${two.from}${two.to}`));
+    one.rank - two.rank || `${one.from}${one.to}`.localeCompare(`${two.from}${two.to}`));
 };
 
 const nearMap = (links) => {
@@ -64,14 +66,14 @@ export const familiesOf = (links) => {
       members: [...members].sort(),
       links: links.filter((link) => members.includes(link.from) && members.includes(link.to)),
     }))
-    .sort((one, two) => two.links[0].score - one.links[0].score
+    .sort((one, two) => one.links[0].rank - two.links[0].rank
       || two.members.length - one.members.length
       || one.members[0].localeCompare(two.members[0]));
 };
 
 const bandOf = (links) => {
-  const scores = links.map((one) => one.score);
-  return `${scoreSaid(Math.min(...scores))} to ${scoreSaid(Math.max(...scores))}`;
+  const ranks = links.map((one) => one.rank);
+  return `ranked ${linkRank(Math.min(...ranks))} to ${linkRank(Math.max(...ranks))}`;
 };
 
 const headLine = (family, at) =>
@@ -81,7 +83,7 @@ const headLine = (family, at) =>
 const memberLine = (key, titles) => `  ${key.padEnd(KEY)}  ${titles.get(key) ?? ""}`;
 
 const linkLine = (link) =>
-  `  ${link.from} ${PAIR} ${link.to}  ${scoreSaid(link.score)}  off ${link.from}'s own title`;
+  `  ${link.from} ${PAIR} ${link.to}  ${linkRank(link.rank)}  off ${link.from}'s own title`;
 
 const familyLines = (family, at, titles) => [
   headLine(family, at),
@@ -90,10 +92,10 @@ const familyLines = (family, at, titles) => [
   "",
 ];
 
-const FLOOR_SAID = `${scoreSaid(FLOOR)}, the floor a filing is shown a neighbour at`;
+const FLOOR_SAID = "by the find door's own judgement of a match, the one a filing is shown a neighbour by";
 
 const EVERY_PAIR = "Every member of a family reads alike to every other member of it, and each of"
-  + " those readings is printed with its score and the end whose query measured it. One issue is in"
+  + " those readings is printed with its place in the door's order and the end whose query measured it. One issue is in"
   + " two families where it reads alike to two sets that do not read alike to each other.";
 
 const NOTHING_DECIDED = "Nothing was folded and nothing was written. No member is the head: which of"
@@ -103,7 +105,7 @@ const NOTHING_DECIDED = "Nothing was folded and nothing was written. No member i
 const countLine = (families, measured) => {
   const joined = new Set(families.flatMap((one) => one.members));
   return `${families.length} family(ies) over ${joined.size} of the ${measured} open issue(s) `
-    + `measured, at ${FLOOR_SAID}. The strongest reading is first.`;
+    + `measured, ${FLOOR_SAID}. The strongest reading is first.`;
 };
 
 /* The two ways a query answers less than the backlog holds, said apart: one the search cut, one the
@@ -113,7 +115,7 @@ const widthsOf = (saturated) =>
   [...new Set(saturated.map((one) => one.inBand))].sort((one, two) => one - two).join(" and ");
 
 const saturatedLine = (saturated) =>
-  `${saturated.length} query(ies) came back with every hit of the reading at or above the floor — `
+  `${saturated.length} query(ies) came back filling the ask with hits the door judged a match — `
   + `${widthsOf(saturated)} of them, and the reading was cut there — so what else is open beside `
   + `these reads short by an unknown amount: `
   + `${saturated.map((one) => one.issueId).join(", ")}.`;
@@ -127,7 +129,7 @@ const refusedLine = (notes) =>
 export const sweepLines = ({ families, titles, measured, saturated, notes, short }) => {
   const out = families.length
     ? [countLine(families, measured), EVERY_PAIR, NOTHING_DECIDED]
-    : [`No two of the ${measured} open issue(s) measured read alike at ${FLOOR_SAID}.`];
+    : [`No two of the ${measured} open issue(s) measured read alike ${FLOOR_SAID}.`];
   if (saturated.length) out.push(saturatedLine(saturated));
   if (notes.length) out.push(refusedLine(notes));
   if (short) out.push(short);

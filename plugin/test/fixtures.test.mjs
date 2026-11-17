@@ -247,7 +247,7 @@ test("a home-rooted path is read from the home the process holds, not the one it
    an empty backlog, an empty attachment list, no blockers — and could not fail (ISS-618). One
    request per route row, with every tool failing, is what holds that seam in place. */
 const TOOLS = [
-  "forge_issues", "forge_uploads", "forge_comments", "forge_knowledge", "forge_memory.search",
+  "forge_issues", "forge_uploads", "forge_comments", "forge_knowledge", "forge_memory.search", "forge_find.issues",
   "forge_guide", "forge_project_pm", "forge_config", "forge_projects.list", "forge_projects.create",
   "forge_projects.update", "forge_projects.read", "forge_projects.get", "forge_projects.archive",
   "forge_projects.unarchive", "forge_coolify", "forge_release_batch", "forge_labels", "forge_questions", "forge_feedback",
@@ -288,6 +288,7 @@ const PROBES = [
   ["GET", "/api/projects/p1/knowledge/slug1"],
   ["GET", "/api/projects/p1/knowledge"],
   ["POST", "/api/memory/search"],
+  ["POST", "/api/projects/p1/find"],
   ["POST", "/api/questions"],
   ["GET", "/api/guides/g1"],
   ["GET", "/api/guides"],

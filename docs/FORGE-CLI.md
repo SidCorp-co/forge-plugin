@@ -99,9 +99,9 @@ how many topics there may be.
 | [codex — the commit gate](cli/codex-the-commit.md) | What a commit is asked for, what that demand is scoped to where a checkout is shared, and why the switch that turns the gate off is named rather than an environment variable. |
 | [codex — the replay](cli/codex-the-replay.md) | What proves a past payload can be rebuilt, which two cases refuse a row rather than replay it loosely, the one text the log keeps and its caps, and what a share of a window is worth. |
 | [codex — the image](cli/codex-the-image.md) | Why a picture over the review gateway is an action of `codex` and names no other verb, which endings say no picture was made, why the model is a label and the size a hint, and why drawing one is not a review. |
-| [`beside`](cli/beside.md) | The two questions the create path asks before it files, and the floor. |
+| [`beside`](cli/beside.md) | The two questions the create path asks the find door before it files, and whose judgement a neighbour is. |
 | [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, and what declines it. |
-| [`alike`](cli/alike.md) | Which of the two floors a sweep of the open backlog reports at and the measurement that settled it, what the score does not establish, and what a reading shorter than the backlog is owed. |
+| [`alike`](cli/alike.md) | Whose judgement a sweep of the open backlog reports by, what the find door's order does not establish, and what a reading shorter than the backlog is owed. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue, not a file, where its destination is held, which kinds the project allows, what no refusal loses. |
 | [`feedback` — core's door](cli/feedback-the-door.md) | Where a note goes when the credential cannot see this plugin's project, and which flags that path refuses. |
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why it neither prints nor exits, why a route adds a section rather than joining text, and the two decisions each route makes. |

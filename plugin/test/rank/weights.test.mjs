@@ -35,6 +35,9 @@ test("a weight the table does not hold is refused, not dropped", () => {
     [{ blocks: null }, /is a number/u],
     [{ complexity: { xs: null } }, /number of points/u],
     [{ reading: "high" }, /`rank\.reading` is a number/u],
+    /* forge ISS-1256: the search answers the find door's order and no cosine, so a floor over one is
+       refused saying what replaced it rather than as a name never held. */
+    [{ similarity: 0.78 }, /`rank\.similarity` was a cosine floor .*find door.*Drop the key/u],
   ]) {
     const { refusal, value } = foldWeights(given);
     assert.match(refusal ?? "", matching, JSON.stringify(given));

@@ -87,7 +87,7 @@ test("a table whose row names are closed prints those rows, never a name the fol
   }
   const some = doctor({ slug: "a-project", rank: { blocks: 3 } }, "undecided");
   assert.equal(labelled(some, "rank.blocks"), undefined, "the weight it set");
-  assert.ok(labelled(some, "rank.similarity"), "and every weight beside it that it did not");
+  assert.ok(labelled(some, "rank.agePerDay"), "and every weight beside it that it did not");
   assert.ok(labelled(some, "rank.priority.high"));
 });
 

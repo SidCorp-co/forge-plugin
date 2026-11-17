@@ -242,13 +242,15 @@ const searcher = (heads, ask) => {
   };
 };
 
-const nearFor = async (head, bodies, live, weights) => {
+/* Related by the search is what the find door keeps for the head's own words, by the door's own
+   judgement of a match: this table holds no floor of its own over it. */
+const nearFor = async (head, bodies, live) => {
   const body = bodies.get(head.issueId);
   const filing = { title: head.row.title, body: body?.description ?? "", kind: head.row.category ?? null };
   const beside = await neighboursOf(asksOf(filing), live);
   return new Map(beside.suggestions
-    .filter((one) => one.score !== null && one.score >= weights.similarity && one.issueId !== head.issueId)
-    .map((one) => [one.issueId, one.score]));
+    .filter((one) => one.rank !== null && one.issueId !== head.issueId)
+    .map((one) => [one.issueId, one.rank]));
 };
 
 const jsonOf = (batches, dropped, weights, from, read, judging) => ({
@@ -417,7 +419,7 @@ export const next = async (argv) => {
   const paths = new Map(judged.map((one) => [one.issueId, pathsNamed(one.body)]));
   const batched = await batchesOf(eligible, {
     relates: new Map(judged.map((one) => [one.issueId, one.relates])),
-    nearOf: searcher(eligible.slice(0, count), (head) => nearFor(head, bodies, live, weights)),
+    nearOf: searcher(eligible.slice(0, count), (head) => nearFor(head, bodies, live)),
     paths,
     resolves: resolverIn(tree),
   }, weights, count);

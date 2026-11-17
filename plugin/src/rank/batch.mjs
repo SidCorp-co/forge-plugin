@@ -29,9 +29,9 @@ export const relatednessOf = (head, other,
   if ((relates.get(head.issueId) ?? []).includes(other.issueId)) {
     return { how: RELATION, said: `related to ${head.issueId} by relation` };
   }
-  const score = near.get(other.issueId);
-  if (score !== undefined) {
-    return { how: SEARCH, said: `reads like ${head.issueId} at ${score.toFixed(2)}` };
+  const rank = near.get(other.issueId);
+  if (rank !== undefined) {
+    return { how: SEARCH, said: `reads like ${head.issueId}, #${rank} in the find door's order for it` };
   }
   const { path: shared, gone } = sharedPaths(
     paths.get(head.issueId) ?? [], paths.get(other.issueId) ?? [], resolves);

@@ -6,37 +6,36 @@ import { tempHome } from "../../fixtures.mjs";
 
 const home = tempHome("fold");
 process.env.XDG_CONFIG_HOME = home.path;
-const { FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
+const { foldFiling, foldOnto, foldedInto, suggestionLines } =
   await import("../../../src/tracker/filing/neighbours.mjs");
 const { COMPLEXITY_NAMES } = await import("../../../src/ladder.mjs");
 const { placeIn, seedFor } = await import("../../../src/tracker/issue-shape.mjs");
 
-const suggestion = (issueId, score, samePlace) =>
-  ({ issueId, documentId: `uuid-${issueId}`, title: `${issueId}'s title`, score, samePlace });
+/* `rank` is the neighbour's place in the find door's order for the filing, null for a row only the
+   place query reached: the door answers no nearness beyond that order (forge ISS-1256). */
+const suggestion = (issueId, rank, samePlace) =>
+  ({ issueId, documentId: `uuid-${issueId}`, title: `${issueId}'s title`, rank, samePlace });
 
 test("the fold takes the nearest open neighbour that also names the place, and nothing else", () => {
-  const near = suggestion("ISS-2", 0.81, true);
-  assert.equal(foldOnto([suggestion("ISS-1", 0.9, false), near, suggestion("ISS-3", 0.7, true)]), near,
-    "the higher-scoring ISS-1 names another place, and ISS-3 is the same place further away");
-  assert.equal(foldOnto([suggestion("ISS-1", 0.9, false)]), null, "a neighbour elsewhere is no fold");
+  const near = suggestion("ISS-2", 2, true);
+  assert.equal(foldOnto([suggestion("ISS-1", 1, false), near, suggestion("ISS-3", 3, true)]), near,
+    "the nearer ISS-1 names another place, and ISS-3 is the same place further down the door's order");
+  assert.equal(foldOnto([suggestion("ISS-1", 1, false)]), null, "a neighbour elsewhere is no fold");
   assert.equal(foldOnto([suggestion("ISS-1", null, true)]), null,
     "and one the place query alone found is a place match nothing ranked");
   assert.equal(foldOnto([]), null);
 });
 
-test("the floor is one constant, and it is the one the measurement names", () => {
-  assert.equal(FLOOR, 0.7);
-});
-
-test("the block prints the key, how near it reads and whether the place matched", () => {
+test("the block prints the key, its place in the door's order and whether the place matched", () => {
   const lines = suggestionLines({
-    suggestions: [suggestion("ISS-2", 0.83, true), suggestion("ISS-9", null, true)],
+    suggestions: [suggestion("ISS-2", 1, true), suggestion("ISS-9", null, true)],
     notes: [],
     place: "plugin/src/commands.mjs",
   }).join("\n");
-  assert.match(lines, /^ {2}ISS-2 {4}0\.83 {2}same place {2}ISS-2's title$/mu);
-  assert.match(lines, /^ {2}ISS-9 {4} {2}— {2} {2}same place {2}ISS-9's title$/mu,
-    "a place match the semantic query never ranked shows no score rather than a made-up one");
+  assert.match(lines, /^ {2}ISS-2 {4}#1 {4}same place {2}ISS-2's title$/mu);
+  assert.match(lines, /^ {2}ISS-9 {4} {2}— {3}same place {2}ISS-9's title$/mu,
+    "a place match the meaning query never ranked shows no rank rather than a made-up one");
+  assert.doesNotMatch(lines, /\b0\.\d\d\b/u, "and no row prints a nearness the door never answered");
   assert.match(lines, /a duplicate filed anyway is one the filer was shown/u);
 });
 
@@ -45,10 +44,10 @@ test("a filing that found nothing is told so, and one whose search failed is tol
   assert.match(empty, /`forge issue` — the check ran and found none\.$/u);
   const broken = suggestionLines({
     suggestions: [],
-    notes: ["the semantic query could not run: Forge answered 400: no"],
+    notes: ["the meaning query could not run: Forge answered 400: no"],
     place: null,
   }).join("\n");
-  assert.match(broken, /the semantic query could not run: Forge answered 400/u);
+  assert.match(broken, /the meaning query could not run: Forge answered 400/u);
   assert.match(broken, /this filing was made as it would have been without it/u);
   assert.doesNotMatch(broken, /or names/u, "and a filing with no place is not told about one");
   /* The two are what this exists to tell apart, so they cannot both be said of one filing. */
@@ -57,7 +56,7 @@ test("a filing that found nothing is told so, and one whose search failed is tol
 });
 
 test("--new tells a fold it declined from one it was never going to make, and from neither", () => {
-  const nearest = suggestion("ISS-2", 0.83, true);
+  const nearest = suggestion("ISS-2", 1, true);
   const block = { suggestions: [nearest], notes: [], place: "p" };
   const said = (options) => suggestionLines(block, { fresh: true, ...options }).join("\n");
   assert.match(said({ nearest, foldable: true }),
@@ -68,7 +67,7 @@ test("--new tells a fold it declined from one it was never going to make, and fr
     /would have qualified, and this filing rides another issue's branch/u,
     "the two reasons it was never foldable are two lines: one sends the filer to a kind, one to a flag");
   assert.match(said({ nearest: null, foldable: true }),
-    /--new declined nothing: no open issue both reads like this filing at 0\.78/u);
+    /--new declined nothing: no open issue both reads like this filing by the find door's judgement/u);
   /* Without the flag none of the four is owed: what is open is said and no more. */
   assert.doesNotMatch(suggestionLines(block, { nearest, foldable: true }).join("\n"), /--new/u);
 });
@@ -98,7 +97,7 @@ test("a category whose body owes a cause is foldable at every size, and one that
 
 /* Nothing spawned can see this: the refusal a held fold ends in exits the process. */
 test("the neighbours are handed to the caller once, before the fold acts on them", async () => {
-  const beside = { suggestions: [suggestion("ISS-2", 0.83, true)], notes: [], place: "p" };
+  const beside = { suggestions: [suggestion("ISS-2", 1, true)], notes: [], place: "p" };
   const seen = [];
   const onBeside = (block, said) => seen.push({ block, said });
   await foldFiling(beside, { title: "t", body: "a body", kind: "feature", onBeside });
@@ -112,8 +111,8 @@ test("the neighbours are handed to the caller once, before the fold acts on them
 });
 
 test("the fold's reply names the issue and why it won, and claims no nearness it does not have", () => {
-  const said = foldedInto(suggestion("ISS-2", 0.83, true));
-  assert.match(said, /^ISS-2 is open, names the same place and is the nearest of the neighbours that do, at 0\.83/u);
+  const said = foldedInto(suggestion("ISS-2", 1, true));
+  assert.match(said, /^ISS-2 is open, names the same place and is the nearest of the neighbours that do, #1 in the find door's order/u);
   /* A neighbour reading closer under another place is not the nearest of all, and a reply saying
      so would be false on exactly the filings the fold is least sure about. */
   assert.doesNotMatch(said, /nearest to this filing/u);
@@ -122,10 +121,10 @@ test("the fold's reply names the issue and why it won, and claims no nearness it
   assert.match(said, /the block above is everything it was measured against/u);
   assert.doesNotMatch(said, /marked|Size:/u, "the size it is marked at decides nothing here any more");
   assert.doesNotMatch(said, /There it is finding/u, "and with no comment answered, it names no handle");
-  const named = foldedInto(suggestion("ISS-2", 0.83, true), { documentId: "6bd04311-be5c-4f45-81fb-32e3c05c1886" });
+  const named = foldedInto(suggestion("ISS-2", 1, true), { documentId: "6bd04311-be5c-4f45-81fb-32e3c05c1886" });
   assert.match(named, /There it is finding 6bd04311, which that issue's run carries in a criterion or declines\.$/u,
     "the filer is told the handle the run on that issue answers the finding by (ISS-167)");
-  assert.doesNotMatch(foldedInto(suggestion("ISS-2", 0.83, true), { documentId: "comment-uuid" }), /There it is/u,
+  assert.doesNotMatch(foldedInto(suggestion("ISS-2", 1, true), { documentId: "comment-uuid" }), /There it is/u,
     "and an id no handle heads names none rather than a wrong one");
 });
 
@@ -155,7 +154,7 @@ test("the place is the cause section's first path or verb, then Where's, then th
   assert.equal(placeIn("## Why it happens\n\nno place named\n\n`forge next` is where it shows\n"), "forge next");
 });
 
-test("the semantic seed is the title and the first section the kind requires", () => {
+test("the meaning seed is the title and the first section the kind requires", () => {
   const body = "## What happened\n\nthe verb refuses a name it should take\n\n## Outcome\n\nit takes it\n";
   assert.equal(seedFor({ title: "the verb takes the name", body, kind: "bug" }),
     "the verb takes the name\n\nthe verb refuses a name it should take");

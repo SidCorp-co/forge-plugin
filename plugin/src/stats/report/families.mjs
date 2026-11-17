@@ -1,9 +1,9 @@
 /* Which causes are one root cause, by the links the tracker already holds and no link of this
    file's making: two causes whose matched issues are one issue, are joined by a `relates` edge, or
    carry one gate-recurrence marker in their titles are one row. A cause is matched by the search
-   `forge next` reads, over open and closed issues alike and at that search's floor; a match an
+   `forge next` reads, over open and closed issues alike and by the find door's own judgement; a match an
    earlier write made is carried rather than asked again — docs/cli/stats.md. */
-import { FLOOR, neighboursOf } from "../../tracker/filing/neighbours.mjs";
+import { neighboursOf } from "../../tracker/filing/neighbours.mjs";
 import { PROJECT } from "../../tracker/filing/plugin-defect.mjs";
 import { otherOf } from "../../tracker/edges/kinds.mjs";
 import { NO_LONGER_OWES } from "../../flow/earned/park-status.mjs";
@@ -19,7 +19,7 @@ const CLOSED = "closed";
 const MARKER = /\[gate-recurrence(?:-group)? [0-9a-f]+\]/u;
 
 const BEYOND = `past the first ${MATCHED} causes by score this write matched`;
-export const NONE_NEAR = `no issue reads like it at the search's floor of ${FLOOR}`;
+export const NONE_NEAR = "no issue reads like it by the find door's own judgement of a match";
 
 const endpointHeld = () => Boolean(accountCredentials().url.value && accountCredentials().token.value);
 
@@ -54,8 +54,8 @@ export const trackerOf = async (registered, { read = everyIssue, near = neighbou
         rows,
         match: async (text) => refusing(async () => {
           const found = await near({ seed: text, place: null }, live, closed);
-          const scored = [...found.suggestions.filter((one) => one.score !== null && one.score >= FLOOR), ...found.closed]
-            .sort((left, right) => right.score - left.score);
+          const scored = [...found.suggestions.filter((one) => one.rank !== null), ...found.closed]
+            .sort((left, right) => left.rank - right.rank);
           if (!scored.length && found.notes.length) throw new Error(found.notes[0]);
           return scored[0]?.issueId ?? null;
         }),

@@ -39,7 +39,7 @@ projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG
 test.after(() => tracker.close());
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
 
-const { FOLD_FLOOR, foldOnto, neighboursOf, suggestionLines } =
+const { foldOnto, neighboursOf, suggestionLines } =
   await import("../../../src/tracker/filing/neighbours.mjs");
 const { REASON_MAX, reasonOf, settledOf } = await import("../../../src/tracker/filing/settled.mjs");
 const { openTitles } = await import("../../../src/tracker/issue-shape.mjs");
@@ -65,11 +65,11 @@ test("settled rows are the dropped and the closed ones, and an open row is none 
   assert.deepEqual(settledOf(ROWS).map((one) => one.issueId), ["ISS-2", "ISS-3", "ISS-4", "ISS-5", "ISS-6"]);
 });
 
-test("a dropped neighbour at the floor is printed in its own block, apart from the open one", async () => {
+test("a dropped neighbour the door answers is printed in its own block, apart from the open one", async () => {
   const said = await lines({ semantic: [[OPEN.issueId, 0.76], [DROPPED.issueId, 0.84]], keyword: [] });
   const [openAt, droppedAt] = [said.indexOf("Open beside this filing"), said.indexOf("Filed before and dropped")];
   assert.ok(openAt >= 0 && droppedAt > openAt, said);
-  assert.match(said, /^ {2}ISS-2 {4}0\.84 {14}criteria -h states the one-outcome rule$/mu);
+  assert.match(said, /^ {2}ISS-2 {4}#2 {16}criteria -h states the one-outcome rule$/mu);
   assert.doesNotMatch(said.slice(openAt, droppedAt), /ISS-2/u, "the open block holds no settled row");
 });
 
@@ -130,25 +130,25 @@ test("the dropped block ends on what a filer answers before filing that subject 
 
 test("a closed neighbour is printed as fixed and landed, a regression or a different defect", async () => {
   const said = await lines({ semantic: [[CLOSED.issueId, 0.81]], keyword: [] });
-  assert.match(said, /^Filed before and closed, which means fixed and landed — so this filing is a regression of that fix or a different defect, and saying which is this filing's work:\n {2}ISS-4 {4}0\.81/mu);
+  assert.match(said, /^Filed before and closed, which means fixed and landed — so this filing is a regression of that fix or a different defect, and saying which is this filing's work:\n {2}ISS-4 {4}#1/mu);
   assert.doesNotMatch(said, /ISS-4 .*\n {4}why:/u, "a closed row reads no thread");
   const read = state.calls.filter((one) => one.name === "forge_comments");
   assert.equal(read.length, 0, "and asks the tracker for none");
 });
 
-test("a settled neighbour is no fold, whatever it scores and whatever place it names", async () => {
+test("a settled neighbour is no fold, however near it ranks and whatever place it names", async () => {
   const beside = await measured({
     semantic: [[DROPPED.issueId, 0.95], [CLOSED.issueId, 0.93]],
     keyword: [[DROPPED.issueId, 0.4], [CLOSED.issueId, 0.4]],
   });
-  assert.ok(beside.dropped[0].score >= FOLD_FLOOR && beside.dropped[0].samePlace);
+  assert.ok(beside.dropped[0].rank === 1 && beside.dropped[0].samePlace);
   assert.ok(beside.closed[0].samePlace, "the place is marked on a settled row as on an open one");
   assert.equal(beside.suggestions.length, 0, "neither is a suggestion");
   assert.equal(foldOnto(beside.suggestions), null);
 });
 
-test("a settled hit under the floor is not shown", async () => {
-  const beside = await measured({ semantic: [[DROPPED.issueId, 0.69]], keyword: [] });
+test("a settled hit the door does not answer is not shown", async () => {
+  const beside = await measured({ semantic: [[DROPPED.issueId, 0.5]], keyword: [] });
   assert.deepEqual([beside.dropped, beside.closed], [[], []]);
 });
 

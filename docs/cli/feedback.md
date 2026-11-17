@@ -56,10 +56,10 @@ ever arrives as a refusal costs the turn the note was written in; a refusal drop
 method now says it would bet the finding on which copy of that method the run happens to hold.
 
 **A note is measured the way a filing is, and folds the way one does.** Both routes that file ask
-the tracker's own memory what is open beside what they are about to write, print it above the
+the tracker's find door what is open beside what they are about to write, print it above the
 result, and land the note on the neighbour that shares the place its cause names rather than filing
 a second issue. A note whose kind owes a cause takes that fold and no complexity exempts it; one whose shape names no cause gives the fold nothing to measure and files as an issue. The
-rules and the floor are [`beside`](beside.md)'s; the order the block is printed in and the reason
+rules and the door's judgement are [`beside`](beside.md)'s; the order the block is printed in and the reason
 the fold answers to two signals instead of one are [`the-fold`](the-fold.md)'s.
 
 **There is no second fold on the title.** This verb used to route a note onto any open issue whose

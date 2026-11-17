@@ -70,7 +70,7 @@ like a backlog with nothing at `in_progress:test` in it.
 
 The measured cost of the whole verb against this backlog is about twenty-eight seconds: four for the
 two walks it issues together, three for the past-run corpus on disk, and the rest for the bodies and
-the two memory searches each printed head is measured with.
+the two find-door searches each printed head is measured with.
 
 A head is searched when it becomes one, never before: choosing the heads up front and searching them
 afterwards leaves the issue an earlier batch promoted with no answer of its own, and a relation only

@@ -1,7 +1,7 @@
 /* How wide the net is that decides which open issues name a filing's place, and what that width is
    not: the block's own length. Called rather than spawned, because what is asserted is which refs
-   came back marked and which one the fold would take, and a process would only print them. The two
-   thresholds and the act are fold.test.mjs's; the reasoning docs/cli/beside.md's. */
+   came back marked and which one the fold would take, and a process would only print them. The fold's
+   choice and the act are fold.test.mjs's; the reasoning docs/cli/beside.md's. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -33,22 +33,25 @@ const placeAnswer = (count, { key = null, rank = 1, score = 0.5 } = {}) =>
     ? [key, score]
     : [`ISS-${at + 40}`, Number((1 - (at / (count * 2))).toFixed(4))]));
 
+const SEED = "a filing about the thing";
+const PLACE = "forge record";
+
 const measured = async (memory) => {
   state.memory = memory;
   state.calls = [];
-  return neighboursOf({ seed: "a filing about the thing", place: "forge record" }, LIVE);
+  return neighboursOf({ seed: SEED, place: PLACE }, LIVE);
 };
 
 const marked = (beside, key) => beside.suggestions.find((one) => one.issueId === key)?.samePlace ?? null;
-const askedAt = (strategy) => state.calls
-  .filter((one) => one.sent?.strategy === strategy).map((one) => one.sent.topK);
+const askedAt = (q) => state.calls
+  .filter((one) => one.name === "forge_find.issues" && one.sent?.q === q).map((one) => one.sent.limit);
 
 test("the place net is wider than the block, and neither number is the other's", () => {
   assert.ok(PLACE_K > TOP_K, `a net of ${PLACE_K} decides nothing a block of ${TOP_K} does not`);
 });
 
-/* The population this issue is about: a candidate the semantic query ranked well above the fold's
-   own threshold, whose place match the tracker returned past where the block would have stopped. */
+/* The population this issue is about: a candidate the meaning query ranked first, whose place match
+   the tracker returned past where the block would have stopped. */
 test("a place match ranked past the block's width and inside the net takes the finding", async () => {
   const beside = await measured({
     semantic: [["ISS-7", 0.83], ["ISS-8", 0.71]],
@@ -93,8 +96,8 @@ test("each reading is asked for the width it wants, and read to the width it ask
     semantic: [["ISS-7", 0.83]],
     keyword: placeAnswer(PLACE_K + 12, { key: "ISS-7", rank: 15, score: 0.42 }),
   });
-  assert.deepEqual(askedAt("semantic"), [TOP_K], "the semantic query asks for the block's width");
-  assert.deepEqual(askedAt("keyword"), [PLACE_K], "and the place query asks for the net's");
+  assert.deepEqual(askedAt(SEED), [TOP_K], "the meaning query asks for the block's width");
+  assert.deepEqual(askedAt(PLACE), [PLACE_K], "and the place query asks for the net's");
   assert.equal(beside.suggestions.filter((one) => one.samePlace).length, TOP_K + 1,
     "what the tracker served past the net joins nothing, so the block holds its ten and the candidate");
 });

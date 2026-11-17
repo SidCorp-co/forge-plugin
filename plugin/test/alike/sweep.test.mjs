@@ -1,4 +1,4 @@
-/* The verb spawned against a tracker that answers the memory search per query, which is what lets
+/* The verb spawned against a tracker that answers the find door per query, which is what lets
    one case hold a family and another hold nothing. The reading the verb is built on is the create
    path's, so what is asserted here is the sweep's own half: which rows reach a family, which never
    do, and what the answer says about what it could not reach. */
@@ -24,27 +24,33 @@ test.after(() => tracker.close());
 
 const uuidOf = (key) => state.issues.find((one) => one.issueId === key)?.documentId ?? key;
 
-/** The tracker's own answer shape, keyed on the query so each issue's search is its own. */
-const searching = (hits) => ({ query }) => ({
-  hits: (hits[query] ?? []).map(([key, score]) => ({
-    source: "issue", sourceRef: uuidOf(key), text: `${key} as it was embedded`, score, stale: false,
-  })),
-});
+/* The find door's floor on its meaning arm over issues (forge's ISSUE_SEMANTIC_FLOOR): a case lists
+   each query's cosines, and the door answers those at or over it, in the order listed. */
+const DOOR_FLOOR = 0.59;
+
+/** The door's own answer shape, keyed on the query so each issue's search is its own. */
+const searching = (hits) => ({ q }) => {
+  const kept = (hits[q] ?? []).filter(([, score]) => score >= DOOR_FLOOR).map(([key], at) => ({
+    id: `issue:${uuidOf(key)}`, type: "issue", ref: uuidOf(key), key, title: `${key} as it was embedded`,
+    status: null, match: { arms: ["semantic"], alias: null }, score: 0.5 / (61 + at),
+  }));
+  return { groups: kept.length ? [{ type: "issue", label: "Issues", hits: kept }] : [], degraded: false };
+};
 
 const backlog = (issues, hits, answer = {}) => {
   state.issues = issues;
   state.calls = [];
-  state.answer = { "forge_memory.search": searching(hits), ...answer };
+  state.answer = { "forge_find.issues": searching(hits), ...answer };
 };
 
 const swept = () => ranAsync(FORGE, ["alike"], env);
 
 const wrote = () => state.calls.filter((one) => one.args?.action && one.args.action !== "list");
 
-const asked = () => state.calls.filter((one) => one.name === "forge_memory.search")
-  .map((one) => one.args.query).sort();
+const asked = () => state.calls.filter((one) => one.name === "forge_find.issues")
+  .map((one) => one.args.q).sort();
 
-test("two open issues above the floor come back as one family, with both keys and the score", async () => {
+test("two open issues the door answers for each other come back as one family, with both keys and the rank", async () => {
   backlog([row(1), row(2), row(3)], {
     [titleOf(1)]: [["ISS-1", 0.82], ["ISS-2", 0.74], ["ISS-3", 0.51]],
     [titleOf(2)]: [["ISS-2", 0.8], ["ISS-1", 0.72]],
@@ -52,10 +58,10 @@ test("two open issues above the floor come back as one family, with both keys an
   });
   const run = await swept();
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /family 1 — 2 issue\(s\) over 1 link\(s\), 0\.74 to 0\.74/u);
+  assert.match(run.stdout, /family 1 — 2 issue\(s\) over 1 link\(s\), ranked #2 to #2/u);
   assert.match(run.stdout, /ISS-1 {5}the 1th thing/u, "the member's key and its title");
   assert.match(run.stdout, /ISS-2 {5}the 2th thing/u);
-  assert.match(run.stdout, /ISS-1 ~ ISS-2 {2}0\.74 {2}off ISS-1's own title/u,
+  assert.match(run.stdout, /ISS-1 ~ ISS-2 {2}#2 {2}off ISS-1's own title/u,
     "the better of the two readings, and the end whose query measured it");
 });
 
@@ -71,7 +77,7 @@ test("a family only a later issue's query reveals is still reported", async () =
   });
   const run = await swept();
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /ISS-3 ~ ISS-4 {2}0\.75/u);
+  assert.match(run.stdout, /ISS-3 ~ ISS-4 {2}#2/u);
   assert.deepEqual(asked(), [titleOf(1), titleOf(2), titleOf(3), titleOf(4)].sort(),
     "every open issue is a query of its own, and each is asked once");
 });
@@ -99,14 +105,14 @@ test("a settled issue scoring high against an open one is in no family", async (
   assert.match(said, /2 of the 2 open issue\(s\) measured/u, "and it is not measured either");
 });
 
-test("a backlog with nothing at the floor answers with the count it measured and no family", async () => {
+test("a backlog the door answers no neighbour for answers with the count it measured and no family", async () => {
   backlog([row(1), row(2), row(3)], {
-    [titleOf(1)]: [["ISS-1", 0.82], ["ISS-2", 0.66]],
-    [titleOf(2)]: [["ISS-2", 0.8], ["ISS-1", 0.64]],
+    [titleOf(1)]: [["ISS-1", 0.82], ["ISS-2", 0.56]],
+    [titleOf(2)]: [["ISS-2", 0.8], ["ISS-1", 0.54]],
     [titleOf(3)]: [],
   });
   const said = (await swept()).stdout;
-  assert.match(said, /No two of the 3 open issue\(s\) measured read alike at 0\.70/u);
+  assert.match(said, /No two of the 3 open issue\(s\) measured read alike by the find door's own judgement/u);
   assert.doesNotMatch(said, /family 1/u);
 });
 
@@ -117,7 +123,7 @@ test("a band that fills the search is reported short, naming the issue it was as
     [titleOf(2)]: [["ISS-2", 0.9], ["ISS-1", 0.71]],
   });
   const said = (await swept()).stdout;
-  assert.match(said, /1 query\(ies\) came back with every hit of the reading at or above the floor/u);
+  assert.match(said, /1 query\(ies\) came back filling the ask with hits the door judged a match/u);
   assert.match(said, /10 of them, and the reading was cut there/u);
   assert.match(said, /short by an unknown amount: ISS-1\./u);
   assert.doesNotMatch(said, /ISS-11/u, "and the ten it did return are all it claims");
@@ -142,19 +148,19 @@ test("an answer longer than the ask is read to the ask, and what it served past 
     "and the width said is the reading's, not the fourteen the tracker served");
 });
 
-/* A hit under the floor inside the reading is the search reaching past the band on its own, which is
-   the one reading that proves nothing was cut off in band. */
-test("a reading carrying a hit below the floor is not reported short", async () => {
+/* The door answering fewer than the ask is the door saying it judged no more a match, which is the
+   one reading that proves nothing was cut off. */
+test("a reading the door answered short of the ask is not reported short", async () => {
   const rows = Array.from({ length: 12 }, (unused, at) => row(at + 1));
   backlog(rows, {
     [titleOf(1)]: [...rows.slice(0, 9).map((one, at) => [one.issueId, 0.9 - at / 100]),
-      ["ISS-10", 0.6], ["ISS-11", 0.55]],
+      ["ISS-10", 0.55], ["ISS-11", 0.5]],
   });
   const said = (await swept()).stdout;
   assert.match(said, /8 family\(ies\) over 9 of the 12 open issue\(s\) measured/u,
     `the nine in band:\n${said}`);
   assert.doesNotMatch(said, /short by an unknown amount/u,
-    `the search went past the band and the reading is whole:\n${said}`);
+    `the door answered short of the ask and the reading is whole:\n${said}`);
 });
 
 test("the sweep sends no write and takes no lease", async () => {

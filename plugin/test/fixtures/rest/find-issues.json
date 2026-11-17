@@ -1,0 +1,167 @@
+{
+  "taken": "2026-11-17",
+  "tool": "forge_find",
+  "action": "issues",
+  "routes": {
+    "page": "POST /projects/d1bb4907-74d9-4228-85ff-76121523af7d/find"
+  },
+  "note": "The find door's issue filter (forge ISS-1256), asked as the duplicate check asks it: no tool answered this, so what is pinned is that the hits the projection reads survive it, each with its ref, key, status and the arms that found it.",
+  "sent": {
+    "q": "duplicate check before filing",
+    "type": [
+      "issue"
+    ],
+    "limit": 2
+  },
+  "rest": {
+    "answer": {
+      "query": "duplicate check before filing",
+      "expanded": [],
+      "groups": [
+        {
+          "type": "issue",
+          "label": "Issues",
+          "hits": [
+            {
+              "id": "issue:23fef6d3-8164-4e19-8e9b-4f566112549a",
+              "type": "issue",
+              "ref": "23fef6d3-8164-4e19-8e9b-4f566112549a",
+              "key": "ISS-690",
+              "title": "A request passes one value check before it becomes a requirement or open feedback",
+              "excerpt": "One value check (who, what improves, how measured, does it exist) runs on every request from every door, web, API, MCP and chat, before REQ-n or an open feedback item exists. It ends as accept, merge, better alternative or refuse with reason. The assistant drafts first and puts …",
+              "projectSlug": "forge",
+              "module": null,
+              "status": "closed",
+              "path": [
+                "Unplaced",
+                "Issues"
+              ],
+              "match": {
+                "arms": [
+                  "keyword"
+                ],
+                "alias": null
+              },
+              "score": 0.00819672131147541,
+              "open": "/api/projects/d1bb4907-74d9-4228-85ff-76121523af7d/find/open?id=issue%3A23fef6d3-8164-4e19-8e9b-4f566112549a"
+            },
+            {
+              "id": "issue:4fca679b-b3ef-4a2e-969a-4a9d97726f7c",
+              "type": "issue",
+              "ref": "4fca679b-b3ef-4a2e-969a-4a9d97726f7c",
+              "key": "ISS-918",
+              "title": "The questions door files a word-for-word copy of a question already open on the same subject, so a retried ask doubles every question it carries",
+              "excerpt": "## Mechanism `POST /api/questions` (`packages/core/src/questions/routes.ts`, written by `questions/write.ts`) refuses duplicate option ids inside one question (QUESTION_OPTION_IDS_DUPLICATE). It does not compare a new question with the questions already open on the same subject …",
+              "projectSlug": "forge",
+              "module": null,
+              "status": "closed",
+              "path": [
+                "Unplaced",
+                "Issues"
+              ],
+              "match": {
+                "arms": [
+                  "semantic"
+                ],
+                "alias": null
+              },
+              "score": 0.00819672131147541,
+              "open": "/api/projects/d1bb4907-74d9-4228-85ff-76121523af7d/find/open?id=issue%3A4fca679b-b3ef-4a2e-969a-4a9d97726f7c"
+            }
+          ]
+        }
+      ],
+      "facets": {
+        "type": [
+          {
+            "value": "issue",
+            "label": "Issues",
+            "count": 19
+          },
+          {
+            "value": "lesson",
+            "label": "Lessons",
+            "count": 16
+          },
+          {
+            "value": "capability",
+            "label": "Capabilities",
+            "count": 12
+          },
+          {
+            "value": "rule",
+            "label": "Rules",
+            "count": 9
+          },
+          {
+            "value": "feedback",
+            "label": "Feedback",
+            "count": 2
+          }
+        ],
+        "module": [
+          {
+            "value": "unplaced",
+            "label": "Unplaced",
+            "count": 42
+          },
+          {
+            "value": "org",
+            "label": "Org",
+            "count": 9
+          },
+          {
+            "value": "platform",
+            "label": "Platform",
+            "count": 3
+          },
+          {
+            "value": "knowledge-2",
+            "label": "Knowledge",
+            "count": 2
+          },
+          {
+            "value": "execution",
+            "label": "Execution",
+            "count": 1
+          },
+          {
+            "value": "work-delivery",
+            "label": "Work & delivery",
+            "count": 1
+          }
+        ],
+        "status": [
+          {
+            "value": "in force",
+            "label": "in force",
+            "count": 25
+          },
+          {
+            "value": "closed",
+            "label": "closed",
+            "count": 16
+          },
+          {
+            "value": "declined",
+            "label": "declined",
+            "count": 2
+          },
+          {
+            "value": "dropped",
+            "label": "dropped",
+            "count": 2
+          },
+          {
+            "value": "in_progress",
+            "label": "in_progress",
+            "count": 1
+          }
+        ]
+      },
+      "total": 2,
+      "degraded": false,
+      "gap": false
+    }
+  }
+}

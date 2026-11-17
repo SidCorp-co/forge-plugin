@@ -23,9 +23,9 @@ test("relatedness is read three ways, and the line says which one made it", () =
   const byRelation = relatednessOf(head, other, context({ relates: relatesOf(["ISS-2"]) }));
   assert.equal(byRelation.how, RELATION);
   assert.match(byRelation.said, /related to ISS-1 by relation/u);
-  const bySearch = relatednessOf(head, other, context({ near: new Map([["ISS-2", 0.83]]) }));
+  const bySearch = relatednessOf(head, other, context({ near: new Map([["ISS-2", 3]]) }));
   assert.equal(bySearch.how, SEARCH);
-  assert.match(bySearch.said, /reads like ISS-1 at 0\.83/u);
+  assert.match(bySearch.said, /reads like ISS-1, #3 in the find door's order for it/u);
   const paths = new Map([["ISS-1", ["plugin/src/rank/next.mjs"]], ["ISS-2", ["plugin/src/rank/"]]]);
   const byModule = relatednessOf(head, other, context({ paths }));
   assert.equal(byModule.how, MODULE);
@@ -37,14 +37,14 @@ test("relatedness is read three ways, and the line says which one made it", () =
    because the strongest reading is the one worth printing. */
 test("the strongest of the three is what the member's line says", () => {
   const held = relatednessOf(candidate("ISS-1"), candidate("ISS-2"),
-    context({ relates: relatesOf(["ISS-2"]), near: new Map([["ISS-2", 0.9]]) }));
+    context({ relates: relatesOf(["ISS-2"]), near: new Map([["ISS-2", 1]]) }));
   assert.equal(held.how, RELATION);
 });
 
 test("a batch holds three and refuses the fourth, which prints as related rather than vanishing", () => {
   const head = candidate("ISS-1");
   const rest = ["ISS-2", "ISS-3", "ISS-4"].map((one) => candidate(one));
-  const near = new Map(rest.map((one) => [one.issueId, 0.9]));
+  const near = new Map(rest.map((one, at) => [one.issueId, at + 1]));
   const { members, aside } = batchUnder(head, rest, context({ near }), DEFAULTS);
   assert.deepEqual(members.map((one) => one.issueId), ["ISS-2", "ISS-3"], "the head is the third member");
   assert.deepEqual(aside.map((one) => one.issueId), ["ISS-4"]);
@@ -54,7 +54,7 @@ test("a batch holds three and refuses the fourth, which prints as related rather
 test("a related issue at the top rung rides with nothing and is printed as such", () => {
   const head = candidate("ISS-1");
   const large = candidate("ISS-2", "l");
-  const near = new Map([["ISS-2", 0.9]]);
+  const near = new Map([["ISS-2", 1]]);
   const { members, aside } = batchUnder(head, [large], context({ near }), DEFAULTS);
   assert.deepEqual(members, []);
   assert.deepEqual(aside.map((one) => one.issueId), ["ISS-2"]);
@@ -68,7 +68,7 @@ test("an issue is a member once, and one the cap turned away is a head of its ow
   const asked = [];
   const nearOf = (head) => {
     asked.push(head.issueId);
-    return new Map(head.issueId === "ISS-1" ? [["ISS-2", 0.9], ["ISS-3", 0.9], ["ISS-4", 0.9]] : []);
+    return new Map(head.issueId === "ISS-1" ? [["ISS-2", 1], ["ISS-3", 2], ["ISS-4", 3]] : []);
   };
   const held = await batchesOf(ranked, { ...context(), nearOf }, DEFAULTS);
   assert.deepEqual(held[0].members.map((one) => one.issueId), ["ISS-2", "ISS-3"]);
@@ -83,7 +83,7 @@ test("an issue is a member once, and one the cap turned away is a head of its ow
    left the issue an earlier batch promoted with no answer of its own. */
 test("a head an earlier batch promoted is searched before its own batch is formed", async () => {
   const ranked = ["ISS-1", "ISS-2", "ISS-3"].map((one) => candidate(one));
-  const nearOf = (head) => new Map(head.issueId === "ISS-2" ? [["ISS-3", 0.95]] : []);
+  const nearOf = (head) => new Map(head.issueId === "ISS-2" ? [["ISS-3", 1]] : []);
   const held = await batchesOf(ranked, { ...context(), nearOf }, DEFAULTS);
   assert.deepEqual(held.map((one) => one.head.issueId), ["ISS-1", "ISS-2"]);
   assert.deepEqual(held[1].members.map((one) => one.issueId), ["ISS-3"],
@@ -146,6 +146,6 @@ test("a batch spans modules where a relation or a search put it there", () => {
   const head = candidate("ISS-1");
   const other = candidate("ISS-2");
   const paths = new Map([["ISS-1", ["plugin/src/rank/"]], ["ISS-2", ["docs/cli/"]]]);
-  const { members } = batchUnder(head, [other], context({ paths, near: new Map([["ISS-2", 0.8]]) }), DEFAULTS);
+  const { members } = batchUnder(head, [other], context({ paths, near: new Map([["ISS-2", 1]]) }), DEFAULTS);
   assert.deepEqual(members.map((one) => one.how), [SEARCH], "different trees, one run's saving");
 });

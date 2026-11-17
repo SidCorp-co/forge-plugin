@@ -50,7 +50,6 @@ export const DEFAULTS = {
   /* Per multiple of `review.lines` the range past the review mark holds, on the one issue holding
      that reading: the fields a reading is filed with rank it last whatever it owes (ISS-2719). */
   reading: 60,
-  similarity: 0.78,
   batchCap: 3,
   windowCap: 12,
   readCap: 60,
@@ -72,6 +71,14 @@ export const MODULE_TABLE = "module";
 const UNCAPPED = "ageCap";
 
 const RETIRED_TABLE = "band";
+
+/* A weight this table no longer holds, and why, so a project that set one is told what took its place
+   rather than that the name was never a weight. */
+const RETIRED_WEIGHTS = {
+  similarity: "was a cosine floor on the memory search, which forge ISS-1256 folded into the find door."
+    + " A related issue is now one the door keeps for the head's own words, by the door's own judgement"
+    + " of a match, and the door answers no cosine for a floor to read. Drop the key.",
+};
 const OWN_TABLE = "complexity";
 
 /** A project's `rank` object with the retired spelling of the one table keyed by the tracker's field
@@ -103,6 +110,7 @@ const numeric = (value) => typeof value === "number" && Number.isFinite(value);
 
 const wrongIn = (given) => {
   for (const [key, value] of Object.entries(given)) {
+    if (Object.hasOwn(RETIRED_WEIGHTS, key)) return `\`rank.${key}\` ${RETIRED_WEIGHTS[key]}`;
     if (!Object.hasOwn(DEFAULTS, key)) {
       return `\`rank.${key}\` is no weight of this table. It holds: ${Object.keys(DEFAULTS).join(", ")}.`;
     }
@@ -181,7 +189,6 @@ export const weightLines = (weights) => [
   row("reopened", `${weights.reopened}`),
   row("blocks", `${weights.blocks} per open issue it blocks, through the chain`),
   row("reading", `${weights.reading} per multiple of \`review.lines\` a batch reading owes`),
-  row("similarity", `${weights.similarity} — the floor a search hit counts as related`),
   row("batchCap", `${weights.batchCap} members, each at the fix rung or below`),
   row("windowCap", `${weights.windowCap} — bodies read in one pass`),
   row("readCap", `${weights.readCap} — the most bodies read in all`),

@@ -34,21 +34,28 @@ filing's own line does, and gives the bare key only where the two projects are o
 **The fold asks for both signals on one issue, and that is a price paid deliberately.** The issue a
 filing lands on has to be the one it is about *and* the one it is in — the nearest of the neighbours
 naming its place, which is not the nearest of all, and no reply here says otherwise. The place query
-ranks by nothing this act can use: its score reads how strongly a body matches the term, so on its
-own the fold would land on whichever open issue says the place most often, and a place as broad as a
+ranks by nothing this act can use: it reads whether an issue holds the term, so on its own the fold
+would land on whichever open issue the door happened to answer first, and a place as broad as a
 common verb has dozens of those. Left to the place alone the fold would eventually post a finding
 onto an issue with nothing to do with it, and the finding would be lost exactly the way filing it
 twice loses it.
 
 **So the fold reaches neither of the two cases that motivated it, and the block is what covers
 them.** The two same-file defects of 2026-09-04 share no subject — each one's nearest neighbours are
-its own topic's, and neither reaches the other above the floor — and one of them names the file only
-in prose, so the place query misses it too. The duplicate pair shares a subject at 0.830 and no
-place: the section naming its place named a verb broad enough that the issue it duplicated was not
+its own topic's, and neither reaches the other's reading — and one of them names the file only in
+prose, so the place query misses it too. The duplicate pair shares a subject and no place: the section naming its place named a verb broad enough that the issue it duplicated was not
 among what came back. Both would have been filed. What changes is that the second filer would have
 been shown the issue they were duplicating, on their own screen, while the command was still in
 their hand. That is the whole of what this buys, and it is worth saying plainly rather than claiming a fold
 that fires more often than it does.
+
+**The fold's bar on nearness is the door's own judgement, and that is a price paid too.** The find
+door answers no nearness past its order, so the fold lands on the nearest neighbour naming the place
+among those the door judged a match by its own floor on issues, and holds no floor above it: one
+here would be a number read off nothing the door answers. That floor was set against queries naming
+nothing the project holds, not against neighbours by machinery, so a machinery neighbour that also
+names the place can take the finding. The place is what holds that cost down, the block printed
+before the act is what shows it, and `--new` is what declines it.
 
 **A destination nobody chose is read before it is written to.** The hold every write to an issue
 takes — the thread delivered once, then the same command again — costs a fold one round and buys the

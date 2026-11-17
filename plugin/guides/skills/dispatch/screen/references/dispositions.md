@@ -100,12 +100,13 @@ the first N and the other the rest cuts through families, and a family cut in tw
 onto two heads, each holding half the evidence and neither aware of the other. Reconciling that
 costs more than the split saved, and nothing reports it: both readers finish clean.
 
-**The fold floor is a filing's, not a pair's.** `FOLD_FLOOR` is calibrated for one new body measured
-against the whole corpus, where a near-copy scores high. Two issues already open, filed apart by
-authors who chose different words for one cause, read below it and are still one issue. So a round
-that stops at the floor leaves behind exactly the families the floor was never meant to catch: read
-the band beneath it, and report where the yield falls away, because that figure is the only evidence
-anyone has for where the line belongs when both sides are already open.
+**What the fold would take is a filing's measure, not a pair's.** It is built for one new body
+against the whole corpus. Two issues already open, filed apart by authors who chose different words
+for one cause, often share no place and sit far apart in each other's reading, and are still one
+issue. So a round that stops where the fold would stop leaves behind exactly the families it was
+never meant to catch: read further down each reading, and report how far the yield runs, because
+that figure is the only evidence anyone has for where the line belongs when both sides are already
+open.
 
 ## Posting it
 

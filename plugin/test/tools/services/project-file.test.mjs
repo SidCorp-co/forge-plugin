@@ -174,9 +174,9 @@ test("a check clock is no key a write takes, a consult running no check", async 
    weight the table scores in fractions is writable and a count of lines is still whole (consult 8a37d4). */
 test("a fractional weight is written and a fractional count of lines is refused by its reader", async () => {
   fresh();
-  const good = await ask("--set", "rank.similarity=0.85");
+  const good = await ask("--set", "rank.agePerDay=0.5");
   assert.equal(good.status, 0, good.stderr);
-  assert.equal(JSON.parse(now()).rank.similarity, 0.85);
+  assert.equal(JSON.parse(now()).rank.agePerDay, 0.5);
   assert.equal(moved(HELD, now()), 1);
   fresh();
   const bad = await ask("--set", "review.lines=1.5");

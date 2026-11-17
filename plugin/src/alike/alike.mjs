@@ -1,6 +1,6 @@
-/* Every open issue measured against every other, through the search and the floor the create path
-   already spends on one filing. It reads and reports; the act it leads to is a person's. What the
-   score can and cannot say, and what one sweep costs: docs/cli/alike.md. */
+/* Every open issue measured against every other, through the search the create path already spends
+   on one filing. It reads and reports; the act it leads to is a person's. What the door's order can
+   and cannot say, and what one sweep costs: docs/cli/alike.md. */
 import { SEARCH_ROUTE, neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { pacedBy } from "../wire/budget.mjs";
 import { familiesOf, linksFrom, sweepLines } from "./families.mjs";
@@ -58,8 +58,8 @@ export const alike = async (argv) => {
     for (const note of beside.notes) notes.push(`${one.issueId}, ${note}`);
     for (const near of beside.suggestions) {
       /* Its own row comes back ranked like any other and often highest. */
-      if (near.documentId === one.documentId || near.score === null) continue;
-      found.push({ from: one.issueId, to: near.issueId, score: near.score });
+      if (near.documentId === one.documentId || near.rank === null) continue;
+      found.push({ from: one.issueId, to: near.issueId, rank: near.rank });
     }
     said();
   });

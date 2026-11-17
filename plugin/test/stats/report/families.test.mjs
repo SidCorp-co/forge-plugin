@@ -1,10 +1,9 @@
 /* The tracker as the current report asks it: every status walked once, a cause matched by the search
-   `forge next` reads at its floor over open and closed issues alike, and each matched issue read for
+   `forge next` reads, by the find door's own judgement, over open and closed issues alike, and each matched issue read for
    its `relates` edges. The walk, the search and the edge read are stood in for. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FLOOR } from "../../../src/tracker/filing/neighbours.mjs";
 import { matchesOf, NONE_NEAR, trackerOf } from "../../../src/stats/report/families.mjs";
 
 const PLUGIN = [{ name: "forge-plugin", slug: "forge-plugin" }];
@@ -31,13 +30,15 @@ const trackerWith = (answer, extra = {}) => {
   return { held, tracker: trackerOf(PLUGIN, { read: readAll, near: held.near, held: () => true, edges: async (id) => (id === "d1" ? ["ISS-2"] : []), ...extra }) };
 };
 
-test("a match is the nearest of open and closed issues at or above the floor, and nothing below it", async () => {
+/* `rank` is the find door's place for an issue in the cause's reading, null for a row only a place
+   query reached; every ranked row is one the door judged a match (forge ISS-1256). */
+test("a match is the nearest of open and closed issues the door ranked, and never a row it did not", async () => {
   const { held, tracker } = trackerWith((text) => (text === "closer closed" ? {
-    suggestions: [{ issueId: "ISS-1", score: FLOOR + 0.02 }], closed: [{ issueId: "ISS-3", score: FLOOR + 0.1 }], notes: [],
-  } : { suggestions: [{ issueId: "ISS-1", score: FLOOR - 0.01 }, { issueId: "ISS-2", score: null }], closed: [], notes: [] }));
+    suggestions: [{ issueId: "ISS-1", rank: 2 }], closed: [{ issueId: "ISS-3", rank: 1 }], notes: [],
+  } : { suggestions: [{ issueId: "ISS-2", rank: null }], closed: [], notes: [] }));
   const got = await tracker;
   assert.equal(await got.match("closer closed"), "ISS-3");
-  assert.equal(await got.match("below the floor"), null);
+  assert.equal(await got.match("nothing ranked"), null);
   /* Open means every status not settled, and the settled set the search reads is the closed one. */
   assert.deepEqual(held.asked[0].live, ["ISS-1", "ISS-2"]);
   assert.deepEqual(held.asked[0].settled, ["ISS-3"]);
@@ -50,10 +51,10 @@ test("an issue is read for its status, its title and the keys its relates edges 
 });
 
 test("a search that could not run is a reason on the cause, never a cause matching nothing", async () => {
-  const got = await trackerWith(() => ({ suggestions: [], closed: [], notes: ["the semantic query could not run: 503"] })).tracker;
+  const got = await trackerWith(() => ({ suggestions: [], closed: [], notes: ["the meaning query could not run: 503"] })).tracker;
   const ranked = [{ key: "a", kind: "refusal", met: "one" }, { key: "b", kind: "refusal", met: "two" }];
   const found = await matchesOf(ranked, got);
-  assert.equal(found.why.get("a"), "the semantic query could not run: 503");
+  assert.equal(found.why.get("a"), "the meaning query could not run: 503");
   const quiet = await trackerWith(() => ({ suggestions: [], closed: [], notes: [] })).tracker;
   assert.equal((await matchesOf(ranked, quiet)).why.get("a"), NONE_NEAR);
 });

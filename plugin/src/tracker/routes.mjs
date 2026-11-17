@@ -5,6 +5,7 @@
 import { mimeFor } from "../wire/upload-mimes.mjs";
 import { COLLECTIONS, DECLARES, FILTERS, declaredFor } from "./declared/declares.mjs";
 import { coolifyRoutes } from "./declared/coolify-routes.mjs";
+import { searchRoutes } from "./declared/search-routes.mjs";
 import { ISSUE_STATUSES, LEGACY_STATUSES, statusOfPlace } from "./declared/issue-machine.mjs";
 import { refuse } from "../refusal.mjs";
 import { PROJECT_ROW, attachmentOf, attributedOf, browseOf, citingOf, commentOf, configOf, eventsOf,
@@ -318,11 +319,7 @@ export const ROUTES = {
     sends: ["slug"],
   },
   ...coolifyRoutes({ one, query }),
-  "forge_memory.search": {
-    project: true,
-    requests: (args, project) => one(`/memory/search`, "POST", { ...args, projectId: project }),
-    sends: ["query", "topK", "strategy", "sourceFilter"],
-  },
+  ...searchRoutes({ one }),
   /* The tracker's own release routes, raw: each answers with the shape its own REST surface already
      declares (ISS-764 in that repository) rather than one this CLI reprojects, which is the same
      reading `forge_coolify.*` takes of the platform's own words. `attempts` stays out, being the

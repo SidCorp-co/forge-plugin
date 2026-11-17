@@ -61,8 +61,8 @@ const readReason = async (one) => {
 /** Every dropped neighbour with its reason, the threads read together and none of them able to stop the filing. */
 export const withReasons = (dropped) => Promise.all(dropped.map(readReason));
 
-const row = (one, noScore) =>
-  `  ${one.issueId.padEnd(KEY)} ${one.score === null ? noScore : one.score.toFixed(2)}  `
+const row = (one, rankSaid) =>
+  `  ${one.issueId.padEnd(KEY)} ${rankSaid(one.rank)}  `
   + `${one.samePlace ? "same place  " : "            "}${one.title}`;
 
 const why = (one) => {
@@ -70,7 +70,7 @@ const why = (one) => {
   return `    why: ${one.reason ?? "its record gives no reason"}`;
 };
 
-const DROPPED_HEAD = "Filed before and dropped, by the same memory — each with the reason its own record gives:";
+const DROPPED_HEAD = "Filed before and dropped, by the same door — each with the reason its own record gives:";
 const DROPPED_TAIL = "No dropped neighbour takes a finding, and nothing folded onto one. Where this filing is that"
   + " subject, the reason is what to answer before filing it again: a key it names is where the subject"
   + " went, and one more drop of the same subject is evidence the reason was wrong. `forge comment <key>`"
@@ -79,7 +79,7 @@ const CLOSED_HEAD = "Filed before and closed, which means fixed and landed — s
   + " that fix or a different defect, and saying which is this filing's work:";
 
 /** The two blocks under the open one: nothing where there is nothing settled. */
-export const settledLines = ({ dropped = [], closed = [] }, noScore) => [
-  ...(dropped.length ? [DROPPED_HEAD, ...dropped.flatMap((one) => [row(one, noScore), why(one)]), DROPPED_TAIL] : []),
-  ...(closed.length ? [CLOSED_HEAD, ...closed.map((one) => row(one, noScore))] : []),
+export const settledLines = ({ dropped = [], closed = [] }, rankSaid) => [
+  ...(dropped.length ? [DROPPED_HEAD, ...dropped.flatMap((one) => [row(one, rankSaid), why(one)]), DROPPED_TAIL] : []),
+  ...(closed.length ? [CLOSED_HEAD, ...closed.map((one) => row(one, rankSaid))] : []),
 ];
