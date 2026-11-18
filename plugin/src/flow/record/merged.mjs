@@ -11,6 +11,8 @@ import { shipMode } from "../../resolve/settings.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
+import { recordFieldCap } from "../../tracker/comment-cap.mjs";
+import { commandAt } from "../machine/owed.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
 import { escaped } from "../../markdown.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
@@ -83,10 +85,34 @@ const typedProblem = (one, paths, given) => {
 export const namesPath = (named, path) =>
   new RegExp(`(?<![\\w./-])${escaped(path)}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
 
+const MOVED_SAID = "the change also wrote ";
+
+// cm:why a path that alone overruns the field budget goes in a value of its own, which the correction refuses by name, rather than a value split mid-path (ISS-116)
+const movedValues = (paths, cap) => {
+  const values = [];
+  let open = [];
+  for (const path of paths) {
+    if (open.length && cap !== null && lengthOf(MOVED_SAID + [...open, path].join(", ")) > cap) {
+      values.push(open);
+      open = [];
+    }
+    open.push(path);
+  }
+  if (open.length) values.push(open);
+  return values.map((held) => MOVED_SAID + held.join(", "));
+};
+
 /** The write that names a path the plan does not, spelt once: the mark's own refusal and `in_progress:test`'s shortfall both spend it, and two spellings would send a run to two commands. */
-export const correctionForm = (ref, paths) =>
-  `forge record correction ${ref} --corrects plan --moved "the change also wrote ${paths.join(", ")}" `
-  + `--why "<why each was needed>"`;
+// cm:why one value naming every path was a remedy its own write refused: 55 paths came to 2783 code points on sid-growth ISS-573, so the paths split into counted writes, one per line (ISS-116)
+export const correctionForm = (ref, paths) => {
+  const cap = recordFieldCap();
+  const forms = movedValues(paths, cap).map((moved) =>
+    `forge record correction ${ref} --corrects plan --moved "${moved}" --why "<why each was needed>"`);
+  return forms.length > 1
+    ? [`${forms.length} corrections, one per line, each \`--moved\` within the ${cap} code points core `
+      + "screens a record field at:", ...forms].join("\n")
+    : forms.join("\n");
+};
 
 /** The view `in_progress:test` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse, with the reader of that text beside it. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle, and it is made once per write. */
 const viewOn = async (documentId, comments) => {
@@ -130,9 +156,9 @@ const leftOut = (kept, whole, named) =>
 const tooLong = (over, room, owed, ref) => (owed.length
   ? `the note is ${over} code points over the ${room} the tracker takes with only the ${owed.length} `
     + `path(s) the plan and its corrections do not name in it, and those are the paths \`in_progress:test\` `
-    + `reads, so none of them may be left out: nothing was written. Name them in the correction that `
+    + `reads, so none of them may be left out: nothing was written. Name them in the corrections that `
     + `status asks for and mark again — they are named then, and the note has the room to leave them `
-    + `out:\n  ${correctionForm(ref, owed)}`
+    + `out:\n  ${commandAt(correctionForm(ref, owed), "  ")}`
   : `the note is ${over} code points over the ${room} the tracker takes with the shortest written `
     + `path in it and no other, so what overran is the \`landing moved\` clause: nothing was written. That `
     + `clause is never shortened, a landing that moved this change's paths being what stands the `

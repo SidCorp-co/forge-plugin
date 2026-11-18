@@ -59,9 +59,11 @@ Two notes are refused before the call rather than fitted, because fitting either
 untrue:
 
 - one whose unnamed paths alone overrun it. Shortening there would earn `in_progress:test` for a change
-  that grew and never disclosed it, so the refusal names those paths and the correction that clears
-  them — which is the correction the status asks for anyway, and once it is written they are named
-  and the note has room to leave them out.
+  that grew and never disclosed it, so the refusal names those paths and the corrections that clear
+  them — which are the corrections the status asks for anyway, and once they are written the paths are
+  named and the note has room to leave them out. A correction takes one `--moved` and core screens it
+  at the record field budget, so the paths are split across as many corrections as that takes rather
+  than printed as one value the write would refuse.
 - one whose `landing moved` clause has no room for a single written path. That clause is what stands
   the verdicts down, and a partial list of it reads as a landing that moved less than it did.
 
