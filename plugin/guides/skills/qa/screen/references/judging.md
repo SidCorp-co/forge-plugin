@@ -147,6 +147,14 @@ artifact: neither shows what a person sees, and a redirect, a pair of answering 
 number earn no verdict. The tool is the project's equipment and not yours: check for it by name
 before you count on it, and say it is absent rather than reporting a state you could not take.
 
+**A pass on an observable criterion marks what its release page shows.** Upload the clip or shots
+to the issue through its attachments route, `POST /api/issues/:id/attachments`, and not with
+`forge attach`, which drops the issue's lease (forge ISS-1310). Then mark them on the one pass whose
+capture shows the change best, each by the id or download URL the upload answered and never its
+name: `--visual-desktop` and `--visual-phone` for the clip or shot, `--visual-still` for the picture
+the clip opens on, `--visual-seconds` for its length. With no mark, the release shows "visual owed";
+*Marking the release visual* in core's qa guide states the size of each shot.
+
 **Only a demonstrated harm blocks.** A finding blocks where it demonstrates material harm to a task
 the change is meant to support: the task cannot be completed, its result is materially wrong, work is
 lost, or an accessibility barrier stands with no reasonable way round it. It carries the steps that

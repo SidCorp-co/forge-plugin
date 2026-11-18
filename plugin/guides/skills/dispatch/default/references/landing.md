@@ -28,3 +28,10 @@ A status the landing could not reach is the fold's, and `forge resume ISS-nn` sa
 landing walks no further than `awaiting_release`: the close is the holder's once the criteria are met
 in scope, `forge advance ISS-nn [--unmet '<json>']`, and the release's record says when it is live.
 <!-- forge:end -->
+
+## A release told to a room
+
+Post a release as a card: the release page's `card` (`GET /api/projects/:id/releases/:version/page`)
+names the cover and up to three more shots, already as `attachments`, with the three leading lines,
+the criteria count and the link. The words are yours, one line each in the owner's language, the link
+last; core's dispatch guide, *A release post*, carries the rest.
