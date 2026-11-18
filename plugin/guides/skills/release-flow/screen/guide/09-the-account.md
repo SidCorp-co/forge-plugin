@@ -1,6 +1,8 @@
 ## The account
 
-Written at the end of every run, whichever way it went, in five parts:
+Written at the end of every run, whichever way it went, and sent as `note` on the finish
+(`forge release-batch finish <runId> --note "<text>"`), where the release record shows it — never as
+comments spread over the roster's issues. In five parts:
 
 1. **The situation.** What this release was, where it was going, and where it stood when you arrived.
    A reader who knows none of it starts here and is not sent anywhere else to begin.

@@ -228,6 +228,14 @@ test("15. finish without --commit sends a body carrying no commit", async () => 
   assert.ok(!("commit" in (run.released[0].args.data ?? {})), JSON.stringify(run.released[0].args.data));
 });
 
+test("15a. finish sends --note as the run's account, and a finish without one carries none (forge ISS-1334)", async () => {
+  state.release.finish = { runId: RUN_ID, finish: { state: "verifying", commit: SHA } };
+  const run = await ran("finish", RUN_ID, "--commit", SHA, "--note", "Tagged v1.4.0; deployed and watched live.");
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(run.released[0].args.data, { commit: SHA, note: "Tagged v1.4.0; deployed and watched live." });
+  assert.ok(!("note" in (await ran("finish", RUN_ID, "--commit", SHA)).released[0].args.data));
+});
+
 test("15b. finish and record send each --site as sites [{name, serves}], and a body without one carries none", async () => {
   state.release.finish = { runId: RUN_ID, finish: { state: "verifying", commit: SHA } };
   const finished = await ran("finish", RUN_ID, "--commit", SHA, "--site", "mail.sidcorp.co=1.4.0", "--site", "webmail=1.4.0");

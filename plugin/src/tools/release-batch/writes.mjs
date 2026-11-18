@@ -11,7 +11,7 @@ import { answeredOr, reasonSaid } from "./refused.mjs";
 
 export const START_USAGE = "Usage: forge release-batch start <ISS-nn>... [--version V] [--name N] [--summary S] "
   + "[--promotion <request>] [--change-request <n>]...";
-export const FINISH_USAGE = "Usage: forge release-batch finish <runId> [--commit <sha>] [--site <name>=<serves>]...";
+export const FINISH_USAGE = 'Usage: forge release-batch finish <runId> [--commit <sha>] [--site <name>=<serves>]... [--note "<the run\'s account>"]';
 export const RECORD_USAGE = 'Usage: forge release-batch record <ISS-nn>... --commit <sha> --account "<text>" '
   + "[--provider-ref <ref>] [--site <name>=<serves>]...";
 
@@ -109,9 +109,12 @@ export const start = async (argv) => {
 export const finish = async ([runId, ...rest]) => {
   if (!runId || runId.startsWith("--")) owed("finish", FINISH_USAGE, "the runId `forge release-batch start` printed");
   const { values: sites, rest: flagArgv } = pullRepeated(rest, "--site", "release-batch finish", { usage: FINISH_USAGE });
-  const commit = filledOr("finish", FINISH_USAGE, flags(flagArgv, "release-batch finish", [], { usage: FINISH_USAGE }),
-    "commit");
-  const data = { ...(commit === undefined ? {} : { commit }), ...sitesOf("finish", FINISH_USAGE, sites) };
+  const given = flags(flagArgv, "release-batch finish", [], { usage: FINISH_USAGE });
+  const commit = filledOr("finish", FINISH_USAGE, given, "commit");
+  // the run's account rides on its finish and shows on the release record (forge ISS-1334)
+  const note = filledOr("finish", FINISH_USAGE, given, "note");
+  const data = { ...(commit === undefined ? {} : { commit }), ...(note === undefined ? {} : { note }),
+    ...sitesOf("finish", FINISH_USAGE, sites) };
   const answer = answeredOr("finish", await write("forge_release_batch.finish", { runId, data }, undefined, true));
   const id = answer.runId ?? runId;
   console.log(`runId      ${id}`);
