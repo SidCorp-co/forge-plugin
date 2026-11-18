@@ -192,7 +192,7 @@ project's own checkout and never in a builder's worktree, and it is read only: n
 Work under an identity of your own, and claim no lease. Set `FORGE_SESSION_ID` to the run id your
 dispatcher declared for you (`FORGE_RUN` in your brief) before your first call, rather than inheriting
 whoever dispatched you or inventing one: the verdict door takes only a declared run's id and refuses
-any other `VERDICT_RUN_UNKNOWN` (forge FB-748). That is the whole of what it costs you: there is no tree to stand in for one, and no second step to go looking for. Your
+any other `VERDICT_RUN_UNKNOWN`. That is the whole of what it costs you: there is no tree to stand in for one, and no second step to go looking for. Your
 verdicts go up past whoever holds the issue, under that id and with their hold untouched, so the
 lease is not yours to take, to wait out or to declare stopped. The
 owed read above says, before you judge anything, whether your verdicts will be written. Any other
