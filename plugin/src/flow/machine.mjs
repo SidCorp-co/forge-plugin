@@ -313,6 +313,14 @@ export const PROBE_TAKES = [
   '  {"kind":"request","request":{"method":"GET","path":"/health","as":"anonymous|replayer"},"expect":{"status":200}}',
 ].join("\n");
 
+/* cm:why each flag beside the `releaseVisual` key core reads it under (forge ISS-1308), so the door builds the mark off this one list */
+export const VISUAL = [
+  ["visual-desktop", "Release visual, desktop", "desktop"],
+  ["visual-phone", "Release visual, phone", "phone"],
+  ["visual-still", "Release visual, still", "still"],
+  ["visual-seconds", "Release visual, seconds", "seconds"],
+];
+
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
    for the reason there is none, never half of one, so an absent record and an unasked question stop
    reading the same. Here rather than in the field loop, which cannot see one flag excusing three. */
@@ -510,6 +518,8 @@ export const SHAPES = {
       /* `offRecord` keeps it off the comment and its budget; what it takes is `PROBE_TAKES`, said in the
          door's own refusal rather than in the kind's help, which is at its cap (ISS-7, ISS-98). */
       FIELD("probe", "Probe", { optional: true, offRecord: true }),
+      /* cm:why the mark travels to the verdict door alone, which `record/verdict/door.mjs` builds, and stays off the comment as the probe does */
+      ...VISUAL.map(([flag, label]) => FIELD(flag, label, { optional: true, offRecord: true })),
       FIELD("filed", "Filed as", { optional: true }),
       FIELD("judge", "Judge", { written: "id", newer: true }),
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),

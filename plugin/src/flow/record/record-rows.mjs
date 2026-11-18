@@ -67,7 +67,7 @@ const kindRows = (caps) => [
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C|--release V [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--judged-by qa|review] [--filed R] [--project P]",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C|--release V [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--visual-desktop|--visual-phone|--visual-still ID|URL] [--visual-seconds N] [--judged-by qa|review] [--filed R] [--project P]",
   "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
@@ -262,10 +262,9 @@ const REVIEW_ROUTE_BLOCKS = [
    from a shortfall somebody released on purpose can count neither (ISS-1875). */
 const VERDICT_BLOCKS = [
   "What each value records:",
-  "  pass     the criterion was met as it is written",
-  "  fail     exercised and not met: the shortfall holds the rung until answered",
-  "  short    met short of its wording, judged not to block: the change releases,",
-  "           --why says how, --filed names the row it became",
+  "  pass     met as it is written",
+  "  fail     exercised and not met: it holds the rung until answered",
+  "  short    met short of its wording, not blocking: --why says how, --filed its row",
   "  skipped  no route reached it, nothing cited",
   "A later --commit carrying the merged one earns `in_progress:release`: the write records what git says of it.",
   "An observable criterion cites a clip (--evidence x.webm|.mp4) or --without-clip; a pass or short keeps a --probe ('{}' prints its forms).",

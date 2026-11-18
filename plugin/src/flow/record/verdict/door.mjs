@@ -5,7 +5,7 @@
    core would turn back — core's clip and probe rules mirrored by their own refusal codes.
    docs/cli/record.md. ISS-7. */
 import { refuse } from "../../../refusal.mjs";
-import { PROBE_TAKES, SHORT, criterionNumber } from "../../machine.mjs";
+import { PROBE_TAKES, SHORT, VISUAL, criterionNumber } from "../../machine.mjs";
 import { draftRuntimeOf } from "../../machine/identity.mjs";
 import { render } from "../page.mjs";
 import { runOf } from "../../../codex/codex-log.mjs";
@@ -24,8 +24,20 @@ const hasClip = (evidence) => (evidence ?? []).some((one) => CLIP.test(String(on
 const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
 const CALLERS = new Set(["anonymous", "replayer"]);
 
-/* cm:why a probe, a release identity and a named judge are fields only the door takes; a comment verdict carries none of them */
-const doorOnly = (got) => got.probe !== undefined || got.release !== undefined || got["judged-by"] !== undefined;
+/* cm:why a release visual is marked on the verdict door alone (forge ISS-1308), so a flag of one sends its verdict there */
+const visualFlags = (got) => VISUAL.map(([flag]) => flag).filter((flag) => got[flag] !== undefined);
+
+/* cm:why a probe, a release identity, a named judge and a release visual are fields only the door takes; a comment verdict carries none of them */
+const doorOnly = (got) => got.probe !== undefined || got.release !== undefined || got["judged-by"] !== undefined
+  || visualFlags(got).length > 0;
+
+/* cm:why core reads `seconds` as a whole number; a value given as text is sent as one, and a value that is none is refused here */
+const WHOLE = /^\d+$/u;
+const visualOf = (got) => {
+  const given = VISUAL.filter(([flag]) => got[flag] !== undefined);
+  if (!given.length) return null;
+  return Object.fromEntries(given.map(([flag, , key]) => [key, key === "seconds" ? Number(got[flag]) : got[flag]]));
+};
 
 const JUDGE_NOT_ROLE = "VERDICT_JUDGE_NOT_RUN_ROLE";
 /** The refusal core gave a verdict write, with the flag that answers it where core refused its judge. */
@@ -87,6 +99,7 @@ const doorDraft = (got, probe, run) => {
       : got.commit !== undefined
         ? { kind: "commit", sha: got.commit }
         : null;
+  const visual = visualOf(got);
   const payload = {
     criterion,
     verdict: got.verdict,
@@ -96,6 +109,7 @@ const doorDraft = (got, probe, run) => {
     probe,
     ...(got["without-clip"] !== undefined ? { withoutClip: got["without-clip"] } : {}),
     ...(got["judged-by"] !== undefined ? { judge: got["judged-by"] } : {}),
+    ...(visual ? { releaseVisual: visual } : {}),
     ...(run ? { run } : {}),
   };
   return { criterion, verdict: got.verdict, payload, rendered: render("verdict", [got], null) };
@@ -135,6 +149,15 @@ const faultsOf = (blocks, classes, parsed, owesRuntime) => {
       out.push(`criterion ${number} is observable on the running build and a \`${verdict}\` on it rests on `
         + "a kept probe; none was sent (--probe) and none is kept on it (VERDICT_PROBE_REQUIRED)");
     }
+    const marked = visualFlags(got);
+    if (marked.length && verdict !== "pass") {
+      out.push(`criterion ${number} is a \`${verdict}\` and marks ${marked.map((one) => `--${one}`).join(", ")}, `
+        + "which core takes on a `pass` alone (VERDICT_RELEASE_VISUAL_SHAPE): send the mark with the pass it shows");
+    }
+    if (got["visual-seconds"] !== undefined && !WHOLE.test(String(got["visual-seconds"]).trim())) {
+      out.push(`criterion ${number}'s --visual-seconds is \`${got["visual-seconds"]}\`, and it takes the clip's length `
+        + "in whole seconds (VERDICT_RELEASE_VISUAL_SHAPE)");
+    }
     if (sent && verdict !== "skipped" && got.commit === undefined && got.runtime === undefined) {
       out.push(`criterion ${number} sends --probe, which the verdict door records against a commit or a `
         + "runtime, and this issue lands outside git: record it without --probe");
@@ -146,11 +169,14 @@ const faultsOf = (blocks, classes, parsed, owesRuntime) => {
 // cm:why beta answers a route it lacks ROUTE_ABSENT and dev answers NOT_FOUND naming no route, and the criteria read shares the verdict door's routes (ISS-62)
 const NO_DOOR = /^(?:ROUTE_ABSENT:|NOT_FOUND:.*no route serves)/isu;
 
+const doorFlagsOf = (got) => [...(got.probe !== undefined ? ["probe"] : []), ...visualFlags(got)];
+
 const refuseProbeWithoutDoor = (blocks, refused, reference) => {
-  if (!refused || !NO_DOOR.test(refused) || !blocks.some((got) => got.probe !== undefined)) return;
-  refuse(`record verdict on ${reference}: this tracker serves no verdict door, so a --probe cannot be kept `
+  const given = [...new Set(blocks.flatMap(doorFlagsOf))].map((one) => `--${one}`).join(", ");
+  if (!refused || !NO_DOOR.test(refused) || !given) return;
+  refuse(`record verdict on ${reference}: this tracker serves no verdict door, so ${given} cannot be kept `
     + "there, and nothing was sent and nothing went up. Its criteria read answered: "
-    + `${refused.split("\n")[0]}\nSend the same command without --probe to record the verdict as a comment.`);
+    + `${refused.split("\n")[0]}\nSend the same command without ${given} to record the verdict as a comment.`);
 };
 
 /** The door drafts a verdict write sends and the blocks that stay a comment, after refusing locally —

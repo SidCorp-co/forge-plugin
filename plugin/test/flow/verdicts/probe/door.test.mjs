@@ -210,6 +210,49 @@ test("--release beside --commit or --runtime is refused by name, and nothing is 
   }
 });
 
+test("a pass marking a release visual sends it to the door as `releaseVisual`, and a pass without one sends no such key", async () => {
+  const from = state.calls.length;
+  const marked = await ask("record", "verdict", "ISS-77", "--criterion", "1", "--verdict", "pass",
+    "--commit", COMMIT, "--evidence", COMMIT, "--probe", PROBE, "--without-clip", "headless run, no screen",
+    "--visual-desktop", "att-desktop", "--visual-phone", "/api/attachments/att-phone/download",
+    "--visual-still", "att-still", "--visual-seconds", "12");
+  assert.equal(marked.status, 0, marked.stderr);
+  const [post] = called("forge_issues.verdicts", from);
+  assert.deepEqual(post.args.data.releaseVisual,
+    { desktop: "att-desktop", phone: "/api/attachments/att-phone/download", still: "att-still", seconds: 12 },
+    "every flag reaches the door under core's key, the length as a number");
+  const plain = state.calls.length;
+  const bare = await ask("record", "verdict", "ISS-77", "--criterion", "1", "--verdict", "pass",
+    "--commit", COMMIT, "--evidence", COMMIT, "--probe", PROBE, "--without-clip", "headless run, no screen");
+  assert.equal(bare.status, 0, bare.stderr);
+  assert.equal(Object.hasOwn(called("forge_issues.verdicts", plain)[0].args.data, "releaseVisual"), false,
+    "a pass marking nothing sends no releaseVisual key");
+});
+
+test("a release visual on a verdict that is no pass, or a length that is no whole number, is refused unsent", async () => {
+  for (const [verdict, mark] of [["skipped", ["--visual-desktop", "att-desktop"]], ["pass", ["--visual-desktop", "att-desktop", "--visual-seconds", "1.5"]]]) {
+    const from = state.calls.length;
+    const run = await ask("record", "verdict", "ISS-77", "--criterion", "1", "--verdict", verdict, "--why", "x",
+      "--commit", COMMIT, "--evidence", COMMIT, "--probe", PROBE, "--without-clip", "headless run, no screen", ...mark);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /VERDICT_RELEASE_VISUAL_SHAPE/u, run.stderr);
+    assert.equal(called("forge_issues.verdicts", from).length, 0, "nothing reached the door");
+  }
+});
+
+test("core's refusal of a mark naming another issue's file passes through by name", async () => {
+  state.verdictAnswer = { refused: "VERDICT_RELEASE_VISUAL_FOREIGN: att-other is not an attachment of this issue", status: 422 };
+  try {
+    const run = await ask("record", "verdict", "ISS-77", "--criterion", "1", "--verdict", "pass",
+      "--commit", COMMIT, "--evidence", COMMIT, "--probe", PROBE, "--without-clip", "headless run, no screen",
+      "--visual-desktop", "att-other");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /VERDICT_RELEASE_VISUAL_FOREIGN/u, run.stderr);
+  } finally {
+    state.verdictAnswer = { verdictId: "v-1", duplicate: false, criterion: 1, notCounted: null };
+  }
+});
+
 test("a judge core refuses as not the run's role is told which --judged-by to send", async () => {
   state.verdictAnswer = { refused: "VERDICT_JUDGE_NOT_RUN_ROLE: the run is declared reviewer", status: 422 };
   try {

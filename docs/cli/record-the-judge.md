@@ -47,3 +47,12 @@ WebM or MP4 attached to the issue, or carries a `without-clip` line saying why n
 (`clip-citation.ts:clipFault`). A clip's path on `--evidence` goes up as the video it is and is cited
 by name; `--without-clip "<why>"` writes the line. `--why` says what was found and never stands in for
 it.
+
+**A pass marks what its release shows, and only by reference.** The release page shows a screen
+change by what a judge marks on a `pass` (`releaseVisual`, forge ISS-1308) and by nothing else, so
+`--visual-desktop`, `--visual-phone`, `--visual-still` and `--visual-seconds` send that mark to the
+verdict door, never to a comment. Each file is an attachment of the same issue named by its id or
+download URL: a name could match a file another issue holds. A mark on a verdict that is not a pass,
+or a length that is not whole seconds, is refused before anything goes up; every other shape and an
+attachment of another issue are core's to refuse, by `VERDICT_RELEASE_VISUAL_SHAPE` and
+`VERDICT_RELEASE_VISUAL_FOREIGN`, and the write carries that refusal as it came.
