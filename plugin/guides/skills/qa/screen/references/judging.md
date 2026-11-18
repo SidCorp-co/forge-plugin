@@ -147,7 +147,9 @@ artifact: neither shows what a person sees, and a redirect, a pair of answering 
 number earn no verdict. The tool is the project's equipment and not yours: check for it by name
 before you count on it, and say it is absent rather than reporting a state you could not take. Where Forge runs boxes for
 the project, that tool is a Forge Box (Forge's `boxes` guide): walk the criterion in a box on the running build and
-mark its span, so the span's clip is the evidence; a private browser script is not.
+mark its span, so the span's clip is the evidence; a private browser script is not. A Playwright or
+chrome-devtools-mcp flow you already have attaches to a browser box (`forge-runner box attach <box>`, on the
+box's own device) and drives what the live view shows.
 
 **A pass on an observable criterion marks what its release page shows.** Upload the clip or shots
 to the issue through its attachments route, `POST /api/issues/:id/attachments`, and not with
