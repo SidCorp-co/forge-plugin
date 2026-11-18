@@ -145,3 +145,41 @@ test("a worktree resolves the project with no git it can run, and runs none", ()
   assert.equal(found.root, rooms.beside);
   assert.equal(existsSync(log), false, `git was run: ${existsSync(log) ? readFileSync(log, "utf8") : ""}`);
 });
+
+/* A run beside forge-runner set FORGE_PROJECT_SLUG, was refused, and found --project only by
+   reading the code (forge ISS-1339): a worktree of a bound checkout finds its project, and a call
+   finding none says how to aim one call and that the variable is forge-runner's, not read here. */
+const slugIn = (room, env) => spawnSync(process.execPath, ["--input-type=module", "-e",
+  `const { projectSlug } = await import(${JSON.stringify(SETTINGS)}); process.stdout.write(projectSlug());`],
+{ cwd: room, encoding: "utf8", env });
+
+const refusedIn = (extra) => {
+  const room = tempRoom("no-project-aim-");
+  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
+  return slugIn(room, { ...homeEnv("checkout-root-aim"), ...extra });
+};
+
+test("a call that finds no project names --project as the aim for one call", () => {
+  const run = refusedIn({ FORGE_PROJECT_SLUG: "" });
+  assert.notEqual(run.status, 0, "refused, not answered");
+  assert.match(run.stderr, /no project slug is set/u, run.stderr);
+  assert.match(run.stderr, /add --project <slug>/u, run.stderr);
+});
+
+test("a call with forge-runner's FORGE_PROJECT_SLUG set is told this CLI does not read it", () => {
+  const run = refusedIn({ FORGE_PROJECT_SLUG: "forge" });
+  assert.notEqual(run.status, 0, "the variable aims nothing");
+  assert.match(run.stderr, /FORGE_PROJECT_SLUG is forge-runner's; this CLI does not read it\./u, run.stderr);
+  assert.match(run.stderr, /add --project <slug>/u, run.stderr);
+});
+
+test("a worktree of a bound checkout finds that checkout's project, FORGE_PROJECT_SLUG set or not", () => {
+  const env = { ...homeEnv("checkout-root-aim"), FORGE_PROJECT_SLUG: "elsewhere" };
+  const room = projectRoom(tempRoom("no-project-aim-bound-"), env.XDG_CONFIG_HOME, { slug: "bound" });
+  git(room, "commit", "-q", "--allow-empty", "-m", "base");
+  const tree = join(room, ".claude", "worktrees", "one");
+  assert.equal(git(room, "worktree", "add", "-q", "-b", "one", tree).status, 0);
+  const run = slugIn(tree, env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout, "bound", "the worktree reads its checkout's record, not the variable");
+});

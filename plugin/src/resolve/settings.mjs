@@ -336,9 +336,15 @@ const noProjectHere = () => {
       : ""}`;
 };
 
+/* What a run standing beside forge-runner reaches for first (forge ISS-1339): that runner reads
+   FORGE_PROJECT_SLUG, this CLI reads no project from the environment (env-flags.test's rule), so the
+   refusal says so, and names the flag that aims one call, without reading the variable to say it. */
+const AIMED_ONCE = "\nFORGE_PROJECT_SLUG is forge-runner's; this CLI does not read it."
+  + "\nTo aim this one call at a project, add --project <slug>.";
+
 export const projectSlug = () => {
   const { value } = projectTarget();
-  if (!value) fail(noProjectHere());
+  if (!value) fail(`${noProjectHere()}${AIMED_ONCE}`);
   return value;
 };
 
