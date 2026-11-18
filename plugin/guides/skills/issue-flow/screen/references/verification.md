@@ -91,7 +91,7 @@ own.
 
 | Changed | Proof |
 |---|---|
-| A screen | the rendered state, driven — including empty, loading and error, and attached: `in_progress:release` refuses a verdict under a declared screen change whose evidence holds no attachment |
+| A screen | used as a person would, in a Forge Box where Forge runs them (its `boxes` guide), from the first UI change on the worktree's dev server, at desktop and phone width, each criterion's span marked; the rendered state, driven — including empty, loading and error, and attached; never a render test standing in for use: `in_progress:release` refuses a verdict under a declared screen change whose evidence holds no attachment |
 | An API | request and response, plus the side effect it claims |
 | A CLI | the invocation and its output, including a non-zero exit |
 | A library | a consumer exercising it, not a unit test of its internals |

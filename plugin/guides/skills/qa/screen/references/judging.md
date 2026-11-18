@@ -145,7 +145,9 @@ rendered state, driven by whatever capture tool the project itself installs, inc
 loading and error states a criterion reaches. A terminal session and a fetched body are not that
 artifact: neither shows what a person sees, and a redirect, a pair of answering routes or a version
 number earn no verdict. The tool is the project's equipment and not yours: check for it by name
-before you count on it, and say it is absent rather than reporting a state you could not take.
+before you count on it, and say it is absent rather than reporting a state you could not take. Where Forge runs boxes for
+the project, that tool is a Forge Box (Forge's `boxes` guide): walk the criterion in a box on the running build and
+mark its span, so the span's clip is the evidence; a private browser script is not.
 
 **A pass on an observable criterion marks what its release page shows.** Upload the clip or shots
 to the issue through its attachments route, `POST /api/issues/:id/attachments`, and not with
