@@ -145,7 +145,7 @@ export const judgeAsk = (ref, at, landing, held = null, merged = null, identity 
   if (landing?.[HAND_WRITTEN] && builderProblem(landing, holders)) {
     return REBUILT_FORM(ref, short(landing.head) || short(merged) || "<the sha the default branch carries>");
   }
-  return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<your declared run id, FORGE_RUN> " : ""}`
+  return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=$FORGE_RUN " : ""}`
     + `forge record verdict ${ref} ${outside ? identityAsk(identity) : `--commit ${short(landing.head) || "<sha>"}`} `
     + (runtime ? `--runtime ${RUNTIME_ASK} ` : "")
     + "--evidence <what you exercised>"
