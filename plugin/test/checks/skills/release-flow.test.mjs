@@ -61,6 +61,7 @@ const RULES = [
   ["22 · a log is quoted, not tailed", /quote the part you chose/u],
   ["23 · each step reads its position back", /reads its own position back before it acts/u],
   ["24 · no language is preferred", /Write in whatever language fits where it will be read/u],
+  ["forge ISS-1329 · a simulated outside call is not ready for the approval ask", /proven only against a simulation is not ready for a production approval ask/u],
 ];
 
 test("the served method carries every rule the issue named load-bearing", () => {

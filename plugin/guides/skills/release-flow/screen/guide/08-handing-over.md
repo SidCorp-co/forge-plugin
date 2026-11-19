@@ -8,6 +8,13 @@ Four conditions, and any one of them ends this run's authority rather than its u
 - **Several causes of equal weight.** The grading says name them; the boundary says do not pick.
 - **A decision that is a person's to make.** Irreversible, real money, credentials or product direction.
 
+**An outside call proven only against a simulation is not ready for a production approval ask.** A
+release page line whose `proof` reads `simulated` ran its send only against a mock. Before asking a
+person to approve production, ask for the provider's test or sandbox account on staging and prove
+send, cancel and tracking live there, its verdict saying `integrationProof: "live"`. With no sandbox,
+the ask says so and names the smallest real test before deploy (one internal order), never "after it
+goes live".
+
 **A failed production observation ends the success path, and never in a close.** The release is not
 announced, the status is not moved past the rung, and nothing is marked done on the strength of a
 reading that failed. Where the repair is yours to make and no bound has been crossed, repair forward
