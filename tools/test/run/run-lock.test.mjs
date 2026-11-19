@@ -7,6 +7,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
+import { EventEmitter } from "node:events";
+import { setImmediate } from "node:timers";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -105,6 +107,30 @@ test("a wait armed before the lock file moves settles on what happened while not
   assert.equal(await wait.settled, "changed", "a wait that armed first must keep what it was armed for");
   wait.cancel();
 });
+
+/* A box whose inotify instances are spent refuses the watch, or arms one that errors: both are driven through the
+   seam rather than the box's limit, and either must still wake on the file rather than sleep out its ceiling. */
+for (const [how, arm] of [
+  ["cannot arm a watch", () => {
+    throw Object.assign(new Error("EMFILE: too many open files, watch"), { code: "EMFILE" });
+  }],
+  ["arms a watch that errors", () => {
+    const one = new EventEmitter();
+    one.close = () => {};
+    setImmediate(() => one.emit("error", Object.assign(new Error("ENOSPC"), { code: "ENOSPC" })));
+    return one;
+  }],
+]) {
+  test(`a wait that ${how} still wakes on the file written after it began, rather than at its ceiling`, async () => {
+    const { work } = pushed(`lock-unwatched-${how.split(" ").at(-1)}`);
+    const path = at(work, LOCK);
+    const wait = watching(path, 30_000, { arm });
+    setTimeout(() => writeFileSync(path, "{}"), 50);
+    assert.equal(await wait.settled, "changed", "an unwatchable wait slept to its ceiling past the file it waits on");
+    wait.cancel();
+    rmSync(path, { force: true });
+  });
+}
 
 test("a waiter takes the lock the moment the landing ahead of it drops one", async () => {
   const { work } = pushed("lock-handoff");
