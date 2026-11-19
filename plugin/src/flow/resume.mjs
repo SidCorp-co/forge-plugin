@@ -226,7 +226,6 @@ export const indexFor = async (slug, ref) => {
     phaseIndex({ status: body.status, fields: rungFieldsOf(view), held: kindsHeld(view), finished: finishedAtHead(view) }));
 };
 
-// cm:why a judge resumes an issue from no checkout of its project, and a resume writes nothing, so every reading of it is aimed (ISS-119)
 const run = async (typed) => {
   if (!typed.length || wantsHelp(typed)) return console.log(USAGE);
   const [ref = "--", ...rest] = aimedBy(typed, "resume").rest;

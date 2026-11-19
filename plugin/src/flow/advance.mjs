@@ -582,7 +582,7 @@ const readFlags = (rest, ref) => {
   return { ...given, unmet: unmetOf(given.unmet), evidence, cause: causeOf(given, ref), needs: needsChecked(given, ref), next: nextLine(given.next), voids: voidsChecked(given) };
 };
 
-// cm:why a judge reads what an issue owes from no checkout of its project, and a move writes this tree's lease, so --owed alone is aimed (ISS-119)
+// cm:why --owed moves nothing and is aimed, a move is not: docs/cli/one-call-elsewhere.md (ISS-119)
 const aimedAt = (typed) => (typed.includes("--owed")
   ? aimedBy(typed, "advance").rest
   : aimRefused(typed, `advance: ${AIM_FLAG} aims \`--owed\`, which moves nothing, and this call moves the issue. `

@@ -204,7 +204,7 @@ test("a verdict aimed at another project reads that project's issue, and every o
 // cm:why a judge told to add --project to advance --owed and resume was refused the flag, so the advised call is made here (ISS-119)
 test("advance --owed and resume refused for want of a project advise --project, and the call it advises is taken", async () => {
   const bare = tempRoom("project-override-bare-");
-  spawnSync("git", ["init", "-q", bare], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", bare], { cwd: bare, encoding: "utf8" });
   const inBare = (argv) => ranAsync(FORGE, argv, env, bare);
   for (const argv of [["advance", "ISS-7", "--owed"], ["resume", "ISS-7"]]) {
     const refused = await inBare(argv);
@@ -223,7 +223,7 @@ test("advance --owed and resume refused for want of a project advise --project, 
 
 test("a call that takes no --project is not advised it, and an aimed move is refused with its route", async () => {
   const bare = tempRoom("project-override-unaimed-");
-  spawnSync("git", ["init", "-q", bare], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", bare], { cwd: bare, encoding: "utf8" });
   const refused = await ranAsync(FORGE, ["advance", "ISS-7"], env, bare);
   assert.equal(refused.status, 1);
   assert.doesNotMatch(refused.stderr, /add --project/u, refused.stderr);
