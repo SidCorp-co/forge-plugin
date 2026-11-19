@@ -4,6 +4,7 @@
 import { askedInSource, exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { aimSaid, fail, leadOnFailure } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
+import { AIM_FLAG, aimRefused, aimedBy } from "../resolve/project/aimed.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
 import { declaredValue, nothingWritten, statusKind, tried, write } from "../tracker/rest.mjs";
 import { LEGACY_STATUSES, statusOfPlace, stepOfPlace } from "../tracker/declared/issue-machine.mjs";
@@ -44,8 +45,8 @@ export const USAGE = [
   "The next status, its entry criteria checked against the issue's record alone, and either the",
   "transition or every missing item beside the one command that supplies it.",
   "",
-  "  --owed                  what the next status is owed, moving nothing; beside --park or --drop,",
-  "                          what that park sends and posts, or what refuses it",
+  "  --owed [--project P]    what the next status is owed, moving nothing, on project P if named;",
+  "                          beside --park or --drop, what that park sends and posts or what refuses it",
   "  --next <line>           the step the status it enters starts on, for whoever comes next",
   "  --to <status>           refused unless that status is the next one; a jump is not advancing",
   "  --park <kind> --why W [--needs N] [--evidence E]...  a park record, then its side status",
@@ -581,12 +582,18 @@ const readFlags = (rest, ref) => {
   return { ...given, unmet: unmetOf(given.unmet), evidence, cause: causeOf(given, ref), needs: needsChecked(given, ref), next: nextLine(given.next), voids: voidsChecked(given) };
 };
 
-const run = async (argv, readAs, lifts) => {
-  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
-  const [ref, ...rest] = argv;
+// cm:why a judge reads what an issue owes from no checkout of its project, and a move writes this tree's lease, so --owed alone is aimed (ISS-119)
+const aimedAt = (typed) => (typed.includes("--owed")
+  ? aimedBy(typed, "advance").rest
+  : aimRefused(typed, `advance: ${AIM_FLAG} aims \`--owed\`, which moves nothing, and this call moves the issue. `
+    + "A status is moved from a checkout of its own project, whose lease and worklog the move writes. Nothing was sent."));
+
+const run = async (typed, readAs, lifts) => {
+  if (!typed.length || wantsHelp(typed)) return console.log(USAGE);
+  const [ref = "--", ...rest] = aimedAt(typed);
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${firstLine(USAGE)}`);
   const given = readFlags(rest, ref);
-  const view = { ...(await viewOf(ref, given)), lifts, voids: given.voids, again: typedAgain(argv) };
+  const view = { ...(await viewOf(ref, given)), lifts, voids: given.voids, again: typedAgain(typed) };
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
   const judging = given.owed ? judgeOwed(ref, view.issue) : null;

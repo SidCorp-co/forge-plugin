@@ -14,7 +14,7 @@ import { RUN_VAR } from "../tracker/rest.mjs";
 import { leaseFacts } from "./facts.mjs";
 import { keepBrief } from "./record.mjs";
 import { defaultRef, heldBy, recordsOf, treesOf } from "./trees.mjs";
-import { AIM_FLAG, aimIn, aimedBy } from "../resolve/project/aimed.mjs";
+import { AIM_FLAG, aimIn, aimRefused, aimedBy } from "../resolve/project/aimed.mjs";
 
 const KEY = /^[A-Z][A-Z0-9]*-\d+$/u;
 
@@ -152,11 +152,10 @@ const send = (text, form) => {
 
 /* Only a judge's brief reads the tracker, so an aim anywhere else would be read and dropped. */
 const unaimed = (argv) => {
-  if (!aimIn(argv).rest.includes("--judge") && argv.includes(AIM_FLAG)) {
-    fail(`brief: ${AIM_FLAG} aims a judge's brief at another project's issue, and no other brief reads the `
-      + "tracker, so it is read only with --judge:\n  forge brief ISS-45 --judge --project <slug> --url <url> --criteria 1");
-  }
-  return aimedBy(argv, "brief");
+  if (aimIn(argv).rest.includes("--judge")) return aimedBy(argv, "brief");
+  const rest = aimRefused(argv, `brief: ${AIM_FLAG} aims a judge's brief at another project's issue, and no other brief reads the `
+    + "tracker, so it is read only with --judge:\n  forge brief ISS-45 --judge --project <slug> --url <url> --criteria 1");
+  return { rest, slug: null };
 };
 
 export const brief = async (words) => {

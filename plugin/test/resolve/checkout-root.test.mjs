@@ -149,8 +149,9 @@ test("a worktree resolves the project with no git it can run, and runs none", ()
 /* A run beside forge-runner set FORGE_PROJECT_SLUG, was refused, and found --project only by
    reading the code (forge ISS-1339): a worktree of a bound checkout finds its project, and a call
    finding none says how to aim one call and that the variable is forge-runner's, not read here. */
+// cm:why the flag is advised only to a verb that takes the aim, so the probe stands for one (ISS-119)
 const slugIn = (room, env) => spawnSync(process.execPath, ["--input-type=module", "-e",
-  `const { projectSlug } = await import(${JSON.stringify(SETTINGS)}); process.stdout.write(projectSlug());`],
+  `const { projectSlug, takesAim } = await import(${JSON.stringify(SETTINGS)}); takesAim(true); process.stdout.write(projectSlug());`],
 { cwd: room, encoding: "utf8", env });
 
 const refusedIn = (extra) => {

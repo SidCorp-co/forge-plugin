@@ -336,15 +336,24 @@ const noProjectHere = () => {
       : ""}`;
 };
 
+// cm:why a refusal advising --project to a call shape that refuses the flag sends the agent that follows it into a second refusal (ISS-119)
+let aimTaken = false;
+
+export const takesAim = (taken) => {
+  aimTaken = taken;
+};
+
 /* What a run standing beside forge-runner reaches for first (forge ISS-1339): that runner reads
    FORGE_PROJECT_SLUG, this CLI reads no project from the environment (env-flags.test's rule), so the
    refusal says so, and names the flag that aims one call, without reading the variable to say it. */
-const AIMED_ONCE = "\nFORGE_PROJECT_SLUG is forge-runner's; this CLI does not read it."
-  + "\nTo aim this one call at a project, add --project <slug>.";
+const aimedOnce = () => "\nFORGE_PROJECT_SLUG is forge-runner's; this CLI does not read it."
+  + (aimTaken
+    ? "\nTo aim this one call at a project, add --project <slug>."
+    : "\nThis call takes no --project: run it from a checkout of the project it acts on.");
 
 export const projectSlug = () => {
   const { value } = projectTarget();
-  if (!value) fail(`${noProjectHere()}${AIMED_ONCE}`);
+  if (!value) fail(`${noProjectHere()}${aimedOnce()}`);
   return value;
 };
 

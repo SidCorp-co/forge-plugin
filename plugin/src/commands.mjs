@@ -1,5 +1,5 @@
 import { accountCredentials, fail, keepBody, leadOnFailure, slugIfAny } from "./resolve/settings.mjs";
-import { AIM_FLAG, aimedBy } from "./resolve/project/aimed.mjs";
+import { AIM_FLAG, aimRefused, aimedBy } from "./resolve/project/aimed.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, nothingWritten, refuseUnreadableDate, scoped } from "./tracker/rest.mjs";
 import { EDGE_KINDS } from "./tracker/edges/kinds.mjs";
@@ -264,7 +264,7 @@ const own = {
     const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full", "--redact", "--propose"], { usage: READ_USAGE, modes: [LIST_USAGE] });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set", "redact", "propose"], "issue", "writes and a call makes one");
-    if (aimed !== null && wrote !== undefined) fail(aimedWrite(wrote));
+    if (wrote !== undefined) aimRefused(typed, aimedWrite(wrote));
     /* Used or refused rather than read and dropped: `--kind` and `--edge` belong to `--unlink` alone,
        one of them at a time, and a kind this CLI does not serve is turned away before anything is sent. */
     for (const name of ["kind", "edge"]) {

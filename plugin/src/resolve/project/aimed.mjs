@@ -1,7 +1,7 @@
 /* One call aimed at another project, and nothing after it: docs/cli/one-call-elsewhere.md. The aim
    is this process's alone, held by `useProject`, so no file any other run reads is touched. */
 import { FLAG_WORD, noValue, repeatedFlag } from "../flags.mjs";
-import { AIMED_FROM, fail, useProject } from "../settings.mjs";
+import { AIMED_FROM, fail, takesAim, useProject } from "../settings.mjs";
 
 export const AIM_FLAG = "--project";
 
@@ -34,6 +34,7 @@ export const aimIn = (argv) => {
  *  sent, and aims this process at that slug. The slug is judged by the first call that needs the
  *  project's id, which refuses one this credential cannot see. */
 export const aimedBy = (argv, verb) => {
+  takesAim(true);
   const { rest, named, bare } = aimIn(argv);
   if (bare !== null) fail(`${noValue(verb, AIM_FLAG, bare.value)} Nothing was sent.`);
   if (named.length > 1) fail(repeatedFlag(verb, AIM_FLAG, named));
@@ -42,4 +43,11 @@ export const aimedBy = (argv, verb) => {
   useProject({ slug, from: AIMED_FROM });
   console.error(`${verb}: aimed at project ${slug} for this call alone; nothing saved was changed.`);
   return { rest, slug };
+};
+
+// cm:why a verb taking the aim for its reads alone refuses it on a write with the route that write takes, and a refusal for want of a project then advises no flag that write refuses (ISS-119)
+export const aimRefused = (argv, refusal) => {
+  if (argv.includes(AIM_FLAG)) fail(refusal);
+  takesAim(false);
+  return argv;
 };

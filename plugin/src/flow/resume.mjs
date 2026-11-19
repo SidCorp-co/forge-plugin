@@ -5,6 +5,7 @@
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
+import { aimedBy } from "../resolve/project/aimed.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused } from "../refusal.mjs";
@@ -44,6 +45,7 @@ export const USAGE = [
   "            current and every one of a kind that repeats, which `forge record -h` names, the",
   "            latest verdict per criterion with its evidence, the plan, what is owed, and the",
   "            release policy's answer at whatever status the issue stands",
+  "  --project <slug>  read another project's issue for this call alone; nothing saved changes",
   "",
   "It writes nothing and needs no lease, so anyone may read any issue. A fact a successor needed and",
   "did not find here belongs on the record or in the worklog: docs/cli/resume.md.",
@@ -224,9 +226,10 @@ export const indexFor = async (slug, ref) => {
     phaseIndex({ status: body.status, fields: rungFieldsOf(view), held: kindsHeld(view), finished: finishedAtHead(view) }));
 };
 
-const run = async (argv) => {
-  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
-  const [ref, ...rest] = argv;
+// cm:why a judge resumes an issue from no checkout of its project, and a resume writes nothing, so every reading of it is aimed (ISS-119)
+const run = async (typed) => {
+  if (!typed.length || wantsHelp(typed)) return console.log(USAGE);
+  const [ref = "--", ...rest] = aimedBy(typed, "resume").rest;
   if (ref.startsWith("--")) fail(`resume takes the issue first. ${usageOf("resume")}`);
   const given = flags(rest, "resume", ["--json", "--report"], { usage: USAGE });
   if (given.report && given.json) fail("resume: --report and --json are separate readings. Ask for one.");

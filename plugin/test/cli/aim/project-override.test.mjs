@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { ranAsync, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
@@ -198,4 +199,38 @@ test("a verdict aimed at another project reads that project's issue, and every o
   assert.equal(note.status, 1, note.stdout);
   assert.match(note.stderr, /No record note flag named --project/u);
   assert.deepEqual(state.calls, [], "and nothing is sent for it");
+});
+
+// cm:why a judge told to add --project to advance --owed and resume was refused the flag, so the advised call is made here (ISS-119)
+test("advance --owed and resume refused for want of a project advise --project, and the call it advises is taken", async () => {
+  const bare = tempRoom("project-override-bare-");
+  spawnSync("git", ["init", "-q", bare], { encoding: "utf8" });
+  const inBare = (argv) => ranAsync(FORGE, argv, env, bare);
+  for (const argv of [["advance", "ISS-7", "--owed"], ["resume", "ISS-7"]]) {
+    const refused = await inBare(argv);
+    assert.equal(refused.status, 1, argv.join(" "));
+    assert.match(refused.stderr, /To aim this one call at a project, add --project <slug>\./u, refused.stderr);
+    state.calls = [];
+    const aimed = await inBare([...argv, "--project", FAR]);
+    assert.doesNotMatch(aimed.stderr, /flag named --project/u, aimed.stderr);
+    assert.equal(aimed.status, 0, aimed.stderr);
+    assert.match(aimed.stderr, new RegExp(`${argv[0]}: aimed at project far-away for this call alone`, "u"), aimed.stderr);
+    const read = state.calls.map((one) => one.path ?? "");
+    assert.ok(read.some((path) => path.includes("/issues/far-7")), `${argv[0]} read the far issue:\n${read.join("\n")}`);
+    assert.ok(!read.some((path) => path.includes("/issues/own-7")), `${argv[0]} never touched the checkout's own seventh`);
+  }
+});
+
+test("a call that takes no --project is not advised it, and an aimed move is refused with its route", async () => {
+  const bare = tempRoom("project-override-unaimed-");
+  spawnSync("git", ["init", "-q", bare], { encoding: "utf8" });
+  const refused = await ranAsync(FORGE, ["advance", "ISS-7"], env, bare);
+  assert.equal(refused.status, 1);
+  assert.doesNotMatch(refused.stderr, /add --project/u, refused.stderr);
+  assert.match(refused.stderr, /This call takes no --project: run it from a checkout of the project it acts on\./u);
+  state.calls = [];
+  const moved = await ran(["advance", "ISS-7", "--project", FAR]);
+  assert.equal(moved.status, 1);
+  assert.match(moved.stderr, /advance: --project aims `--owed`, which moves nothing, and this call moves the issue/u);
+  assert.deepEqual(state.calls, [], "nothing is sent for it");
 });
