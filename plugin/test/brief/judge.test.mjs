@@ -180,10 +180,19 @@ test("a judge's brief names the verdict kind and build core says the release cou
   try {
     const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
     const ask = () => ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--url", "https://staging.example.com", "--criteria", "1"], env, repo.main);
-    state.answer["forge_issues.judged_build"] = () => ({ sha: "a".repeat(40), source: "judged-on", basis: "staging serves it" });
-    const onTesting = (await ask()).stdout;
-    assert.match(onTesting, new RegExp(`^Verdict kind: runtime, at ${"a".repeat(40)} — staging serves it$`, "mu"));
-    assert.match(onTesting, new RegExp(`^Record with --runtime ${"a".repeat(40)} only, never --commit and --runtime together$`, "mu"));
+    // cm:why on a project naming `delivery.judgedOn` a release counts the runtime whatever source judged-build fell back to (ISS-121)
+    state.answer.forge_config = (args) => (args.action === "document" ? { declared: true, document: { delivery: { judgedOn: "staging" } } } : undefined);
+    for (const source of ["judged-on", "live", "shipped"]) {
+      state.answer["forge_issues.judged_build"] = () => ({ sha: "a".repeat(40), source, basis: "core's basis" });
+      const onTesting = (await ask()).stdout;
+      const counted = source === "judged-on" ? "" : "; this project's releases are judged on `staging` \\(delivery\\.judgedOn\\), so they count a runtime verdict";
+      assert.match(onTesting, new RegExp(`^Verdict kind: runtime, at ${"a".repeat(40)} — core's basis${counted}$`, "mu"), source);
+      assert.match(onTesting, new RegExp(`^Record with --runtime ${"a".repeat(40)} only, never --commit and --runtime together$`, "mu"), source);
+      assert.doesNotMatch(onTesting, /--commit [0-9a-f]{40}/u, source);
+    }
+    state.answer.forge_config = (args) => (args.action === "document" ? { refused: "config read failed" } : undefined);
+    assert.match((await ask()).stdout, /^Verdict kind: not read \(.*config read failed\) — ask the dispatcher/mu);
+    state.answer.forge_config = (args) => (args.action === "document" ? { declared: false, document: null } : undefined);
     state.answer["forge_issues.judged_build"] = () => ({ sha: "b".repeat(40), source: "landed", basis: "the landing is the build" });
     const landed = (await ask()).stdout;
     assert.match(landed, new RegExp(`^Verdict kind: commit, at ${"b".repeat(40)} — the landing is the build$`, "mu"));

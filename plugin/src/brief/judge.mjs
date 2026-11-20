@@ -159,8 +159,13 @@ const secretsLine = (run) => "Secrets: never print or write a secret value, of a
 // cm:why a judge often stands in no checkout of the project, and `forge record verdict` aims only through --project there (ISS-102)
 const projectLine = (project) => `Project: ${project} — record each verdict with \`--project ${project}\` where you stand in no checkout of it`;
 
-// cm:edge contract -> plugin/src/tracker/routes.mjs — core's judged-build names `judged-on` where the project's testing environment is the judged build, judged there as a runtime verdict; every other source counts a commit verdict (FB-78)
+// cm:edge contract -> plugin/src/tracker/routes.mjs — core's judged-build names `judged-on` where the project's testing environment serves the judged build; on a project naming one it falls back to `live` or `shipped` too, so its source never says which kind a release counts (ISS-121)
 const JUDGED_ON = "judged-on";
+
+// cm:why core's `release-page.ts:judgedOnReleaseBuild`: a release counts the runtime where the project names `delivery.judgedOn` and the commit at its build otherwise, whatever source judged-build resolved from; core refuses any other with VERDICT_IDENTITY_NOT_COUNTED (ISS-121, forge ISS-1355)
+const kindOf = (judgedOn) => (judgedOn ? "runtime" : "commit");
+
+const countedOn = (judgedOn) => `this project's releases are judged on \`${judgedOn}\` (delivery.judgedOn), so they count a runtime verdict`;
 
 /* The flag a judge copies, one of the two: `verdict/door.mjs:namesBoth` says why (ISS-1259). */
 const recordWith = (kind, sha) => `record with --${kind} ${sha} only, never --commit and --runtime together`;
@@ -183,21 +188,25 @@ const servedLine = (served, kind, sha) => {
   return `${at}, ${what} — stop: record no verdict, and report it to the dispatcher`;
 };
 
-/** The verdict kind and build a release counts for the issue, off core's judged-build, or why it could
- *  not be read; then how to record it, or, where the environment serves another build, whether to. */
-const judgedBuildLines = (read) => {
-  if (!read || read.refused) {
-    const why = String(read?.refused ?? "no answer").split("\n")[0];
+/** The verdict kind a release counts for the issue, off the project's judgedOn, and the build, off
+ *  core's judged-build, or why either could not be read; then how to record it, or, where the
+ *  environment serves another build, whether to. */
+const judgedBuildLines = (read, judgedOn) => {
+  const unread = !read || read.refused ? read?.refused ?? "no answer" : judgedOn?.refused;
+  if (unread) {
+    const why = String(unread).split("\n")[0];
     return [`Verdict kind: not read (${why}) — ask the dispatcher which build the release counts before recording`];
   }
-  const kind = read.source === JUDGED_ON ? "runtime" : "commit";
-  const kindLine = `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${read.basis ?? "core gave no basis"}`;
+  const kind = kindOf(judgedOn);
+  const basis = read.basis ?? "core gave no basis";
+  const why = judgedOn && read.source !== JUDGED_ON ? `${basis}; ${countedOn(judgedOn)}` : basis;
+  const kindLine = `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${why}`;
   if (!read.sha) return [kindLine];
   if (read.served?.sha) return [kindLine, servedLine(read.served, kind, read.sha)];
   return [kindLine, `R${recordWith(kind, read.sha).slice(1)}`];
 };
 
-export const judgeText = (key, { urls, program, tree, criteria, identity, run = null, project = null, judged = undefined }, facts = null) => [
+export const judgeText = (key, { urls, program, tree, criteria, identity, run = null, project = null, judged = undefined, judgedOn = null }, facts = null) => [
   `Target: ${key}, criteria ${criteria.join(", ")} — ${NOTHING_ELSE}.`,
   ROLE_LINE,
   ...(project ? [projectLine(project)] : []),
@@ -206,7 +215,7 @@ export const judgeText = (key, { urls, program, tree, criteria, identity, run = 
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
-  ...(judged === undefined ? [] : judgedBuildLines(judged)),
+  ...(judged === undefined ? [] : judgedBuildLines(judged, judgedOn)),
   `Criteria: ${criteria.join(", ")}`,
   program && tree ? `Run the program in: ${tree}` : "Tree: none",
   ...(facts?.next && !facts.named ? [`Dispatcher facts: ${facts.next}`] : []),

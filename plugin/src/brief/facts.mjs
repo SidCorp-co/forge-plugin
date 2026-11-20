@@ -8,8 +8,16 @@ import { ONE_READ } from "./waived.mjs";
 
 const NAMED = /\bREQ-\d+\b/u;
 
+// cm:edge contract -> plugin/src/tracker/routes.mjs — core's `delivery-policy.ts:judgedOnOf` reads `document.delivery.judgedOn` off `forge_config.document`; a document never declared names none, so its releases count a commit verdict (ISS-121)
+const judgedOnOf = (held) => {
+  if (held?.refused) return { refused: String(held.refused).split("\n")[0] };
+  const named = held?.document?.delivery?.judgedOn;
+  return typeof named === "string" && named ? named : null;
+};
+
 /** `{ next, named }` — the dispatcher's note off the issue's lease and the requirement it names if any,
- *  each `null` where absent — or `{ unread }` saying why nothing could be read. */
+ *  each `null` where absent, beside core's judged-build and the project's judgedOn where asked — or
+ *  `{ unread }` saying why nothing could be read. */
 export const leaseFacts = async (key, directory, { withJudged = false, aimed = null } = {}) => {
   const slug = aimed ?? (directory ? projectAt(directory) : null);
   if (!slug) return { unread: `${directory ?? "this directory"} is in no checkout of a Forge project` };
@@ -26,8 +34,13 @@ export const leaseFacts = async (key, directory, { withJudged = false, aimed = n
   if (issue?.refused) return { unread: String(issue.refused).split("\n")[0] };
   const raw = leaseRecordOf(issue?.sessionContext)?.next;
   const next = typeof raw === "string" && raw.trim() ? raw : null;
-  const judged = withJudged ? await callTool("forge_issues.judged_build", { documentId: found.id }, true, ONE_READ) : undefined;
-  return { next, named: next ? NAMED.exec(next)?.[0] ?? null : null, judged };
+  const [judged, document] = withJudged
+    ? await Promise.all([
+      callTool("forge_issues.judged_build", { documentId: found.id }, true, ONE_READ),
+      callTool("forge_config", { action: "document" }, true, ONE_READ),
+    ])
+    : [undefined, undefined];
+  return { next, named: next ? NAMED.exec(next)?.[0] ?? null : null, judged, ...(withJudged ? { judgedOn: judgedOnOf(document) } : {}) };
 };
 
 /** The requirement guard's view of the lease: `{ named, next }`, `{ none: true }`, or `{ unread }`. */

@@ -170,7 +170,8 @@ export const brief = async (words) => {
   if (asked.judge) {
     const facts = await leaseFacts(key, process.cwd(), { withJudged: true, aimed });
     const judged = facts.unread ? { refused: facts.unread } : facts.judged;
-    const readings = { ...judgeOf(key, asked), project: projectTarget().value ?? null, judged };
+    const judgedOn = facts.unread ? { refused: facts.unread } : facts.judgedOn;
+    const readings = { ...judgeOf(key, asked), project: projectTarget().value ?? null, judged, judgedOn };
     return send(judgeText(key, readings, facts), JUDGE_FORM);
   }
   refuseJudgeFlags(key, asked);
