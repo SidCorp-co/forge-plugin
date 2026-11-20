@@ -279,7 +279,7 @@ export const ROUTES = {
   "forge_comments.create": {
     writes: true,
     requests: (args) => one(`/issues/${args.data?.issue}/comments`, "POST",
-      filled({ body: args.data?.body, parentId: args.data?.parentId })),
+      filled({ body: args.data?.body, parentId: args.data?.parentId, intent: args.data?.intent })),
     answers: ({ page }) => commentOf(page),
     sends: ["data"],
   },

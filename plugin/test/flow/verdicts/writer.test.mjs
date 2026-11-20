@@ -72,7 +72,7 @@ state.answer.forge_comments = (args) => {
   }
   const held = (state.comments[args.data?.issue] ??= []);
   const id = `comment-${held.length}`;
-  held.push({ documentId: id, createdAt: at(), body: args.data?.body });
+  held.push({ documentId: id, createdAt: at(), body: args.data?.body, intent: args.data?.intent });
   return { documentId: id };
 };
 const { tracker, env: ENV } = await trackerFor(state);
@@ -154,6 +154,8 @@ test("a judge under an id of its own is written past the master's lease", async 
   const run = await as(JUDGE)(...VERDICT_GIT);
   assert.equal(run.status, 0, said(run));
   assert.match(verdictSince(inGit, before), /^judge: the-judging-run$/mu, "the verdicts went up under the judge's id");
+  assert.deepEqual([...new Set(state.comments[inGit.documentId].slice(before).map((one) => one.intent))], ["note"],
+    "every comment the verdict write posted carries its intent on the wire (ISS-120)");
   assert.equal(inGit.sessionContext.lease.holder, MASTER, "and the master's lease stands as it was");
 });
 

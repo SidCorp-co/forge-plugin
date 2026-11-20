@@ -80,6 +80,7 @@ test("a comment is posted, and its body is the file's own where no title is give
   const run = await posted(MINE);
   assert.equal(run.status, 0, run.stderr);
   assert.equal(lastComment().body.trim(), BODY, "no heading is framed over a body nobody titled");
+  assert.equal(lastComment().intent, "note", "a top-level comment says its intent rather than leaving it to core's default");
 });
 
 test("--title frames the title as a heading over the body", async () => {
@@ -173,6 +174,7 @@ test("--parent carries the comment id to the create as parentId", async () => {
   const run = await posted(MINE, "--parent", "c-root-42");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(lastComment().parentId, "c-root-42", "the reply is threaded under the comment it names");
+  assert.equal(lastComment().intent, undefined, "and a reply's intent is left as it was sent");
   assert.equal(lastComment().body.trim(), BODY, "and its body is the file's own");
 });
 

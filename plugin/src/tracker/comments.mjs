@@ -82,10 +82,11 @@ export const noteShown = (session, documentId, comments) =>
 
 /* A comment this run wrote is one it read: credited, or its own record refuses its next write. A
    refusal handed back credits nothing, there being no comment to have read. */
+// cm:why core stores a comment sent without an intent as a note and answers it COMMENT_INTENT_DEFAULTED, so every top-level comment this CLI posts, each `forge record` kind's among them, says note itself; a reply is left as it was sent (ISS-120)
 export const postComment = async (documentId, body, ev = null, soft = false, parentId = null) => {
   const answer = await write(
     "forge_comments",
-    { action: "create", data: { issue: documentId, body, ...(parentId ? { parentId } : {}) } },
+    { action: "create", data: { issue: documentId, body, ...(parentId ? { parentId } : { intent: "note" }) } },
     undefined,
     soft,
   );
