@@ -193,12 +193,18 @@ const keptSaid = ({ generated, weighed }) => [
   generated.length ? `${listed(generated)} ${generated.length > 1 ? "are" : "is"} generated (linguist-generated)` : null,
 ].filter(Boolean).join("; ");
 
-// cm:why a stop with no way on left the issue unjudgeable, so it names both: a build that carries the change, or each criterion moved out on the record (ISS-122)
-const anyway = (key, sha) => `Judge it anyway: at a build that carries this change unchanged, ${sha} itself deployed, with a brief taken `
-  + `there; or move each criterion out on the record at the close: forge advance ${key} ${UNMET_FORM}`;
+// cm:why a closed issue's close has passed, so `--unmet` has no close left to ride; a decision leaving the live verdict unjudged, and why, is what still goes on its record (ISS-122, forge ISS-1357, ISS-1358)
+const routeOut = (key, status) => (status === "closed"
+  ? `, as ${key} is already closed, record that its live verdict is left unjudged and why: `
+    + `forge record decision ${key} --decision "live verdict left unjudged | <why no build can be judged> | <what would judge it>"`
+  : ` move each criterion out on the record at the close: forge advance ${key} ${UNMET_FORM}`);
+
+// cm:why a stop with no way on left the issue unjudgeable, so it names both: a build that carries the change, or the record's route out (ISS-122)
+const anyway = (key, sha, status) => `Judge it anyway: at a build that carries this change unchanged, ${sha} itself deployed, with a brief taken `
+  + `there; or${routeOut(key, status)}`;
 
 // cm:why judge at the counted build where the served one carries the change unchanged (ISS-1259), line by line where this checkout compared them (ISS-122); stop otherwise
-const servedLines = (key, served, kind, sha) => {
+const servedLines = (key, served, kind, sha, status) => {
   const at = `Served: ${served.environment} serves ${served.sha}`;
   const kept = served.carries === "touched" ? served.lines?.kept : null;
   if (served.carries === "unchanged" || kept) {
@@ -206,13 +212,13 @@ const servedLines = (key, served, kind, sha) => {
       + `${recordWith(kind, sha)}, and name ${served.sha} and that it descends from ${sha} in --why`];
   }
   const what = NOT_CARRIED[served.carries]?.(served, sha) ?? "which Forge cannot show carries this issue's change unchanged";
-  return [`${at}, ${what} — stop: record no verdict, and report it to the dispatcher`, anyway(key, sha)];
+  return [`${at}, ${what} — stop: record no verdict, and report it to the dispatcher`, anyway(key, sha, status)];
 };
 
 /** The verdict kind a release counts for the issue, off the project's judgedOn, and the build, off
  *  core's judged-build, or why either could not be read; then how to record it, or, where the
  *  environment serves another build, whether to. */
-const judgedBuildLines = (key, read, judgedOn) => {
+const judgedBuildLines = (key, read, judgedOn, status) => {
   const unread = !read || read.refused ? read?.refused ?? "no answer" : judgedOn?.refused;
   if (unread) {
     const why = String(unread).split("\n")[0];
@@ -223,7 +229,7 @@ const judgedBuildLines = (key, read, judgedOn) => {
   const why = judgedOn && read.source !== JUDGED_ON ? `${basis}; ${countedOn(judgedOn)}` : basis;
   const kindLine = `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${why}`;
   if (!read.sha) return [kindLine];
-  if (read.served?.sha) return [kindLine, ...servedLines(key, read.served, kind, read.sha)];
+  if (read.served?.sha) return [kindLine, ...servedLines(key, read.served, kind, read.sha, status)];
   return [kindLine, `R${recordWith(kind, read.sha).slice(1)}`];
 };
 
@@ -236,7 +242,7 @@ export const judgeText = (key, { urls, program, tree, criteria, identity, run = 
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
-  ...(judged === undefined ? [] : judgedBuildLines(key, judged, judgedOn)),
+  ...(judged === undefined ? [] : judgedBuildLines(key, judged, judgedOn, facts?.status ?? null)),
   `Criteria: ${criteria.join(", ")}`,
   program && tree ? `Run the program in: ${tree}` : "Tree: none",
   ...(facts?.next && !facts.named ? [`Dispatcher facts: ${facts.next}`] : []),

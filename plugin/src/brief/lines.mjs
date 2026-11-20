@@ -81,13 +81,16 @@ const fileReading = (file, { head, served, commits, cwd }) => {
 
 const missing = (shas, cwd) => shas.find((sha) => git(["cat-file", "-e", `${sha}^{commit}`], cwd) === null);
 
-// cm:why where the lines cannot be read here — no checkout, a build this checkout lacks, an issue no commit subject names — the reading is `unread` and the brief stops on core's file reading, as it did before, never guessing a pass
+// cm:why where the lines cannot be read here — no checkout, a build this checkout lacks, an issue no commit subject names — the reading is `unread` and the brief stops on core's file reading, as it did before, never guessing a pass; each reason a checkout could answer names that checkout (ISS-122, qa run 22c4f613)
 const linesCarried = (key, head, served, files, cwd) => {
   if (!files.length) return { unread: "core named none of the files the added commits change" };
-  if (git(["rev-parse", "--show-toplevel"], cwd) === null) return { unread: "this directory is in no git checkout" };
+  const holding = (sha) => `brief from a git checkout of the project that holds ${short(sha)}`;
+  if (git(["rev-parse", "--show-toplevel"], cwd) === null) return { unread: `this directory is in no git checkout; ${holding(served)}` };
   const lacking = missing([head, served], cwd);
-  if (lacking) return { unread: `${short(lacking)} is not in this checkout; fetch it, or brief from one that holds it` };
-  if (git(["merge-base", "--is-ancestor", head, served], cwd) === null) return { unread: `${short(served)} does not descend from ${short(head)} here` };
+  if (lacking) return { unread: `${short(lacking)} is not in this checkout; fetch it, or ${holding(lacking)}` };
+  if (git(["merge-base", "--is-ancestor", head, served], cwd) === null) {
+    return { unread: `${short(served)} does not descend from ${short(head)} here; fetch both, or ${holding(served)}` };
+  }
   const generated = generatedOf(files, served, cwd);
   const weighed = files.filter((file) => !generated.has(file));
   const pattern = namesKey(key);

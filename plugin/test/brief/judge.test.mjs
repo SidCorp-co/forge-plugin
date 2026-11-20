@@ -248,11 +248,18 @@ test("a judge sent past a later deploy is told to judge a served build carrying 
       + `record with --commit ${HEAD} only, never --commit and --runtime together, and name ${LIVE} and that it descends from ${HEAD} in --why`]);
     state.answer["forge_issues.judged_build"] = answer({ carries: "touched", touched: ["src/a.ts"] });
     assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, whose added commits change src/a.ts, of this issue's files; their lines were not `
-      + `compared here (${HEAD.slice(0, 12)} is not in this checkout; fetch it, or brief from one that holds it) — ${stop}`, anyway(HEAD)]);
+      + `compared here (${HEAD.slice(0, 12)} is not in this checkout; fetch it, or brief from a git checkout of the project that holds `
+      + `${HEAD.slice(0, 12)}) — ${stop}`, anyway(HEAD)]);
     state.answer["forge_issues.judged_build"] = answer({ carries: "not-descendant" });
     assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which does not descend from ${HEAD} — ${stop}`, anyway(HEAD)]);
     state.answer["forge_issues.judged_build"] = answer({ carries: "unread" });
     assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which Forge cannot show carries this issue's change unchanged — ${stop}`, anyway(HEAD)]);
+    /* forge ISS-1357 and ISS-1358 were closed before they were judged, so the close `--unmet` rides had passed (ISS-122). */
+    state.issues[0].status = "closed";
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which Forge cannot show carries this issue's change unchanged — ${stop}`,
+      `Judge it anyway: at a build that carries this change unchanged, ${HEAD} itself deployed, with a brief taken there; or, as ISS-7 is `
+        + "already closed, record that its live verdict is left unjudged and why: forge record decision ISS-7 --decision "
+        + `"live verdict left unjudged | <why no build can be judged> | <what would judge it>"`]);
   } finally {
     tracker.close();
   }
@@ -276,7 +283,7 @@ test("a later append to a generated file or an edit elsewhere in the issue's fil
     return git(room, "rev-parse", "HEAD").stdout.trim();
   };
   const entry = (name, by) => `  "${name}": {\n    "by": "${by}"\n  }`;
-  commit("base", { ".gitattributes": "contracts.json linguist-generated\n", "src/a.ts": "export const one = 1;\nexport const two = 2;\n",
+  const base = commit("base", { ".gitattributes": "contracts.json linguist-generated\n", "src/a.ts": "export const one = 1;\nexport const two = 2;\n",
     "contracts.json": "{\n  \"one\": 1\n}\n", "card-changes.json": `{\n${entry("x", "ISS-1")}\n}\n` });
   const head = commit("feat: seven (ISS-7)", { "src/a.ts": "export const one = 1;\nexport const two = 2;\nexport const seven = 7;\n",
     "contracts.json": "{\n  \"one\": 1,\n  \"seven\": 7\n}\n", "card-changes.json": `{\n${entry("x", "ISS-1")},\n${entry("y", "ISS-7")}\n}\n` });
@@ -295,6 +302,35 @@ test("a later append to a generated file or an edit elsewhere in the issue's fil
     state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: edited, carries: "touched", touched: files });
     assert.deepEqual(await ask(), [`Served: dev serves ${edited}, whose added commits change lines this issue's own commits made: `
       + `src/a.ts in ${edited.slice(0, 12)} — ${stop}`, anyway(head)]);
+    state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: base, carries: "touched", touched: files });
+    const [behind] = await ask();
+    assert.ok(behind.includes(`their lines were not compared here (${base.slice(0, 12)} does not descend from ${head.slice(0, 12)} here; `
+      + `fetch both, or brief from a git checkout of the project that holds ${base.slice(0, 12)}) — `), behind);
+  } finally {
+    tracker.close();
+  }
+});
+
+/* forge qa run 22c4f613: briefed off any git checkout, or off any checkout of the project, the brief named
+   why nothing was read and not where a reading could be taken (ISS-122). */
+test("off any git checkout the stop names the checkout to brief from, and off the project's checkouts the kind names --project", async () => {
+  const { ranAsync, tempHome } = await import("../fixtures.mjs");
+  const { OWN, trackerFor } = await import("../fixtures/own-project.mjs");
+  const state = { issues: [{ documentId: "uuid-7", issueId: "ISS-7", status: "in_progress", title: "t" }],
+    answer: { "forge_issues.judged_build": servedAnswer(HEAD, { sha: LIVE, carries: "touched", touched: ["src/a.ts"] }) } };
+  const { tracker, env } = await trackerFor(state);
+  const nowhere = tempHome("brief-nowhere").path;
+  const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+  const ask = (aim) => ranAsync(FORGE, ["brief", "ISS-7", "--judge", ...aim, "--url", "https://dev.example.com", "--criteria", "1"], env, nowhere);
+  try {
+    const aimed = await ask(["--project", OWN.slug]);
+    assert.equal(aimed.status, 0, aimed.stderr);
+    assert.ok(aimed.stdout.includes(`their lines were not compared here (this directory is in no git checkout; brief from a git checkout of `
+      + `the project that holds ${LIVE.slice(0, 12)}) — ${stop}`), aimed.stdout);
+    const unaimed = await ask([]);
+    assert.equal(unaimed.status, 0, unaimed.stderr);
+    assert.ok(unaimed.stdout.includes(`Verdict kind: not read (${nowhere} is in no checkout of a Forge project; pass --project <slug>) — `
+      + "ask the dispatcher"), unaimed.stdout);
   } finally {
     tracker.close();
   }
