@@ -26,17 +26,18 @@ const countLine = (reference, blocks) => {
 
 const identityOf = (got) => (got.landing !== undefined ? `--landing ${typed(got.landing)}` : `--commit ${typed(got.commit)}`);
 
-/* One command per identity the blocks recorded, since one write may judge two heads. */
+// cm:why one command per identity the blocks recorded, since one write may judge two heads
+// cm:why never a `skipped` over the pass just written: core's door refuses a skip over a counted pass at the same build, or one the landing earned, `VERDICT_SKIP_OVER_PASS` (forge ISS-1355), so a printed skip always failed; the follow-up named is the one that door names, a `fail` saying what was seen (ISS-123)
 const whyOnPass = (reference, blocks) => {
   const carried = blocks.filter((got) => got.verdict === "pass" && got.why !== undefined);
   if (!carried.length) return null;
   const commands = [...grouped(carried, identityOf)].map(([identity, held]) =>
     `  forge record verdict ${typed(reference)} ${identity} ${held.map((got) =>
-      `--criterion ${criterionNumber(got.criterion)} --verdict skipped --why ${typed(got.why)}`).join(" ")}`);
+      `--criterion ${criterionNumber(got.criterion)} --verdict fail --why "<what you saw that does not hold>"`).join(" ")}`);
   return `--why rode onto criterion ${numbered(carried).join(", ")}, recorded \`pass\`. A pass owes no why, so a `
     + "reason written there is most often one meant for a block that went without it. The record stands as "
-    + "written. Where those criteria were not met as written, a later verdict on each replaces it — `skipped` "
-    + "below, or `fail` or `short` where one was exercised:\n"
+    + "written, and the pass stays earned: a `skipped` over it at this build is refused. Where one of those "
+    + "criteria does not hold, a `fail` naming what you saw replaces it:\n"
     + commands.join("\n");
 };
 

@@ -94,7 +94,9 @@ test("the count names only the values the write recorded", async () => {
   assert.deepEqual(counted(run.stderr), ["wrote 2 verdict(s) on ISS-9: 2 skipped (6, 7)"], run.stderr);
 });
 
-test("a --why riding onto a pass, shared or a block's own, is posted as written and named with the write that records it skipped", async () => {
+/* ISS-123: core's door refuses a skip over a pass at the same build (VERDICT_SKIP_OVER_PASS, forge ISS-1355),
+   so the remark names no skip, and the `fail` it names is the follow-up that door names. */
+test("a --why riding onto a pass, shared or a block's own, is posted as written and named with the fail that replaces it, never a skip", async () => {
   const held = posted();
   const run = await verdict("--verdict", "pass",
     "--criterion", "3", "--why", "ran it",
@@ -104,15 +106,18 @@ test("a --why riding onto a pass, shared or a block's own, is posted as written 
   assert.deepEqual([standing()[2], standing()[3], standing()[6]],
     [["pass", "nobody's route reaches it"], ["pass", "ran it"], ["pass", null]], "every block as written");
   assert.match(run.stderr, /^wrote 3 verdict\(s\) on ISS-9: 3 pass \(2, 3, 6\)\n--why rode onto criterion 2, 3, recorded `pass`\./mu, run.stderr);
+  assert.doesNotMatch(run.stderr, /--verdict skipped/u, "no skip is suggested over the pass just written");
   assert.deepEqual(records(run), [["3", "pass"], ["6", "pass"], ["2", "pass"]], "stdout carries no line of the remark");
   const command = run.stderr.split("\n").filter((line) => line.startsWith("  forge record verdict "));
-  assert.deepEqual(command, [`  forge record verdict ISS-9 --commit ${COMMIT} --criterion 3 --verdict skipped --why 'ran it' `
-    + `--criterion 2 --verdict skipped --why 'nobody'\\''s route reaches it'`], run.stderr);
+  const placeholder = '--why "<what you saw that does not hold>"';
+  assert.deepEqual(command, [`  forge record verdict ISS-9 --commit ${COMMIT} --criterion 3 --verdict fail ${placeholder} `
+    + `--criterion 2 --verdict fail ${placeholder}`], run.stderr);
 
-  const again = await ranAsync("sh", ["-c", command[0].trim().replace(/^forge /u, `'${FORGE}' `)], env);
+  const filled = command[0].trim().replace(/^forge /u, `'${FORGE}' `).replaceAll("<what you saw that does not hold>", "it answered 500");
+  const again = await ranAsync("sh", ["-c", filled], env);
   assert.equal(again.status, 0, again.stderr);
-  assert.deepEqual([standing()[2], standing()[3]], [["skipped", "nobody's route reaches it"], ["skipped", "ran it"]],
-    "the printed command, run as printed, records each skipped with the why it carried");
+  assert.deepEqual([standing()[2], standing()[3]], [["fail", "it answered 500"], ["fail", "it answered 500"]],
+    "the printed command, its why filled, records each criterion failed");
   assert.doesNotMatch(again.stderr, /--why rode onto/u);
 });
 
@@ -120,7 +125,8 @@ test("a shared --why over passes is named the same way", async () => {
   const run = await verdict("--verdict", "pass", "--why", "not run", "--criterion", "7");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^--why rode onto criterion 7, recorded `pass`\./mu, run.stderr);
-  assert.match(run.stderr, /^ {2}forge record verdict ISS-9 --commit 0123456789abcdef0123456789abcdef01234567 --criterion 7 --verdict skipped --why 'not run'$/mu);
+  assert.match(run.stderr, /^ {2}forge record verdict ISS-9 --commit 0123456789abcdef0123456789abcdef01234567 --criterion 7 --verdict fail --why "<what you saw that does not hold>"$/mu);
+  assert.doesNotMatch(run.stderr, /--verdict skipped/u);
 });
 
 test("a write refused before anything is posted prints no count", async () => {
@@ -146,6 +152,6 @@ test("an issue landing outside git is given the landing its blocks recorded, quo
   assert.equal(said.length, 1, "one write to one stream");
   assert.equal(said[0][0], "err");
   assert.match(said[0][1], /^wrote 1 verdict\(s\) on ISS-9: 1 pass \(4\)\n--why rode onto criterion 4/u);
-  assert.match(said[0][1], /\n {2}forge record verdict ISS-9 --landing 'the shared drive' --criterion 4 --verdict skipped --why seen$/u);
+  assert.match(said[0][1], /\n {2}forge record verdict ISS-9 --landing 'the shared drive' --criterion 4 --verdict fail --why "<what you saw that does not hold>"$/u);
   assert.equal(tallied("review", "ISS-9", [{ verdict: "pass" }]), null, "a kind other than verdict says nothing");
 });
