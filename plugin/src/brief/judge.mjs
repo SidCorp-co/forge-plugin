@@ -158,7 +158,9 @@ const secretsLine = (run) => "Secrets: never print or write a secret value, of a
    readings a free-form note could otherwise run into. A note naming a requirement is left out — the
    gate holds that dispatch back, so this issue brief never reaches a run. */
 // cm:why the brief names the flag `flow/record/record.mjs:aimed` takes, since a judge is told no other way to aim (ISS-102, ISS-124)
-const projectLine = (project) => `Project: ${project} — record each verdict or decision with \`--project ${project}\` where you stand in no checkout of it`;
+// cm:edge contract -> plugin/src/flow/record/judged/carried.mjs — a verdict reads `carries` off the checkout it is written in, and `in_progress:release` reads that line, so the brief sends a verdict to a checkout first and names what `--project` costs it (ISS-125)
+const projectLine = (project) => `Project: ${project} — record each verdict from a checkout of it, whose git reads whether the commit judged carries the landing; `
+  + `where you stand in none, \`--project ${project}\` aims a verdict or decision, and a verdict written there says nothing of the landing`;
 
 // cm:edge contract -> plugin/src/tracker/routes.mjs — core's judged-build names `judged-on` where the project's testing environment serves the judged build; on a project naming one it falls back to `live` or `shipped` too, so its source never says which kind a release counts (ISS-121)
 const JUDGED_ON = "judged-on";
