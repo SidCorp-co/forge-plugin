@@ -157,8 +157,8 @@ const secretsLine = (run) => "Secrets: never print or write a secret value, of a
    and judge at commit alone (FB-30): the note is carried as the last line, below the structured
    readings a free-form note could otherwise run into. A note naming a requirement is left out — the
    gate holds that dispatch back, so this issue brief never reaches a run. */
-// cm:why a judge often stands in no checkout of the project, and `forge record verdict` aims only through --project there (ISS-102)
-const projectLine = (project) => `Project: ${project} — record each verdict with \`--project ${project}\` where you stand in no checkout of it`;
+// cm:why the brief names the flag `flow/record/record.mjs:aimed` takes, since a judge is told no other way to aim (ISS-102, ISS-124)
+const projectLine = (project) => `Project: ${project} — record each verdict or decision with \`--project ${project}\` where you stand in no checkout of it`;
 
 // cm:edge contract -> plugin/src/tracker/routes.mjs — core's judged-build names `judged-on` where the project's testing environment serves the judged build; on a project naming one it falls back to `live` or `shipped` too, so its source never says which kind a release counts (ISS-121)
 const JUDGED_ON = "judged-on";

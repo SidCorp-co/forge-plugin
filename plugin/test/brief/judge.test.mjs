@@ -43,7 +43,7 @@ test("a judge's brief briefed where a project is set names it and the flag that 
   projectRecord(repo.main, home.config, { slug: "judged-project" });
   const run = brief(["ISS-7", "--judge", "--url", "https://staging.example.com", "--criteria", "1"], repo.main, home.env);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^Project: judged-project — record each verdict with `--project judged-project` where you stand in no checkout of it$/mu);
+  assert.match(run.stdout, /^Project: judged-project — record each verdict or decision with `--project judged-project` where you stand in no checkout of it$/mu);
 });
 
 /* FB-45: a judge printed a 16-character password because it masked only values of 20+ characters;

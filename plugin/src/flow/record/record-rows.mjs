@@ -67,7 +67,7 @@ const kindRows = (caps) => [
   "  answer       --from F --quoted Q                              a person's answer to a park, relayed",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W --corrects K                   K: the record or issue field it corrects",
-  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C|--release V [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--visual-desktop|--visual-phone|--visual-still ID|URL] [--visual-seconds N] [--judged-by qa|review] [--filed R] [--project P]",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C|--landing L|--contract C|--release V [--runtime R] [--environment E] --evidence E... [--why W] [--without-clip W] [--probe P] [--visual-desktop|--visual-phone|--visual-still ID|URL] [--visual-seconds N] [--judged-by qa|review] [--filed R]",
   "  review       --reviewer R --commit C|--landing L --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  declined     --finding H --why W                              a folded finding this run will not fix here",
@@ -419,20 +419,21 @@ const WAVE_BLOCKS = [
 
 const SHARED_FLAGS = [
   "  --also <kind>   another kind of this rung, its payload after it; the set moves the status",
-  "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
+  "  --next <line>   the step whoever comes next starts on, written onto the lease",
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
   "  --review        the last codex consult, its findings and what it owes, read from the log now",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
+  "  --project P     this one call on project P's issue; nothing saved changes",
 ];
 
 export const usage = () => [
   usageOf("record"),
-  "A contract payload, written in the one shape the CLI owns and read back by kind. A missing field",
-  "is refused by name, and one kind's own flags are `forge record <kind> -h`.",
+  "A contract payload in the one shape the CLI owns, read back by kind; one kind's own flags are",
+  "`forge record <kind> -h`.",
   "",
   ...phraseRows(),
   "",
-  "These kinds add to the issue, and the report lists each, oldest first, under a count:",
+  "These kinds add to the issue; the report lists each, oldest first, under a count:",
   `  ${REPEATS.join(", ")}`,
   `Every other kind is latest-wins, an earned ${Object.keys(EARNED).join(", ")} only after a correction.`,
   "",

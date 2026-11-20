@@ -16,14 +16,15 @@ memory, the seam [`feedback`](feedback.md) already aims through, so nothing is w
 **Reads, comments and a judge's verdict.** `forge issue` takes it for a read by key, the listing and
 `--search`, and `forge comment` for the thread and a post. `forge resume` takes it for every
 reading, and `forge advance` for `--owed`, which moves nothing: a judge reads what an issue owes from
-no checkout of it (ISS-119). `forge record verdict` takes it too: a
+no checkout of it (ISS-119). `forge record` takes it for every kind, once at the verb: a
 judge is briefed with the project and often stands in no checkout of it, and the one route out it was
-offered, `forge doctor --set slug=`, is a write a judge may not make (ISS-102). `forge brief --judge`
+offered, `forge doctor --set slug=`, is a write a judge may not make (ISS-102). A verdict was aimed
+first, and a closed issue's judge was then handed a decision to record that refused the flag
+(ISS-124). `forge brief --judge`
 takes it for the same judge, since its lease facts and verdict kind are that project's issue's
 (FB-81). Beside an issue write
-or an advance that moves it is refused, and the lease, status and every other record verb do not take it: a lease and a
-worklog are this tree's, and a status moved from a checkout of another project is the incident
-above. A post takes no lease on the far issue, the finder's route already taking none.
+or an advance that moves it is refused, and the lease and status verbs do not take it: a status
+moved from a checkout of another project is the incident above. A post takes no lease on the far issue, the finder's route already taking none.
 
 **The flag is advised only where it is taken.** A call refused for want of a project names
 `--project` only where its own shape takes the flag, and every other shape is told it takes none and

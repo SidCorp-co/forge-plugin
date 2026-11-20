@@ -41,7 +41,9 @@ const state = {
         const held = wanted ? rows.filter((one) => one.title.toLowerCase().includes(wanted)) : rows;
         return { issues: held, returned: held.length, hasMore: false };
       }
-      return everyRow().find((one) => one.documentId === args.documentId) ?? {};
+      const row = everyRow().find((one) => one.documentId === args.documentId) ?? {};
+      if (args.action === "update") Object.assign(row, args.data);
+      return row;
     },
     forge_comments: (args) => {
       if (args.action === "list") {
@@ -185,8 +187,8 @@ test("a listing's next page carries the aim it was read under", async () => {
   assert.match(run.stdout, /forge issue --limit 1 --project far-away --offset 1/u);
 });
 
-/* A judge stands in no checkout of the project it judges, so a verdict alone is aimed (ISS-102). */
-test("a verdict aimed at another project reads that project's issue, and every other record kind refuses --project", async () => {
+/* A judge stands in no checkout of the project it judges, so a verdict is aimed (ISS-102), and so is every other kind (ISS-124). */
+test("a verdict aimed at another project reads that project's issue, and no other record kind refuses --project", async () => {
   state.calls = [];
   const run = await ran(["record", "verdict", "ISS-7", "--project", FAR, "--criterion", "1", "--verdict", "pass",
     "--commit", "43b811e0c1d2e3f4a5b6c7d8e9f0011223344556", "--evidence", "https://example.test/one"]);
@@ -197,8 +199,29 @@ test("a verdict aimed at another project reads that project's issue, and every o
   state.calls = [];
   const note = await ran(["record", "note", "ISS-7", "--project", FAR, "--section", "Fixed"]);
   assert.equal(note.status, 1, note.stdout);
-  assert.match(note.stderr, /No record note flag named --project/u);
-  assert.deepEqual(state.calls, [], "and nothing is sent for it");
+  assert.doesNotMatch(note.stderr, /flag named --project/u, note.stderr);
+  assert.match(note.stderr, /record note --section Fixed needs --title/u, note.stderr);
+  assert.deepEqual(state.calls, [], "and nothing is sent for a payload refused by its own shape");
+});
+
+// cm:why the judge brief hands a closed issue's judge `forge record decision`, and a judge stands in no checkout, so that call is made from none (ISS-124)
+test("record decision from outside any checkout advises --project, and the call it advises is aimed with nothing saved", async () => {
+  const bare = tempRoom("project-override-decision-");
+  const before = recordsNow();
+  const decision = ["record", "decision", "ISS-7", "--decision", "live verdict left unjudged | no build serves it | a deploy of the head"];
+  const refused = await ranAsync(FORGE, decision, env, bare);
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /To aim this one call at a project, add --project <slug>\./u, refused.stderr);
+  state.calls = [];
+  const aimed = await ranAsync(FORGE, [...decision, "--project", FAR], env, bare);
+  assert.doesNotMatch(aimed.stderr, /flag named --project|takes no --project/u, aimed.stderr);
+  assert.match(aimed.stderr, /record decision: aimed at project far-away for this call alone/u, aimed.stderr);
+  assert.equal(aimed.status, 0, aimed.stderr);
+  assert.match((state.comments["far-7"] ?? []).map((one) => one.body).join("\n"), /decision: live verdict left unjudged/u, "the decision is on the far issue");
+  const read = state.calls.map((one) => one.path ?? "");
+  assert.ok(read.some((path) => path.includes("/issues/far-7")), `the far issue is the one read:\n${read.join("\n")}`);
+  assert.ok(!read.some((path) => path.includes("/issues/own-7")), "and the checkout's own seventh is never touched");
+  assert.deepEqual(recordsNow(), before, "no project record this machine keeps has moved");
 });
 
 // cm:why a judge told to add --project to advance --owed and resume was refused the flag, so the advised call is made here (ISS-119)

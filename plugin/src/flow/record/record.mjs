@@ -1,7 +1,7 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
 import { fail, leadOnFailure } from "../../resolve/settings.mjs";
-import { aimedBy } from "../../resolve/project/aimed.mjs";
+import { aimIn, aimedBy } from "../../resolve/project/aimed.mjs";
 import { nothingWritten } from "../../tracker/rest.mjs";
 import { absentSaid } from "../../resolve/gone/absent.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
@@ -541,12 +541,12 @@ const criteriaCount = (body) => {
   }
 };
 
-/* A judge is briefed with the project and often stands in no checkout of it, so a verdict alone may be aimed (ISS-102); every other kind writes the tree's lease and worklog, docs/cli/one-call-elsewhere.md. */
-const aimedTail = (kind, tail) => (kind === "verdict" ? aimedBy(tail, "record verdict").rest : tail);
+// cm:why a judge stands in no checkout of the project it judges and is handed a verdict and, on a closed issue, a decision to record, so the aim is taken once here for every kind (ISS-102, ISS-124); docs/cli/one-call-elsewhere.md
+const aimed = (typed) => aimedBy(typed, ["record", aimIn(typed).rest[0]].filter(Boolean).join(" ")).rest;
 
-const run = async ([kind, ...tail]) => {
+const run = async (typed) => {
+  const [kind, reference, ...argv] = aimed(typed);
   if (!kind || wantsHelp([kind])) return console.log(usage());
-  const [reference, ...argv] = aimedTail(kind, tail);
   const absent = absentSaid("kind", kind);
   if (absent) refuse(`record knows no kind \`${kind}\`, and ${absent}.`);
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
