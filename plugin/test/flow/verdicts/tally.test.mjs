@@ -1,6 +1,6 @@
-/* A verdict write reads back counted, and names a `pass` a `--why` rode onto (ISS-2198). Through the
-   binary, because what is owed is what the writer sees on the two streams once the write has landed:
-   both on stderr, stdout being the records a caller parses back. */
+/* A verdict write reads back counted (ISS-2198), a `--why` on a `pass` kept as the judge's observation
+   (ISS-117). Through the binary, because what is owed is what the writer sees on the two streams once
+   the write has landed: the count on stderr, stdout being the records a caller parses back. */
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
@@ -82,8 +82,7 @@ test("a verdict write counts each value it recorded on stderr, ahead of the guid
     run.stderr);
   assert.ok(run.stderr.indexOf("wrote 5 verdict(s)") < run.stderr.indexOf("ISS-9 is in_progress:test; in_progress:release is next"),
     `ahead of what the write says is owed and of the guidance after it: ${run.stderr}`);
-  assert.doesNotMatch(run.stderr, /--why rode onto/u, "no pass carried a why, so nothing is remarked");
-  assert.deepEqual(records(run), [["5", "pass"], ["2", "skipped"], ["3", "fail"], ["4", "short"], ["1", "pass"]],
+    assert.deepEqual(records(run), [["5", "pass"], ["2", "skipped"], ["3", "fail"], ["4", "short"], ["1", "pass"]],
     "stdout parses back as the five records and nothing else");
   assert.doesNotMatch(run.stdout, /^wrote /mu);
 });
@@ -94,9 +93,10 @@ test("the count names only the values the write recorded", async () => {
   assert.deepEqual(counted(run.stderr), ["wrote 2 verdict(s) on ISS-9: 2 skipped (6, 7)"], run.stderr);
 });
 
-/* ISS-123: core's door refuses a skip over a pass at the same build (VERDICT_SKIP_OVER_PASS, forge ISS-1355),
-   so the remark names no skip, and the `fail` it names is the follow-up that door names. */
-test("a --why riding onto a pass, shared or a block's own, is posted as written and named with the fail that replaces it, never a skip", async () => {
+/* ISS-117: a judge says what it exercised on every verdict, a pass included, and a fail with no why is
+   refused before anything is sent, so a why on a pass is the judge's observation and never a slip:
+   the write says its count and nothing about the why, which the record keeps as written. */
+test("a --why riding onto a pass, shared or a block's own, is recorded as written, with nothing remarked on it", async () => {
   const held = posted();
   const run = await verdict("--verdict", "pass",
     "--criterion", "3", "--why", "ran it",
@@ -105,28 +105,15 @@ test("a --why riding onto a pass, shared or a block's own, is posted as written 
   assert.equal(posted(), held + 1, "the write went up");
   assert.deepEqual([standing()[2], standing()[3], standing()[6]],
     [["pass", "nobody's route reaches it"], ["pass", "ran it"], ["pass", null]], "every block as written");
-  assert.match(run.stderr, /^wrote 3 verdict\(s\) on ISS-9: 3 pass \(2, 3, 6\)\n--why rode onto criterion 2, 3, recorded `pass`\./mu, run.stderr);
-  assert.doesNotMatch(run.stderr, /--verdict skipped/u, "no skip is suggested over the pass just written");
-  assert.deepEqual(records(run), [["3", "pass"], ["6", "pass"], ["2", "pass"]], "stdout carries no line of the remark");
-  const command = run.stderr.split("\n").filter((line) => line.startsWith("  forge record verdict "));
-  const placeholder = '--why "<what you saw that does not hold>"';
-  assert.deepEqual(command, [`  forge record verdict ISS-9 --commit ${COMMIT} --criterion 3 --verdict fail ${placeholder} `
-    + `--criterion 2 --verdict fail ${placeholder}`], run.stderr);
+  assert.deepEqual(counted(run.stderr), ["wrote 3 verdict(s) on ISS-9: 3 pass (2, 3, 6)"], run.stderr);
+  assert.doesNotMatch(run.stderr, /rode onto|owes no why|meant for a block/u, `the why is called misplaced:\n${run.stderr}`);
+  assert.doesNotMatch(run.stderr, /^ {2}forge record verdict /mu, `a verdict is offered over the pass just written:\n${run.stderr}`);
+  assert.deepEqual(records(run), [["3", "pass"], ["6", "pass"], ["2", "pass"]], "stdout carries the records alone");
 
-  const filled = command[0].trim().replace(/^forge /u, `'${FORGE}' `).replaceAll("<what you saw that does not hold>", "it answered 500");
-  const again = await ranAsync("sh", ["-c", filled], env);
-  assert.equal(again.status, 0, again.stderr);
-  assert.deepEqual([standing()[2], standing()[3]], [["fail", "it answered 500"], ["fail", "it answered 500"]],
-    "the printed command, its why filled, records each criterion failed");
-  assert.doesNotMatch(again.stderr, /--why rode onto/u);
-});
-
-test("a shared --why over passes is named the same way", async () => {
-  const run = await verdict("--verdict", "pass", "--why", "not run", "--criterion", "7");
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /^--why rode onto criterion 7, recorded `pass`\./mu, run.stderr);
-  assert.match(run.stderr, /^ {2}forge record verdict ISS-9 --commit 0123456789abcdef0123456789abcdef01234567 --criterion 7 --verdict fail --why "<what you saw that does not hold>"$/mu);
-  assert.doesNotMatch(run.stderr, /--verdict skipped/u);
+  const shared = await verdict("--verdict", "pass", "--why", "opened the page and saw the total", "--criterion", "7");
+  assert.equal(shared.status, 0, shared.stderr);
+  assert.deepEqual(standing()[7], ["pass", "opened the page and saw the total"], "a shared why is kept as the observation");
+  assert.doesNotMatch(shared.stderr, /rode onto|owes no why|meant for a block/u, shared.stderr);
 });
 
 test("a write refused before anything is posted prints no count", async () => {
@@ -137,7 +124,7 @@ test("a write refused before anything is posted prints no count", async () => {
   assert.deepEqual(counted(run.stdout + run.stderr), [], run.stderr);
 });
 
-test("an issue landing outside git is given the landing its blocks recorded, quoted for the shell", () => {
+test("a pass carrying a why prints its count alone, on stderr, and a kind other than verdict says nothing", () => {
   const said = [];
   const error = console.error;
   const log = console.log;
@@ -149,9 +136,6 @@ test("an issue landing outside git is given the landing its blocks recorded, quo
     console.error = error;
     console.log = log;
   }
-  assert.equal(said.length, 1, "one write to one stream");
-  assert.equal(said[0][0], "err");
-  assert.match(said[0][1], /^wrote 1 verdict\(s\) on ISS-9: 1 pass \(4\)\n--why rode onto criterion 4/u);
-  assert.match(said[0][1], /\n {2}forge record verdict ISS-9 --landing 'the shared drive' --criterion 4 --verdict fail --why "<what you saw that does not hold>"$/u);
+  assert.deepEqual(said, [["err", "wrote 1 verdict(s) on ISS-9: 1 pass (4)"]], "one line, the count");
   assert.equal(tallied("review", "ISS-9", [{ verdict: "pass" }]), null, "a kind other than verdict says nothing");
 });

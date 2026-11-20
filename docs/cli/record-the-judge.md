@@ -45,8 +45,8 @@ to a caller that does not hold the lease, whether its verdict would go up and un
 on a criterion the design classes observable with `VERDICT_CLIP_REQUIRED` unless the verdict cites a
 WebM or MP4 attached to the issue, or carries a `without-clip` line saying why none was taken
 (`clip-citation.ts:clipFault`). A clip's path on `--evidence` goes up as the video it is and is cited
-by name; `--without-clip "<why>"` writes the line. `--why` says what was found and never stands in for
-it.
+by name; `--without-clip "<why>"` writes the line. `--why` says what was found, on a pass as on a
+fail, and never stands in for it.
 
 **A pass marks what its release shows, and only by reference.** The release page shows a screen
 change by what a judge marks on a `pass` (`releaseVisual`, forge ISS-1308) and by nothing else, so
