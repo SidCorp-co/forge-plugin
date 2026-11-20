@@ -214,32 +214,87 @@ test("a judge's brief names the verdict kind and build core says the release cou
 
 /* ISS-1259: forge-dev deploys every push, so a judge is often sent at a release head the environment
    has deployed past. Core's judged-build says whether the served build carries the change unchanged,
-   and the brief says, per case, to judge it at the head or to stop. */
-test("a judge sent past a later deploy is told to judge a served build carrying the change unchanged, and to stop on any other", async () => {
+   and the brief says, per case, to judge it at the head or to stop, and how to judge it still (ISS-122). */
+const HEAD = "c".repeat(40);
+const LIVE = "d".repeat(40);
+const servedAnswer = (head, served) => () => ({ sha: head, source: "shipped", version: "0.4.0-dev.702", basis: "release 0.4.0-dev.702 shipped it",
+  served: { environment: "dev", touched: [], why: "core's reading", ...served } });
+
+const servedReader = async (state, room) => {
   const { ranAsync } = await import("../fixtures.mjs");
   const { trackerFor } = await import("../fixtures/own-project.mjs");
+  const { tracker, env } = await trackerFor(state, [room]);
+  const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+  const ask = async () => {
+    const run = await ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--url", "https://dev.example.com", "--criteria", "1"], env, room);
+    assert.equal(run.status, 0, run.stderr);
+    return run.stdout.split("\n").filter((line) => /^(?:Served: |Record with |Judge it anyway: )/u.test(line));
+  };
+  return { tracker, ask };
+};
+
+const anyway = (head) => `Judge it anyway: at a build that carries this change unchanged, ${head} itself deployed, with a brief taken `
+  + `there; or move each criterion out on the record at the close: forge advance ISS-7 --unmet '[{"criterion":<n>,"to":{"issue":"ISS-<n>"}}]'`;
+
+const stop = "stop: record no verdict, and report it to the dispatcher";
+
+test("a judge sent past a later deploy is told to judge a served build carrying the change unchanged, and to stop on any other", async () => {
   const state = { issues: [{ documentId: "uuid-7", issueId: "ISS-7", status: "in_progress", title: "t" }], answer: {} };
-  const { tracker, env } = await trackerFor(state, [repo.main]);
-  const HEAD = "c".repeat(40);
-  const LIVE = "d".repeat(40);
-  const answer = (served) => () => ({ sha: HEAD, source: "shipped", version: "0.4.0-dev.702", basis: "release 0.4.0-dev.702 shipped it",
-    served: { environment: "dev", sha: LIVE, touched: [], why: "core's reading", ...served } });
+  const { tracker, ask } = await servedReader(state, repo.main);
+  const answer = (served) => servedAnswer(HEAD, { sha: LIVE, ...served });
   try {
-    const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-    const ask = async () => {
-      const run = await ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--url", "https://dev.example.com", "--criteria", "1"], env, repo.main);
-      assert.equal(run.status, 0, run.stderr);
-      return run.stdout.split("\n").filter((line) => /^(?:Served: |Record with )/u.test(line));
-    };
     state.answer["forge_issues.judged_build"] = answer({ carries: "unchanged" });
     assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which carries this issue's change unchanged — judge what it serves, `
       + `record with --commit ${HEAD} only, never --commit and --runtime together, and name ${LIVE} and that it descends from ${HEAD} in --why`]);
     state.answer["forge_issues.judged_build"] = answer({ carries: "touched", touched: ["src/a.ts"] });
-    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, whose added commits change src/a.ts, of this issue's files — stop: record no verdict, and report it to the dispatcher`]);
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, whose added commits change src/a.ts, of this issue's files; their lines were not `
+      + `compared here (${HEAD.slice(0, 12)} is not in this checkout; fetch it, or brief from one that holds it) — ${stop}`, anyway(HEAD)]);
     state.answer["forge_issues.judged_build"] = answer({ carries: "not-descendant" });
-    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which does not descend from ${HEAD} — stop: record no verdict, and report it to the dispatcher`]);
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which does not descend from ${HEAD} — ${stop}`, anyway(HEAD)]);
     state.answer["forge_issues.judged_build"] = answer({ carries: "unread" });
-    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which Forge cannot show carries this issue's change unchanged — stop: record no verdict, and report it to the dispatcher`]);
+    assert.deepEqual(await ask(), [`Served: dev serves ${LIVE}, which Forge cannot show carries this issue's change unchanged — ${stop}`, anyway(HEAD)]);
+  } finally {
+    tracker.close();
+  }
+});
+
+/* forge judge run 8555bf38: ISS-1371, 1357 and 1358 stopped on later appends to shared generated files
+   and on edits to other sections of a shared file. The brief weighs lines, not files (ISS-122). */
+test("a later append to a generated file or an edit elsewhere in the issue's file never stops the judge, and an edit to the issue's own lines does, naming file and commit", async () => {
+  const { git, tempRoom } = await import("../fixtures.mjs");
+  const { writeFileSync, mkdirSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const room = tempRoom("brief-lines-");
+  git(room, "init", "-q", "-b", "main");
+  const commit = (subject, files) => {
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(join(room, path, ".."), { recursive: true });
+      writeFileSync(join(room, path), text);
+    }
+    git(room, "add", "--", ...Object.keys(files));
+    git(room, "commit", "-qm", subject);
+    return git(room, "rev-parse", "HEAD").stdout.trim();
+  };
+  const entry = (name, by) => `  "${name}": {\n    "by": "${by}"\n  }`;
+  commit("base", { ".gitattributes": "contracts.json linguist-generated\n", "src/a.ts": "export const one = 1;\nexport const two = 2;\n",
+    "contracts.json": "{\n  \"one\": 1\n}\n", "card-changes.json": `{\n${entry("x", "ISS-1")}\n}\n` });
+  const head = commit("feat: seven (ISS-7)", { "src/a.ts": "export const one = 1;\nexport const two = 2;\nexport const seven = 7;\n",
+    "contracts.json": "{\n  \"one\": 1,\n  \"seven\": 7\n}\n", "card-changes.json": `{\n${entry("x", "ISS-1")},\n${entry("y", "ISS-7")}\n}\n` });
+  const files = ["src/a.ts", "contracts.json", "card-changes.json"];
+  const appended = commit("feat: eight (ISS-8)", { "src/a.ts": "export const one = 11;\nexport const two = 2;\nexport const seven = 7;\n",
+    "contracts.json": "{\n  \"eight\": 8,\n  \"one\": 1,\n  \"seven\": \"7\"\n}\n",
+    "card-changes.json": `{\n${entry("x", "ISS-1")},\n${entry("y", "ISS-7")},\n${entry("z", "ISS-8")}\n}\n` });
+  const edited = commit("fix: seven is 77 (ISS-9)", { "src/a.ts": "export const one = 11;\nexport const two = 2;\nexport const seven = 77;\n" });
+  const state = { issues: [{ documentId: "uuid-7", issueId: "ISS-7", status: "in_progress", title: "t" }], answer: {} };
+  const { tracker, ask } = await servedReader(state, room);
+  try {
+    state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: appended, carries: "touched", touched: files });
+    assert.deepEqual(await ask(), [`Served: dev serves ${appended}, which carries this issue's change unchanged (its added commits change no line `
+      + "this issue's own commits made in src/a.ts, card-changes.json; contracts.json is generated (linguist-generated)) — judge what it "
+      + `serves, record with --commit ${head} only, never --commit and --runtime together, and name ${appended} and that it descends from ${head} in --why`]);
+    state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: edited, carries: "touched", touched: files });
+    assert.deepEqual(await ask(), [`Served: dev serves ${edited}, whose added commits change lines this issue's own commits made: `
+      + `src/a.ts in ${edited.slice(0, 12)} — ${stop}`, anyway(head)]);
   } finally {
     tracker.close();
   }

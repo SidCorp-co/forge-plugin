@@ -88,6 +88,15 @@ below the structured readings a free-form note could otherwise run into. A note 
 requirement is left out: the hook holds that dispatch back, so the issue brief it would sit in never
 reaches a run.
 
+Where the environment serves a build past the one a release counts, core's judged-build weighs
+files, so any later commit touching an issue's file read as `touched`, and on a project deploying
+every push nearly every judge stopped (forge judge run 8555bf38). The brief weighs that reading again
+by lines in its checkout: the issue's lines are those `git blame` gives, at the counted build, to
+commits whose subject names the key, as core reads an issue's commits; it stops only where the served
+build changes one, naming file and commit. A file marked `linguist-generated` in `.gitattributes`,
+the mark hosts already read, is never weighed, so no setting is added. Unreadable lines stop on
+core's reading, saying why, and each stop names how the issue is judged still (ISS-122).
+
 ## Why a digest and a window
 
 The hook compares a digest of the whole prompt with the ones the verb recorded in a per-session store

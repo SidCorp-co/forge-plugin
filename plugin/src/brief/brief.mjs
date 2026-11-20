@@ -9,6 +9,7 @@ import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { helpOf } from "../resolve/visibility.mjs";
 import { mintRunId, runIdAt, runNames, runsFor, scratchMinted } from "../resolve/session/run-id.mjs";
 import { copiesFor } from "./copies.mjs";
+import { withLines } from "./lines.mjs";
 import { JUDGE_FORM, REQUIREMENT_FORM, judgeOf, judgeText, refuseJudgeFlags, requirementOf, requirementText, runOf } from "./judge.mjs";
 import { RUN_VAR } from "../tracker/rest.mjs";
 import { leaseFacts } from "./facts.mjs";
@@ -169,7 +170,7 @@ export const brief = async (words) => {
   if (asked.criterion !== undefined) fail("brief: --criterion names a requirement's criteria, so it is read only with --requirement REQ-n.");
   if (asked.judge) {
     const facts = await leaseFacts(key, process.cwd(), { withJudged: true, aimed });
-    const judged = facts.unread ? { refused: facts.unread } : facts.judged;
+    const judged = facts.unread ? { refused: facts.unread } : withLines(facts.judged, key, process.cwd());
     const judgedOn = facts.unread ? { refused: facts.unread } : facts.judgedOn;
     const readings = { ...judgeOf(key, asked), project: projectTarget().value ?? null, judged, judgedOn };
     return send(judgeText(key, readings, facts), JUDGE_FORM);

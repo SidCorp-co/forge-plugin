@@ -4,6 +4,7 @@
    one handed no deployment brought up a local stack instead (ISS-3145). A CLI judge is the exception:
    it names the program and, where it needs one, the directory to run it in (FB-26). docs/cli/brief.md. */
 import { fail } from "../resolve/settings.mjs";
+import { UNMET_FORM } from "../flow/route/unmet-form.mjs";
 
 /** The role a judging run is dispatched as, which the hook holds to this form. */
 export const JUDGE_ROLE = "qa";
@@ -170,28 +171,48 @@ const countedOn = (judgedOn) => `this project's releases are judged on \`${judge
 /* The flag a judge copies, one of the two: `verdict/door.mjs:namesBoth` says why (ISS-1259). */
 const recordWith = (kind, sha) => `record with --${kind} ${sha} only, never --commit and --runtime together`;
 
-/* What the served build is, where core says it is not the one named, phrased by core's `carries`. */
+// cm:why what the served build is, where core says it is not the one named: core's `carries`, and for `touched` the lines this checkout compared (`lines.mjs`, ISS-122)
+const listed = (files) => files.join(", ");
+
+const touchedSaid = (served) => {
+  const { lines } = served;
+  if (lines?.changed) {
+    return `whose added commits change lines this issue's own commits made: ${lines.changed.map((one) => `${one.file} in ${one.commits.join(", ")}`).join("; ")}`;
+  }
+  const unread = lines?.unread ? `; their lines were not compared here (${lines.unread})` : "";
+  return `whose added commits change ${listed(served.touched)}, of this issue's files${unread}`;
+};
+
 const NOT_CARRIED = {
-  touched: (served) => `whose added commits change ${served.touched.join(", ")}, of this issue's files`,
+  touched: touchedSaid,
   "not-descendant": (_served, sha) => `which does not descend from ${sha}`,
 };
 
-/** Where core's judged-build names a served build other than the build counted (ISS-1259): judge it
- *  at the counted build where it carries the change unchanged, and stop otherwise. */
-const servedLine = (served, kind, sha) => {
+const keptSaid = ({ generated, weighed }) => [
+  weighed.length ? `its added commits change no line this issue's own commits made in ${listed(weighed)}` : null,
+  generated.length ? `${listed(generated)} ${generated.length > 1 ? "are" : "is"} generated (linguist-generated)` : null,
+].filter(Boolean).join("; ");
+
+// cm:why a stop with no way on left the issue unjudgeable, so it names both: a build that carries the change, or each criterion moved out on the record (ISS-122)
+const anyway = (key, sha) => `Judge it anyway: at a build that carries this change unchanged, ${sha} itself deployed, with a brief taken `
+  + `there; or move each criterion out on the record at the close: forge advance ${key} ${UNMET_FORM}`;
+
+// cm:why judge at the counted build where the served one carries the change unchanged (ISS-1259), line by line where this checkout compared them (ISS-122); stop otherwise
+const servedLines = (key, served, kind, sha) => {
   const at = `Served: ${served.environment} serves ${served.sha}`;
-  if (served.carries === "unchanged") {
-    return `${at}, which carries this issue's change unchanged — judge what it serves, ${recordWith(kind, sha)}, `
-      + `and name ${served.sha} and that it descends from ${sha} in --why`;
+  const kept = served.carries === "touched" ? served.lines?.kept : null;
+  if (served.carries === "unchanged" || kept) {
+    return [`${at}, which carries this issue's change unchanged${kept ? ` (${keptSaid(kept)})` : ""} — judge what it serves, `
+      + `${recordWith(kind, sha)}, and name ${served.sha} and that it descends from ${sha} in --why`];
   }
   const what = NOT_CARRIED[served.carries]?.(served, sha) ?? "which Forge cannot show carries this issue's change unchanged";
-  return `${at}, ${what} — stop: record no verdict, and report it to the dispatcher`;
+  return [`${at}, ${what} — stop: record no verdict, and report it to the dispatcher`, anyway(key, sha)];
 };
 
 /** The verdict kind a release counts for the issue, off the project's judgedOn, and the build, off
  *  core's judged-build, or why either could not be read; then how to record it, or, where the
  *  environment serves another build, whether to. */
-const judgedBuildLines = (read, judgedOn) => {
+const judgedBuildLines = (key, read, judgedOn) => {
   const unread = !read || read.refused ? read?.refused ?? "no answer" : judgedOn?.refused;
   if (unread) {
     const why = String(unread).split("\n")[0];
@@ -202,7 +223,7 @@ const judgedBuildLines = (read, judgedOn) => {
   const why = judgedOn && read.source !== JUDGED_ON ? `${basis}; ${countedOn(judgedOn)}` : basis;
   const kindLine = `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${why}`;
   if (!read.sha) return [kindLine];
-  if (read.served?.sha) return [kindLine, servedLine(read.served, kind, read.sha)];
+  if (read.served?.sha) return [kindLine, ...servedLines(key, read.served, kind, read.sha)];
   return [kindLine, `R${recordWith(kind, read.sha).slice(1)}`];
 };
 
@@ -215,7 +236,7 @@ export const judgeText = (key, { urls, program, tree, criteria, identity, run = 
   ...(urls.length ? [`Deployed at: ${urls.join(", ")}`] : []),
   ...(program ? [`Program: ${program}`] : []),
   `Identity: ${identity ?? "none given"}`,
-  ...(judged === undefined ? [] : judgedBuildLines(judged, judgedOn)),
+  ...(judged === undefined ? [] : judgedBuildLines(key, judged, judgedOn)),
   `Criteria: ${criteria.join(", ")}`,
   program && tree ? `Run the program in: ${tree}` : "Tree: none",
   ...(facts?.next && !facts.named ? [`Dispatcher facts: ${facts.next}`] : []),

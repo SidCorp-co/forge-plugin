@@ -18,6 +18,7 @@ import { askOne, carriedAsk, correctedForm, foldVerdicts, heldBlocks, idAsk, ide
 export { correctedForm };
 import { FORMS } from "../spec/parse.mjs";
 import { landsNoFile, lightens } from "../ladder.mjs";
+import { UNMET_FORM } from "./route/unmet-form.mjs";
 import { findingsOwed } from "./earned/findings.mjs";
 import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, isCommit, sameCommit } from "../tracker/evidence.mjs";
@@ -189,8 +190,7 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
 
-/** The flag a close places its unmet criteria in, which `flow/route/close.mjs` reads and every reply names. */
-export const UNMET_FORM = `--unmet '[{"criterion":<n>,"to":{"issue":"ISS-<n>"}}]'`;
+export { UNMET_FORM };
 export const closeForm = (ref) => `forge advance ${ref}   (or, where a criterion is unmet: forge advance ${ref} ${UNMET_FORM})`;
 
 /** The possessive a refusal, a report and a landing's rest each print for `held.by`. */
