@@ -95,7 +95,10 @@ by lines in its checkout: the issue's lines are those `git blame` gives, at the 
 commits whose subject names the key, as core reads an issue's commits; it stops only where the served
 build changes one, naming file and commit. A file marked `linguist-generated` in `.gitattributes`,
 the mark hosts already read, is never weighed, so no setting is added. Unreadable lines stop on
-core's reading, saying why, and each stop names how the issue is judged still (ISS-122).
+core's reading, saying why, and each stop names how the issue is judged still (ISS-122). Where the
+lines keep the build, the verdict kind's basis drops core's served reading, the one clause it ends on,
+for which files changed and that none of the issue's lines did: two lines of one brief contradicting
+each other left the judge to pick one (forge ISS-1357).
 
 ## Why a digest and a window
 

@@ -215,6 +215,16 @@ const servedLines = (key, served, kind, sha, status) => {
   return [`${at}, ${what} — stop: record no verdict, and report it to the dispatcher`, anyway(key, sha, status)];
 };
 
+// cm:why core's basis ends `; <served.why>`, whose whole-file conclusion the line reading overturns where it keeps the build, so that one clause is replaced by what the lines found and the Verdict kind and Served lines agree; any other reading keeps core's words (ISS-122, forge ISS-1357)
+const basisOf = (basis, served) => {
+  const kept = served?.carries === "touched" ? served.lines?.kept : null;
+  const tail = served?.why ? `; ${served.why}` : null;
+  if (!kept || !tail || !basis.endsWith(tail)) return basis;
+  const aside = kept.generated.length ? ` outside generated ${listed(kept.generated)}` : "";
+  return `${basis.slice(0, -tail.length)}; the commits ${served.sha} adds change ${listed(served.touched)}, of this issue's files, `
+    + `but none of this issue's lines${aside}`;
+};
+
 /** The verdict kind a release counts for the issue, off the project's judgedOn, and the build, off
  *  core's judged-build, or why either could not be read; then how to record it, or, where the
  *  environment serves another build, whether to. */
@@ -225,7 +235,7 @@ const judgedBuildLines = (key, read, judgedOn, status) => {
     return [`Verdict kind: not read (${why}) — ask the dispatcher which build the release counts before recording`];
   }
   const kind = kindOf(judgedOn);
-  const basis = read.basis ?? "core gave no basis";
+  const basis = basisOf(read.basis ?? "core gave no basis", read.served);
   const why = judgedOn && read.source !== JUDGED_ON ? `${basis}; ${countedOn(judgedOn)}` : basis;
   const kindLine = `Verdict kind: ${kind}, at ${read.sha ?? "no build named"} — ${why}`;
   if (!read.sha) return [kindLine];

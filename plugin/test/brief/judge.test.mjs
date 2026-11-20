@@ -217,18 +217,21 @@ test("a judge's brief names the verdict kind and build core says the release cou
    and the brief says, per case, to judge it at the head or to stop, and how to judge it still (ISS-122). */
 const HEAD = "c".repeat(40);
 const LIVE = "d".repeat(40);
-const servedAnswer = (head, served) => () => ({ sha: head, source: "shipped", version: "0.4.0-dev.702", basis: "release 0.4.0-dev.702 shipped it",
-  served: { environment: "dev", touched: [], why: "core's reading", ...served } });
+/* Core's basis ends with its served reading, `served.why`, as `judged-build.ts` joins them. */
+const servedAnswer = (head, served) => () => {
+  const over = { environment: "dev", touched: [], why: "core's reading", ...served };
+  return { sha: head, source: "shipped", version: "0.4.0-dev.702", basis: `release 0.4.0-dev.702 shipped it; ${over.why}`, served: over };
+};
 
 const servedReader = async (state, room) => {
   const { ranAsync } = await import("../fixtures.mjs");
   const { trackerFor } = await import("../fixtures/own-project.mjs");
   const { tracker, env } = await trackerFor(state, [room]);
   const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-  const ask = async () => {
+  const ask = async (wanted = /^(?:Served: |Record with |Judge it anyway: )/u) => {
     const run = await ranAsync(FORGE, ["brief", "ISS-7", "--judge", "--url", "https://dev.example.com", "--criteria", "1"], env, room);
     assert.equal(run.status, 0, run.stderr);
-    return run.stdout.split("\n").filter((line) => /^(?:Served: |Record with |Judge it anyway: )/u.test(line));
+    return run.stdout.split("\n").filter((line) => wanted.test(line));
   };
   return { tracker, ask };
 };
@@ -294,14 +297,21 @@ test("a later append to a generated file or an edit elsewhere in the issue's fil
   const edited = commit("fix: seven is 77 (ISS-9)", { "src/a.ts": "export const one = 11;\nexport const two = 2;\nexport const seven = 77;\n" });
   const state = { issues: [{ documentId: "uuid-7", issueId: "ISS-7", status: "in_progress", title: "t" }], answer: {} };
   const { tracker, ask } = await servedReader(state, room);
+  const kindLine = /^Verdict kind: /u;
+  const filesConcluded = "the commits it adds change src/a.ts, contracts.json, card-changes.json, of this issue's changed files, so it does not carry this issue's change unchanged";
   try {
-    state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: appended, carries: "touched", touched: files });
+    state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: appended, carries: "touched", touched: files, why: filesConcluded });
     assert.deepEqual(await ask(), [`Served: dev serves ${appended}, which carries this issue's change unchanged (its added commits change no line `
       + "this issue's own commits made in src/a.ts, card-changes.json; contracts.json is generated (linguist-generated)) — judge what it "
       + `serves, record with --commit ${head} only, never --commit and --runtime together, and name ${appended} and that it descends from ${head} in --why`]);
-    state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: edited, carries: "touched", touched: files });
+    /* forge ISS-1357: the line above kept the build while this one repeated core's file reading that it does not carry the change (ISS-122). */
+    assert.deepEqual(await ask(kindLine), [`Verdict kind: commit, at ${head} — release 0.4.0-dev.702 shipped it; the commits ${appended} adds change `
+      + "src/a.ts, contracts.json, card-changes.json, of this issue's files, but none of this issue's lines outside generated contracts.json"]);
+    state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: edited, carries: "touched", touched: files, why: filesConcluded });
     assert.deepEqual(await ask(), [`Served: dev serves ${edited}, whose added commits change lines this issue's own commits made: `
       + `src/a.ts in ${edited.slice(0, 12)} — ${stop}`, anyway(head)]);
+    assert.deepEqual(await ask(kindLine), [`Verdict kind: commit, at ${head} — release 0.4.0-dev.702 shipped it; ${filesConcluded}`],
+      "where the lines stop the judge, core's reading stands as it was");
     state.answer["forge_issues.judged_build"] = servedAnswer(head, { sha: base, carries: "touched", touched: files });
     const [behind] = await ask();
     assert.ok(behind.includes(`their lines were not compared here (${base.slice(0, 12)} does not descend from ${head.slice(0, 12)} here; `
