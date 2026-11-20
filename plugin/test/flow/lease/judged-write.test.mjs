@@ -282,3 +282,62 @@ test("a judge's verdict at a needs_info park goes up like any other, moving no s
   ISSUE.status = "in_progress";
   assert.deepEqual(ISSUE.sessionContext.lease, LEASE, "and the lease is as it stood");
 });
+
+/* A master hands the lease back once it records a landing, so the issues a judge reads after one sit
+   past the dispatch statuses with nothing in the field: FB-771's judge was refused there and told to
+   claim, which a judge may not. The verdict goes up with no claim, and a verdict riding another kind
+   meets the empty field's refusal as that kind does (ISS-118). */
+test("a judge's verdict on an issue past dispatch whose lease field is empty goes up and takes no lease", async () => {
+  try {
+    for (const status of ["awaiting_release", "closed"]) {
+      Object.assign(ISSUE, { status, workState: null, sessionContext: {} });
+      const [before, writes] = [posted(), leaseWrites()];
+      const run = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+        "--criterion", "1", "--verdict", "pass");
+      assert.equal(run.status, 0, `${status}: criterion 1: the judge's verdict should have gone up:\n${run.stdout}${run.stderr}`);
+      assert.equal(posted() - before, 1, `${status}: criterion 1: one verdict comment posted`);
+      assert.equal(parseAll(state.comments[UUID].at(-1).body)[0].fields.judge, JUDGE,
+        `${status}: the Judge line reads the id the judge set`);
+      assert.equal(leaseWrites(), writes, `${status}: criterion 1: no field write and no status move reached the tracker`);
+      assert.deepEqual(ISSUE.sessionContext, {}, `${status}: criterion 1: the field is left empty`);
+      assert.match(run.stderr, new RegExp(`this one went up under ${JUDGE}, read from FORGE_SESSION_ID`, "u"),
+        `${status}: and under which id the verdict went:\n${run.stderr}`);
+      const inherited = await asInherited("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+        "--criterion", "1", "--verdict", "pass");
+      assert.equal(inherited.status, 1, inherited.stdout);
+      assert.match(inherited.stderr, /This call holds the-wave-id, read from CLAUDE_CODE_SESSION_ID/u,
+        `${status}: criterion 2: an id the caller did not set is refused as past a lease:\n${inherited.stderr}`);
+      assert.match(inherited.stderr, /FORGE_SESSION_ID=<an id of its own> forge record verdict ISS-7 --commit/u,
+        `${status}: criterion 2: with the one command that clears it`);
+      const beside = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+        "--criterion", "1", "--verdict", "pass", "--also", "decision", "--none", "nothing");
+      assert.equal(beside.status, 1, beside.stdout);
+      assert.match(beside.stderr, new RegExp(`ISS-7 is at \`${status}\`, past the statuses a run is dispatched at, `
+        + `and its lease field holds no lease[^]*forge claim ISS-7 --unheld`, "u"),
+      `${status}: criterion 3: a verdict riding another kind meets the empty field's refusal:\n${beside.stderr}`);
+      const flagged = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+        "--criterion", "1", "--verdict", "pass", "--next", "the dispatcher takes it back");
+      assert.match(flagged.stderr, new RegExp(`ISS-7's lease field holds no lease at \`${status}\`, so this verdict is a judge's write and takes no lease, and --next writes onto the lease`, "u"),
+        `${status}: a run flag is refused as past a lease:\n${flagged.stderr}`);
+      assert.equal(posted() - before, 1, `${status}: and no refused write posted anything`);
+      assert.deepEqual(ISSUE.sessionContext, {}, `${status}: nor touched the field`);
+    }
+    Object.assign(ISSUE, { status: "in_progress", workState: { step: "test" }, sessionContext: {} });
+    const earns = await asJudge("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+      "--criterion", "1", "--verdict", "pass", "--criterion", "2", "--verdict", "pass");
+    assert.equal(earns.status, 0, earns.stderr);
+    assert.deepEqual([ISSUE.status, ISSUE.workState?.step, ISSUE.sessionContext], ["in_progress", "test", {}],
+      "a verdict that earns the next status moves none on an empty field either");
+    assert.match(earns.stderr, /ISS-7's record now earns in_progress:release[^]*\n {2}forge claim ISS-7 --unheld && forge advance ISS-7/u,
+      `and names the claim that takes the move:\n${earns.stderr}`);
+    Object.assign(ISSUE, { status: "awaiting_release", workState: null, sessionContext: {} });
+    const owed = await asJudge("advance", "ISS-7", "--owed");
+    assert.match(owed.stdout, new RegExp(`A verdict from this call is a judge's write: ISS-7's lease field holds no lease, `
+      + `and \`forge record verdict\` posts under ${JUDGE} without taking one`, "u"), `the owed read forecasts it:\n${owed.stdout}${owed.stderr}`);
+    const refused = await asInherited("advance", "ISS-7", "--owed");
+    assert.match(refused.stdout, /A verdict from this call would be refused: ISS-7's lease field holds no lease, and this call holds the-wave-id/u,
+      `and forecasts the refusal:\n${refused.stdout}${refused.stderr}`);
+  } finally {
+    Object.assign(ISSUE, { status: "in_progress", workState: { step: "test" }, sessionContext: { lease: structuredClone(LEASE) } });
+  }
+});

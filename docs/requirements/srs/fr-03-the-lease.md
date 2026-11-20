@@ -63,11 +63,11 @@ next write and the next claim take it where an empty one is refused.
   it for the duration a write with no work under it is owed, SHALL record on the lease that no work
   followed it, SHALL name that take in the claim history under a word no other claim writes, and
   SHALL tell the caller that the write took it and will give it back.
-- **AC-03-1-5** · Rev: 2 · Proof: plugin/test/flow/renew.test.mjs "a write finding no lease past the dispatch statuses is refused in the words the claim itself would have used"
+- **AC-03-1-5** · Rev: 3 · Proof: plugin/test/flow/renew.test.mjs "a write finding no lease past the dispatch statuses is refused in the words the claim itself would have used"
   IF a payload is written to an issue whose lease field holds no lease and no record that one was
-  given back, and the issue stands past the statuses a run is dispatched at, THEN the CLI SHALL
-  refuse the write and SHALL name the claim that takes an issue no run is on, rather than one that
-  is itself refused there.
+  given back, and the issue stands past the statuses a run is dispatched at, and the write is not a
+  verdict the CLI posts as a judge's write, THEN the CLI SHALL refuse the write and SHALL name the
+  claim that takes an issue no run is on, rather than one that is itself refused there.
 - **AC-03-1-6** · Rev: 1 · Proof: plugin/test/flow/renew.test.mjs "the lease a write took for itself is given back once the write has landed, and the claim history is unchanged"
   WHEN a write that took the lease for itself has landed THEN the CLI SHALL give that lease back
   before the call ends, SHALL say on the record that it was given back rather than taken over, and
@@ -223,6 +223,13 @@ a release started standing under that release.
   that run finished, THEN the CLI SHALL let the claiming run take the lease whatever the status,
   SHALL record the handoff as a dispatch's, and SHALL say which of those read the earlier run as
   finished.
+- **AC-03-2-20** · Rev: 1 · Proof: plugin/test/flow/lease/judged-write.test.mjs "a judge's verdict on an issue past dispatch whose lease field is empty goes up and takes no lease"
+  IF a verdict is sent alone, under an id the caller set for itself, with no flag that writes onto
+  the lease, to an issue whose lease field holds no lease and no record that one was given back, and
+  that issue stands past the statuses a run is dispatched at, THEN the CLI SHALL post the verdict as
+  a judge's write under the caller's id, SHALL leave the field holding no lease, SHALL move no
+  status, and SHALL name the claim that takes an issue no run is on as the route to the move the
+  verdict earned.
 
 ### UC-03-3 — Reclaim what a dead run left
 

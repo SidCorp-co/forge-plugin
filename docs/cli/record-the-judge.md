@@ -12,6 +12,13 @@ field holding that lease is left byte for byte as it was. Nothing is renewed or 
 moves, because a status is a write the lease covers: the move the verdict earns is named for the holder to make. A verdict riding
 beside another kind is that kind's write, and meets that kind's refusal.
 
+**An empty field past the dispatch statuses stops it no more than another run's lease.** Every
+other write there is refused until a claim says no run is on it (`--unheld`), which a judge may not
+make, and a judge reading an issue after its landing met exactly that field (ISS-118). So the
+verdict goes up taking no lease, and the move it earns is named for whoever takes the issue. Where the field records that its lease was given back, or the
+issue stands where a run is dispatched, the verdict is an ordinary write and takes a lease as any
+write there does.
+
 **The id has to be one the caller chose**, because a verdict under an id handed down from the
 dispatching session, or kept by the machine across sessions, cannot say which run judged. That
 condition does not tell a builder under a new id from a judge it dispatched, which share a process;
