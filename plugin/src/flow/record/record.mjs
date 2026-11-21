@@ -10,6 +10,7 @@ import { NO_LONGER_OWES, SIDE } from "../earned/park-status.mjs";
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundTaught, criteriaLines, noteFrom } from "./fields.mjs";
 import { CARRIES, CARRIES_DEPLOYMENT, SHAPES, criterionNumber, handleOf, unwrap } from "../machine.mjs";
+import { namesOwnIdentity } from "../machine/identity.mjs";
 import { parseAll } from "./page.mjs";
 import { recordFieldRefusal, renderedWithin } from "../../tracker/comment-cap.mjs";
 import { mergedPrepared } from "./merged.mjs";
@@ -49,7 +50,7 @@ import { landingOf } from "../landing/checkpoint.mjs";
 import { LANDED, recordLanded } from "./landed/by-hand.mjs";
 import { REVIEW_ROUTE_FLAG, recordReviewRoute } from "./review/route.mjs";
 import { coreClasses } from "../earned/core-verdicts.mjs";
-import { namesBoth, verdictDoorPrepared } from "./verdict/door.mjs";
+import { verdictDoorPrepared } from "./verdict/door.mjs";
 import { owesRuntime } from "../qa/verdicts.mjs";
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
@@ -226,14 +227,13 @@ const landingFilled = (kind, got, issue, say) => {
   say(`--landing ${marked}, from the merged mark's landing.`);
 };
 
-export const fromRecord = (kind, got, { comments, names, cut = null, issue = null }, say = console.error) => {
+export const fromRecord = (kind, got, { comments, names, cut = null, issue = null, runtimeAlone = true }, say = console.error) => {
   const shape = SHAPES[kind];
   const commit = shape.fields.find((one) => one.commit);
   const identities = shape.fields.some((one) => one.landing);
   if (identities && landsOutsideGit(issue)) landingFilled(kind, got, issue, say);
   else if (identities && got.landing !== undefined) shapeRefused(kind, "landing", false);
-  // cm:guard a --release verdict names the shipped version as its one identity, so no commit is read in beside it
-  if (commit && got.commit === undefined && got.release === undefined && !(identities && landsOutsideGit(issue))) {
+  if (commit && got.commit === undefined && !namesOwnIdentity(got, runtimeAlone) && !(identities && landsOutsideGit(issue))) {
     const marked = markedCommit({ issue, comments });
     if (!marked && cut) refuse(BEHIND(kind, "commit", cut));
     if (!marked) {
@@ -425,12 +425,14 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
     console.error(line);
   };
   declinedChecked(kind, reference, blocks, { comments, cut });
+  const owes = kind === "verdict" && blocks.some((got) => got.runtime !== undefined)
+    && owesRuntime(await releasePolicy(), body, landingOf(body?.[SESSION]));
   for (const got of blocks) {
     /* `held` and never `names`: a refusal reports what the issue already carries, and this call's
        own pending upload is not that until the whole call clears — which the refusal is the proof
        it did not (ISS-1935). `evidenceProblem` below is the one reader that legitimately wants the
        fuller set, since it validates this call's own citations against what will exist once it lands. */
-    if (asks) fromRecord(kind, got, { comments, names: held, cut, issue: body }, say);
+    if (asks) fromRecord(kind, got, { comments, names: held, cut, issue: body, runtimeAlone: !owes }, say);
     checked(kind, got);
     landedChecked(kind, got, body);
     judgedTreeChecked(kind, got);
@@ -450,8 +452,6 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   /* Verdict blocks routed, `verdict/door.mjs`'s to decide: the probe-carrying ones to the door and the
      rest to the comment, every refusal it owes raised here before a byte is uploaded (ISS-7). */
   const criteriaRead = kind === "verdict" ? await coreClasses(documentId) : null;
-  const owes = kind === "verdict" && blocks.some(namesBoth)
-    && owesRuntime(await releasePolicy(), body, landingOf(body?.[SESSION]));
   const door = kind === "verdict"
     ? verdictDoorPrepared(blocks, { reference, classes: criteriaRead.classes, refused: criteriaRead.refused, owesRuntime: owes })
     : { drafts: [], commentBlocks: blocks };

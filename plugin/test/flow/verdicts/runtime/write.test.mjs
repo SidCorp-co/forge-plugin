@@ -152,3 +152,21 @@ test("where the builder judges, a verdict naming only its commit is written as b
   assert.equal(held.fields.commit, MERGED, said(run));
   assert.equal(held.fields.runtime, undefined, "and it carries no runtime nobody gave");
 });
+
+/* ISS-126: a judge sent for a runtime verdict named --runtime alone, the write filled --commit off the
+   mark beside it, and the door refused its own fill as naming both. Where the write owes no runtime
+   beside the commit, the runtime is the verdict's one identity; a judge typing both is still refused. */
+test("where no runtime is owed beside the commit, --runtime alone is written as the one identity, and both typed are refused", async () => {
+  state.config.pipelineConfig = BUILDER_JUDGES;
+  const from = state.comments["runtime-uuid"].length;
+  const alone = ["record", "verdict", "ISS-9", "--runtime", DEPLOYED, "--evidence", DEPLOYED, "--verdict", "pass", "--criterion", "1"];
+  const run = await asJudge(...alone);
+  assert.equal(run.status, 0, said(run));
+  assert.doesNotMatch(said(run), /--commit .*from the merged mark/u, said(run));
+  assert.deepEqual(verdictsSince(from).map((one) => [one.fields.runtime, one.fields.commit]), [[DEPLOYED, undefined]]);
+  const calls = state.calls?.length ?? 0;
+  const both = await asJudge(...verdict("--runtime", DEPLOYED, "--evidence", DEPLOYED, "--verdict", "pass", "--criterion", "1"));
+  assert.equal(both.status, 1, said(both));
+  assert.match(said(both), /criterion 1 names both --commit and --runtime/u, said(both));
+  assert.deepEqual(writesSince(calls), [], "nothing reached the tracker");
+});

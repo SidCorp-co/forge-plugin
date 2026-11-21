@@ -6,9 +6,9 @@
 export const JUDGED_COMMIT = { commit: true, judged: true, optional: true, identity: true };
 export const JUDGED_LANDING = { optional: true, landing: true, identity: true };
 
-/* Beside the source and never instead of it: forge-core reads `runtime` before `commit` where a block
-   names both (`verdictPairsIn`), and every reading here of what a verdict judged reads the commit,
-   which the write fills off the mark. Whole, because an abbreviation of what is serving would let a
+/* Beside the source where the write owes both, and alone where it owes no runtime beside the commit:
+   forge-core reads `runtime` before `commit` where a block names both (`verdictPairsIn`), so a commit
+   filled off the mark beside a runtime nobody owes would be dropped unread (ISS-126). Whole, because an abbreviation of what is serving would let a
    verdict taken somewhere else read as standing, which core's write door refuses by the same words. */
 const WHOLE_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/iu;
 export const RUNTIME_TAKES = "the whole id the deployment reports, never a branch head";
@@ -88,5 +88,10 @@ export const verdictIdentityProblem = (got) => {
       + "or --release <version> — not several";
   }
   if (draft || hasContract || hasRelease) return null;
-  return identityProblem(got) ?? runtimeProblem(got.runtime);
+  const runtimeAlone = got.runtime !== undefined && !hasCommitOrLanding;
+  return (runtimeAlone ? null : identityProblem(got)) ?? runtimeProblem(got.runtime);
 };
+
+// cm:why the write reads no commit off the mark beside an identity the judge named, or the door refuses its own fill as naming two (ISS-126); a plain runtime counts only where the write owes none beside the commit
+export const namesOwnIdentity = (got, runtimeAlone) => got.release !== undefined || got.contract !== undefined
+  || (got.runtime !== undefined && (runtimeAlone || draftRuntimeOf(got.runtime) !== null));
