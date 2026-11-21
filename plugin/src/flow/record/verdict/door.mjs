@@ -117,7 +117,7 @@ const doorDraft = (got, probe, run) => {
 
 /** Refused unless `judged/runtime.mjs` owes both: one kept, one silently dropped, and four forge
  *  judges' passes were lost as uncounted runtime verdicts (ISS-1259, ISS-805 before it). */
-export const namesBoth = (got) => got.commit !== undefined && got.runtime !== undefined;
+const namesBoth = (got) => got.commit !== undefined && got.runtime !== undefined;
 
 const BOTH = (number) => `criterion ${number} names both --commit and --runtime, and a verdict counts at one `
   + "identity: the runtime would be kept and the commit dropped. Name only the one your brief's `Verdict kind` "
