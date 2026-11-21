@@ -18,6 +18,9 @@ import { tempRoom } from "../../../../plugin/test/fixtures.mjs";
 const recordOf = (one) =>
   ({ argv: [], paths: [], dirs: [], trees: [], whole: [], spawned: [], blind: [], done: true, ...one });
 
+// cm:why the audit claims a watch before the real `fs.watch` runs (`gates/reads/audit.mjs:watched`), so a box whose inotify instances are spent still proves the claim; only the watch's own working goes untested (debt 93685146)
+const SPENT = `["EMFILE", "ENOSPC"]`;
+
 /* `links` names what this step makes before it reads: `away` out of the claim it declares, `into`
    back inside it from outside, `ring` a pair that lands nowhere; `none` makes nothing. `verb` is
    what it then does with the subject. `probe` asks twice — the ring and a name below it, where the
@@ -33,7 +36,7 @@ const DOES = {
   read: () => readFileSync(one),
   walk: () => readdirSync(one, { recursive: true }),
   copy: () => cpSync(one, "plugin/src/taken", { recursive: true }),
-  watch: () => watch(one).close(),
+  watch: () => { try { watch(one).close(); } catch (error) { if (!${SPENT}.includes(error.code)) throw error; } },
   glob: () => globSync(one + "/*"),
   probe: () => { if (existsSync(one) || existsSync(one + "/below")) process.exit(3); },
   trees: () => {

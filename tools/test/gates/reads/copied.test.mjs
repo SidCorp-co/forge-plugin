@@ -52,6 +52,9 @@ const audited = ({ root, out }, script) => {
 const COPY = (from, to) => [`import { cpSync } from "node:fs";`,
   `cpSync(${JSON.stringify(from)}, ${JSON.stringify(to)}, { recursive: true });`].join("\n");
 
+// cm:why the audit claims a watch before the real `fs.watch` runs (`gates/reads/audit.mjs:watched`), so a box whose inotify instances are spent still proves the claim; only the watch's own working goes untested (debt 93685146)
+const WATCHED = (call) => `try { ${call} } catch (error) { if (!["EMFILE", "ENOSPC"].includes(error.code)) throw error; }`;
+
 test("a copy records its source as a claim on the content below it, and no blindness", () => {
   const where = room({ "plugin/src/one.mjs": "one\n" });
   try {
@@ -123,7 +126,7 @@ test("a watch on a file claims that file's content, and one on a directory every
   try {
     const one = audited(where, [`import { watch, watchFile, unwatchFile } from "node:fs";`,
       `watchFile("plugin/src/one.mjs", () => {});`, `unwatchFile("plugin/src/one.mjs");`,
-      `watch("plugin/src").close();`].join("\n"));
+      WATCHED(`watch("plugin/src").close();`)].join("\n"));
     assert.ok(one.paths.includes("plugin/src/one.mjs"), one.paths.join(" "));
     assert.deepEqual(one.whole, ["plugin/src"]);
     assert.deepEqual(one.blind, []);
@@ -150,7 +153,7 @@ test("a watch on a link claims the path that link lands on, and blinds nothing",
   const where = room({ "plugin/src/one.mjs": "one\n" });
   try {
     symlinkSync("src/one.mjs", join(where.root, "plugin", "aliased.mjs"));
-    const one = audited(where, [`import { watch } from "node:fs";`, `watch("plugin/aliased.mjs").close();`].join("\n"));
+    const one = audited(where, [`import { watch } from "node:fs";`, WATCHED(`watch("plugin/aliased.mjs").close();`)].join("\n"));
     assert.ok(one.paths.includes("plugin/src/one.mjs"), one.paths.join(" "));
     assert.deepEqual(one.blind, []);
     assert.deepEqual(one.whole, [], "it landed on a file, so the claim is that file and not a walk");
@@ -194,7 +197,7 @@ test("a copy or a watch reaching into this tree through an outside link is claim
     assert.deepEqual(one.blind, []);
     rmSync(where.out, { recursive: true, force: true });
     const two = audited(where, [`import { watch } from "node:fs";`,
-      `watch(${JSON.stringify(join(alias, "src", "one.mjs"))}).close();`].join("\n"));
+      WATCHED(`watch(${JSON.stringify(join(alias, "src", "one.mjs"))}).close();`)].join("\n"));
     assert.ok(two.paths.includes("plugin/src/one.mjs"), two.paths.join(" "));
     assert.deepEqual(two.blind, []);
   } finally {
@@ -238,7 +241,7 @@ test("a copy, a watch and a glob of a name below a ring of links each blind and 
     const calls = [
       ["cpSync", CAUGHT("cpSync",
         `cpSync("plugin/ring/below", ${JSON.stringify(where.dst)}, { recursive: true });`)],
-      ["watch", CAUGHT("watch", `watch("plugin/ring/below").close();`)],
+      ["watch", CAUGHT("watch", WATCHED(`watch("plugin/ring/below").close();`))],
       ["globSync", CAUGHT("globSync", `globSync("plugin/ring/below/*");`)],
     ];
     for (const [named, script] of calls) {
