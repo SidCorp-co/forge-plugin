@@ -38,10 +38,16 @@ const homeOf = (line, ref) => {
 };
 
 export const criteriaLines = (text, ref = "<ref>") => {
-  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
   const out = [];
-  for (const line of lines) {
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
     const match = NUMBERED.exec(line);
+    // cm:why core accepts a criterion running over several lines and its `renderCriteriaText` indents the later ones, serving that text wherever the stored one does not parse (ISS-127, forge ISS-1378)
+    if (!match && out.length && /^\s/u.test(raw)) {
+      out.at(-1).text = `${out.at(-1).text} ${line}`;
+      continue;
+    }
     if (!match) refuse(`Every criterion is a numbered line, \`N. outcome\`; this one is not:\n  ${line}${homeOf(line, ref)}`);
     const number = Number(match[1]);
     if (out.some((one) => one.number === number)) refuse(`Two criteria are numbered ${number}; a verdict names one by its number.`);

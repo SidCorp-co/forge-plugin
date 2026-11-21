@@ -2426,8 +2426,8 @@
       "digest": "943a27d788257fed59b0c16fbb9b79294bf14e704f662317879e715136adb557"
     },
     "UC-04-5": {
-      "rev": 3,
-      "digest": "f093e5489e579db0511fd726f963fc98232e0708f87eb5b2cfcbf408ba4ff994"
+      "rev": 4,
+      "digest": "9a4bcb54e4e814cbe5d8cff70d056971577e982fa6528cd7f9f228533fb52707"
     },
     "AC-04-5-1": {
       "rev": 1,
@@ -2476,6 +2476,10 @@
     "AC-04-5-12": {
       "rev": 1,
       "digest": "833e79f44899f077b64429dab53b9d25e20b0a8df17dec9826e26e039ca5e1b2"
+    },
+    "AC-04-5-13": {
+      "rev": 1,
+      "digest": "fa727e28e7451a2fe43861a33752cba69b650ea326e08a011daf19dfd07f3bd5"
     },
     "UC-04-6": {
       "rev": 1,

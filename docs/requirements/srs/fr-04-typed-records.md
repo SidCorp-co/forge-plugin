@@ -152,9 +152,10 @@ after approval is refused without one, so criteria cannot be relaxed to fit what
 
 ### UC-04-5 — The criteria are numbered lines, and a line carrying two outcomes is taught
 
-Rev: 3 · Actors: agent · Enforces: BR-01
+Rev: 4 · Actors: agent · Enforces: BR-01
 
-A criterion is a line opening with its number, which is what a verdict names. A line carrying two
+A criterion is a line opening with its number, which is what a verdict names, and it may run on over
+indented lines beneath it, the shape the tracker serves a criterion of several lines in. A line carrying two
 outcomes reads as two criteria, because a verdict judges one outcome, and the write names each half
 and how to split it without holding the write: the shape is a way of working the plugin teaches, not
 input the tracker refuses (ISS-109). What is named is an outcome on each side of the coordinator and
@@ -185,6 +186,8 @@ teaching comes before the consult the write asks for, or the round it saves is t
   WHERE a criterion names the gate's own behaviour, or the suite of one file, as its outcome, the CLI SHALL write it.
 - **AC-04-5-12** · Rev: 1 · Proof: plugin/test/flow/record/criteria/gate-passing.test.mjs "where the project declares no gate, its command passing is not read as the gate"
   WHERE the project declares no gate command, the CLI SHALL read no other command passing as the gate passing.
+- **AC-04-5-13** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "criteria are numbered lines, and a line carrying two outcomes is taught with the halves, not refused"
+  WHEN criteria are read THEN an indented line following a numbered criterion SHALL be read as the rest of that criterion, and an unindented line that is not numbered SHALL be refused.
 
 ### UC-04-6 — A report is assembled, never remembered
 

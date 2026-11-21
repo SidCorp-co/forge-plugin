@@ -144,6 +144,11 @@ test("criteria are numbered lines, and a line carrying two outcomes is taught wi
   assert.throws(() => criteriaLines("The list is sorted.\n"), /numbered line/u);
   assert.throws(() => criteriaLines("\n"), /No criteria/u);
   assert.throws(() => criteriaLines("1. A.\n1. B.\n"), /Two criteria are numbered 1/u);
+  /* ISS-127: core's `renderCriteriaText` indents a criterion's later lines, and serves that text where the stored one does not parse. */
+  assert.deepEqual(criteriaLines("1. The list is sorted\n   by name.\n2. The export\n\tholds every row.\n"),
+    [{ number: 1, text: "The list is sorted by name." }, { number: 2, text: "The export holds every row." }]);
+  assert.throws(() => criteriaLines("  by name.\n1. The list is sorted.\n"), /numbered line[^]*by name\./u);
+  assert.throws(() => criteriaLines("1. The list is sorted\nby name.\n"), /numbered line[^]*by name\./u);
 });
 
 /* The kind whose payload is a bare path: the flag went to `open()` and the run ended on an fs error
