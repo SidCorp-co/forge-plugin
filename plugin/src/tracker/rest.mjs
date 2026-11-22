@@ -105,7 +105,7 @@ const declaredRun = () => {
   return /^\S+$/u.test(run) ? { "x-forge-run": run } : {};
 };
 
-// cm:edge contract -> forge packages/runner pool_jobs::take_one — a job pane starts with FORGE_JOB=<job id>, and core refuses a release act from an attempt that no longer holds its run by the x-forge-job it names (forge ISS-1410)
+// cm:edge contract -> core repo's runner, pool_jobs::take_one — a job pane starts with FORGE_JOB=<job id>, and core refuses a release act from an attempt that no longer holds its run by the x-forge-job it names (forge ISS-1410)
 const declaredJob = () => {
   const job = String(process.env.FORGE_JOB ?? "").trim();
   return /^\S+$/u.test(job) ? { "x-forge-job": job } : {};
