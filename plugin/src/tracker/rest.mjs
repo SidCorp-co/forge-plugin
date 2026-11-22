@@ -105,6 +105,12 @@ const declaredRun = () => {
   return /^\S+$/u.test(run) ? { "x-forge-run": run } : {};
 };
 
+// cm:edge contract -> forge packages/runner pool_jobs::take_one — a job pane starts with FORGE_JOB=<job id>, and core refuses a release act from an attempt that no longer holds its run by the x-forge-job it names (forge ISS-1410)
+const declaredJob = () => {
+  const job = String(process.env.FORGE_JOB ?? "").trim();
+  return /^\S+$/u.test(job) ? { "x-forge-job": job } : {};
+};
+
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
 const MANIFEST = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
 
@@ -122,7 +128,7 @@ const versioned = () => {
 const authorized = (json) => {
   const { token } = settings();
   return {
-    Authorization: token, ...versioned(), ...declaredRun(), ...(json ? { "Content-Type": "application/json" } : {}),
+    Authorization: token, ...versioned(), ...declaredRun(), ...declaredJob(), ...(json ? { "Content-Type": "application/json" } : {}),
   };
 };
 

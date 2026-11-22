@@ -491,3 +491,17 @@ test("a read made under FORGE_RUN names that run on every request, and one made 
   assert.equal(bare.status, 0, bare.stderr);
   assert.deepEqual([...new Set(state.calls.map((one) => one.run))], [null]);
 });
+
+/* A job pane starts with FORGE_JOB naming its job, and core refuses a release act from an attempt that
+   no longer holds its run by the x-forge-job it names (forge ISS-1410). */
+test("a call made under FORGE_JOB names that job on every request, and one made without it names none", async () => {
+  state.calls = [];
+  const named = await ranAsync(FORGE, ["knowledge", "list"], { ...env, FORGE_JOB: "job-26cf" });
+  assert.equal(named.status, 0, named.stderr);
+  assert.ok(state.calls.length, "nothing reached the tracker");
+  assert.deepEqual([...new Set(state.calls.map((one) => one.job))], ["job-26cf"]);
+  state.calls = [];
+  const bare = await ranAsync(FORGE, ["knowledge", "list"], { ...env, FORGE_JOB: "" });
+  assert.equal(bare.status, 0, bare.stderr);
+  assert.deepEqual([...new Set(state.calls.map((one) => one.job))], [null]);
+});

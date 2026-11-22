@@ -574,6 +574,7 @@ export const fakeTracker = async (state) => {
       sent,
       slug: SLUGS.get(url.pathname.split("/")[3]) ?? null,
       run: request.headers["x-forge-run"] ?? null,
+      job: request.headers["x-forge-job"] ?? null,
       plugin: request.headers["x-forge-plugin"] ?? null,
     };
     mine.call = pending;
