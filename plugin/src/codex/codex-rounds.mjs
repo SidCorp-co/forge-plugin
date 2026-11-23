@@ -16,6 +16,9 @@ const CLOSING = "No further tool calls will be served. Answer now, and say what 
 const REOPENED = "More tool calls are available after all. Carry on from what you have already read, "
   + "and check what you said you could not.";
 
+const EARLIER = "[first attempt, carried on below]";
+const CONTINUED = "[continuation]";
+
 const exhausted = (calls) => `spent all ${calls} call(s) reading and never answered.`;
 
 export const rounds = async (values, model, opening, scope, onDelta, ask = askApi, held = {}) => {
@@ -100,9 +103,12 @@ export const reviewed = async (values, model, opening, scope, onDelta, ask = ask
   const quiet = () => {};
   /* The reading the first attempt paid for is what the rest of the budget was wanted for, so it carries on
      inside that conversation: a second one bought the same ceiling for the calls already spent plus it. */
-  const climb = async (from) => {
+  const climb = async (from, earlier = "") => {
+    const lead = earlier.trim() ? `${EARLIER}\n${earlier.trim()}\n\n${CONTINUED}\n` : "";
+    if (lead) onDelta(lead);
     const rest = await rounds(values, model, opening, scope, onDelta, ask, { ...held, cap: ceiling, from });
-    return { ...rest, attempt: 2, budget: ceiling, retriedFrom: budget, streamed: true };
+    /* cm:why `text` is what is shown and logged, and the continuation refers to findings only the first attempt states; `last` is the continuation alone, which is what says whether the review finished. */
+    return { ...rest, text: `${lead}${rest.text}`, last: rest.text, attempt: 2, budget: ceiling, retriedFrom: budget, streamed: true };
   };
   let first;
   try {
@@ -118,7 +124,7 @@ export const reviewed = async (values, model, opening, scope, onDelta, ask = ask
   if (!incompleteIn(first.text)) return { ...first, attempt: 1, budget, streamed: false };
   console.error(`codex: the reply says it could not check something inside ${budget} call(s); `
     + `carrying that attempt on to ${ceiling} before showing it.`);
-  return climb(first.carried);
+  return climb(first.carried, first.text);
 };
 
 const detail = (input = {}) => input.path ?? input.key ?? input.id ?? (input.pattern ? `/${input.pattern}/` : "");

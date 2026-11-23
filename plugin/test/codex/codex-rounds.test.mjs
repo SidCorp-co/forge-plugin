@@ -32,8 +32,10 @@ test("an unfinished review is carried on to the ceiling before a word of it is s
   assert.equal(held.attempt, 2, "the first attempt did not finish reading");
   assert.equal(held.budget, 3, "the second ran at the ceiling");
   assert.equal(held.retriedFrom, 2);
-  assert.equal(held.text, "CODEX: 0 findings");
-  assert.deepEqual(shown, ["CODEX: 0 findings"], "nothing of the unfinished attempt reached the caller");
+  assert.equal(held.last, "CODEX: 0 findings", "the continuation alone says whether the review finished");
+  assert.match(held.text, /^\[first attempt, carried on below\]\nI could not verify the caller\.\n\n\[continuation\]\nCODEX: 0 findings$/u,
+    "the first attempt's reply is labelled and kept ahead of the continuation");
+  assert.equal(shown.join(""), held.text, "what the caller was shown is what the row will hold");
   assert.equal(held.usage.input_tokens, 20, "both attempts were billed, so both are on the row");
 });
 

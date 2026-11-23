@@ -434,7 +434,7 @@ const consult = async (given) => {
       budget: held.budget ?? budget,
       ...(held.retriedFrom === undefined ? {} : { retriedFrom: held.retriedFrom }),
       attempt: held.attempt,
-      incomplete: incompleteIn(held.text),
+      incomplete: incompleteIn(held.last ?? held.text),
       ...(recheck ? { newFindings: newFindingsIn(numbered(held.text, rels)) } : {}),
       reply: held.text,
     };
