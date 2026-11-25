@@ -69,9 +69,9 @@ export const OWNER_CATEGORIES = [
     ["mật khẩu", "bí mật", "khóa riêng", "khóa api", "khóa ssh", "khóa truy cập", "khóa ký", "mã truy cập",
       "mã xác thực", "mã bảo mật", "mã otp", "thông tin đăng nhập", "biến môi trường", "tiết lộ", "dán khóa", "dán mã"]),
   category("spend",
-    String.raw`\b(?:money|pay|paid|payment|billing|billed|invoice|purchase|buy|`
+    String.raw`\b(?:money|pay|paid|payment|billing|billed|invoice|purchase|buy|spend|spending|spent|`
       + String.raw`subscription|price|pricing|credit card|dollars?|usd|vnd)\b|\$\s?\d`,
-    ["tiền", "thanh toán", "trả phí", "chi phí", "phí", "mua", "hóa đơn", "gói cước", "thẻ tín dụng", "ngân sách", "vnđ"],
+    ["tiền", "thanh toán", "trả phí", "chi phí", "chi tiêu", "phí", "mua", "hóa đơn", "gói cước", "thẻ tín dụng", "ngân sách", "vnđ"],
     [String.raw`\d[\d.,]*\s*(?:(?:nghìn|ngàn|triệu|tỷ|tỉ|k)\s*)?đồng`]),
   category("a production or outward-facing write",
     words(["production", "prod", "live (?:site|domain|domains|server|servers|users?|traffic|zones?)",
@@ -93,10 +93,11 @@ export const OWNER_CATEGORIES = [
       "split(?:ting)?", "close (?:it|them|the issue)", "park(?:ed|ing)?", "fold (?:it|them) into", "scope"]),
     ["tạo issue", "mở issue", "đóng issue", "nộp issue", "ghi issue", "tách", "gộp", "hoãn", "tồn đọng", "phạm vi", "phiếu"]),
   category("a contract others build against",
-    words(["wire", "protocol", "transport", "sse", "websockets?", "stream(?:s|ing)?", "api", "endpoints?",
+    words(["contracts?",
+      "wire", "protocol", "transport", "sse", "websockets?", "stream(?:s|ing)?", "api", "endpoints?",
       "schema", "(?:wire|data|file|output|payload) formats?", "bin", "binar(?:y|ies)", "subcommands?", "verbs?", "cli", "packages?", "boundar(?:y|ies)",
       "renam(?:e|ed|ing)"]),
-    ["giao thức", "định dạng dữ liệu", "định dạng tệp", "định dạng file", "định dạng đầu ra", "lược đồ", "đổi tên",
+    ["hợp đồng", "giao thức", "định dạng dữ liệu", "định dạng tệp", "định dạng file", "định dạng đầu ra", "lược đồ", "đổi tên",
       "giao diện lập trình", "điểm cuối", "gói", "ranh giới", "lệnh con", "luồng dữ liệu", "nhị phân"]),
 ];
 

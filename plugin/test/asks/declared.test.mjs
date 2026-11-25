@@ -24,6 +24,8 @@ test("a declared question naming any built-in owner category is the owner's, whe
     ["discarding work the owner holds", asked("Which order? [reversible: redo]", ["Keep it", "Discard it"])],
     ["filing or dropping product work", asked("Which order? [reversible: redo]", ["As one", "Split in three"])],
     ["a contract others build against", asked("How should progress reach the browser? [reversible: swap]", ["SSE", "WebSocket"])],
+    ["a contract others build against", asked("The ruling changes a contract others build against. Keep it? [reversible: swap]", ["Keep it", "Change it"])],
+    ["spend", asked("Which plan should we spend on? [reversible: downgrade]", ["Small", "Large"])],
   ];
   for (const [name, question] of cases) {
     assert.deepEqual(namedCategories(question, OWNER_CATEGORIES), [name], question.question);
@@ -65,6 +67,7 @@ test("a declared Vietnamese question naming a built-in owner subject is the owne
     ["discarding work the owner holds", "Huỷ các thay đổi này?"],
     ["filing or dropping product work", "Có nên tách việc này làm ba không?"],
     ["a contract others build against", "Có nên đổi tên lệnh này không?"],
+    ["a contract others build against", "Hợp đồng này đang được adapter xây theo, có nên đổi không?"],
   ];
   for (const [name, text] of cases) {
     const question = asked(`${text} [reversible: làm lại]`, ["Có", "Không"], { header: "Hỏi" });
