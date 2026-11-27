@@ -147,6 +147,14 @@ const clauseAt = (id, prefix, extra) => ({
    clause's own, ends one. */
 const ends = (open, level) => !open || !open.level || level <= open.level;
 
+// cm:why a heading defines an identifier only where it opens the title, after nothing but marks or a preamble ending in a dash or colon (`# SRS §5 — FR-03 — …`); one that names an identifier inside a sentence defines nothing, or a second document explaining why it is no part of FR-03 would define FR-03 twice (ISS-132)
+const definedIn = (text) => {
+  const id = HEADING_ID.exec(text);
+  if (!id) return null;
+  const before = text.slice(0, id.index);
+  return !/[\p{L}\p{N}]/u.test(before) || /[—–:-]\s*$/u.test(before) ? id : null;
+};
+
 const heading = (state, line) => {
   const found = HEADING.exec(line);
   if (!found) return false;
@@ -155,7 +163,7 @@ const heading = (state, line) => {
   const inside = !ends(state.open, level);
   if (!inside) state.open = null;
   state.header = null;
-  const id = HEADING_ID.exec(found[2]);
+  const id = definedIn(found[2]);
   if (!id) {
     if (inside) state.open.body.push(line);
     return true;

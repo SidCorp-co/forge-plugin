@@ -222,6 +222,21 @@ test("an identifier two documents define is ambiguous, and neither answer is giv
   assert.equal(lookup(index, "FR-01").clause, undefined);
 });
 
+test("a heading that names an identifier inside a sentence defines nothing, and a document's own preamble still does", () => {
+  const index = clauseIndex([
+    { file: "srs/fr-03-customers.md", text: "# SRS §5 — FR-03 — Customers\n\n## UC-03-1 — Create a customer\n\nBody.\n" },
+    { file: "srs/fr-20-search.md", text: "# SRS §6 — FR-20 — Search\n\n## 🔸 Why this is an FR of its own, not a UC of FR-03 (D-255)\n\nBody.\n" },
+  ]);
+  assert.deepEqual([...index.duplicates.keys()], [], "a mention in prose is no second definition of FR-03");
+  assert.equal(lookup(index, "UC-03-1").clause.file, "srs/fr-03-customers.md", "so the use case resolves from its one home");
+  assert.equal(lookup(index, "FR-03").clause.file, "srs/fr-03-customers.md");
+  const twice = clauseIndex([
+    { file: "srs/fr-03-customers.md", text: "# SRS §5 — FR-03 — Customers\n" },
+    { file: "srs/fr-03-copy.md", text: "# FR-03 — Customers again\n" },
+  ]);
+  assert.deepEqual(twice.duplicates.get("FR-03"), ["srs/fr-03-customers.md", "srs/fr-03-copy.md"], "a real second definition is still ambiguous");
+});
+
 test("an unknown identifier answers with the nearest ones, and a rule of the tree with what it is", () => {
   const index = tree();
   assert.ok(nearest(index, "FR-02").includes("FR-01"), nearest(index, "FR-02").join(", "));
