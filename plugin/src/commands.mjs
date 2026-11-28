@@ -211,9 +211,9 @@ const NEW_FLAGS = [
   "  --with ISS-45  a `relates` edge to it, or several, comma-separated",
   "  --module M     its primary module, which `forge doctor modules` lists",
   "  --criteria F   numbered `N. outcome` lines, its criteria",
-  "  --new          file it past the duplicate hold and the fold",
+  "  --new          file it past the duplicate hold and the fold, and say which",
   "",
-  "An issue is a technical defect or debt; a change to what users see or expect is Feedback: `forge product-feedback`.",
+  "An issue is a defect or debt; what users see or expect is Feedback: `forge product-feedback`.",
 ].join("\n");
 
 const FEATURE_NOTE = "Note: a feature that changes what users see or expect is Feedback, not an issue an agent "
@@ -347,7 +347,10 @@ const own = {
     const after = absent.length
       ? (await import("./codex/proposed/fields.mjs")).proposeAtFiling({ title, body, kind: category }, absent)
       : null;
-    const filed = await fileAndSay({
+    const noted = category === "feature"
+      ? async (answer) => [...(after ? await after(answer) : []), FEATURE_NOTE]
+      : after;
+    return fileAndSay({
       title,
       body,
       kind: category,
@@ -361,9 +364,7 @@ const own = {
         ? await Promise.all(withKeys.map(async (one) =>
           ({ kind: "relates", blocksId: await documentIdOf(one) })))
         : null,
-    }, { withKeys, after, dropKept });
-    if (category === "feature") console.log(FEATURE_NOTE);
-    return filed;
+    }, { withKeys, after: noted, dropKept });
   },
   /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
      off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */

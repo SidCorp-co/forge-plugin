@@ -32,7 +32,8 @@ const ask = (argv, room) => ranAsync(FORGE, argv, ENV, room);
 test("under feedback.plugin off the verb is nowhere in `forge -h`, and under bugs it is a row", async () => {
   const off = await ask(["-h"], closed);
   assert.equal(off.status, 0, off.stderr);
-  assert.doesNotMatch(off.stdout, /feedback/iu, off.stdout);
+  const plugins = off.stdout.split("\n").filter((line) => !/^ {2}product-feedback /u.test(line)).join("\n").replace("product-feedback|", "");
+  assert.doesNotMatch(plugins, /feedback/iu, off.stdout);
   const on = await ask(["-h"], open);
   assert.equal(on.status, 0, on.stderr);
   assert.match(on.stdout, /^ {2}feedback /mu, "the row a project allowing the channel keeps");

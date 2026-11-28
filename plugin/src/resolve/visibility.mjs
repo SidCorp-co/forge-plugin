@@ -125,7 +125,7 @@ export const VERBS = [
         ...Object.fromEntries(Object.entries(TRACKER_GROUP_SERVED).map(([key, name]) => [key, named(name)])),
       };
     } }],
-  ["release-batch", "[status | readiness | roster | start | method | finish | record | recorded | clear]",
+  ["release-batch", "[status | readiness | roster | start | method --skill S | finish --commit C | record | recorded | clear --reason R]",
     "this project's release: what would refuse one, what waits, a batch run, and the record of one that shipped",
     "forge_release_batch", { group: HARNESS,
       wraps: { active: "`forge release-batch`", state: "`forge release-batch`",

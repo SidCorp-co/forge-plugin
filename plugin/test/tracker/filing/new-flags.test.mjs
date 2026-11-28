@@ -318,7 +318,7 @@ test("`forge new -h` says what a filing with no rank gets, in the one line a fla
   assert.match(run.stdout, /^ {2}--priority P {3}.*unranked and the reply says so$/mu);
   assert.doesNotMatch(run.stdout, /sorts to the\nbottom of the browse verb/u,
     "and the paragraph the document owns is not printed beside it");
-  assert.match(run.stdout, /technical defect or debt[\s\S]*Feedback[\s\S]*forge product-feedback/u,
+  assert.match(run.stdout, /defect or debt[\s\S]*Feedback[\s\S]*forge product-feedback/u,
     "and which lane each kind of finding goes to, naming the verb");
 });
 

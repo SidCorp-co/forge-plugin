@@ -2,7 +2,7 @@ export const NARRATES =
   /```|\bthe (?:function|regex|loop|variable|implementation|call site)\b|\bimplemented in\b|\bunder the hood\b|\binternally\b|\bin `[\w./-]+\.(?:mjs|js|ts)`/iu;
 
 /* A flag since renamed reads exactly like one that works. The CLI's tables are the authority. */
-const FORGE_CALL = /`forge ([a-z]+)((?:\s+(?:--?[\w-]+|<[^`>]*>|[\w.@/-]+))*)`/gu;
+const FORGE_CALL = /`forge ([a-z]+(?:-[a-z]+)*)((?:\s+(?:--?[\w-]+|<[^`>]*>|[\w.@/-]+))*)`/gu;
 const ENV_VAR = /\bFORGE_[A-Z][A-Z_]*\b/gu;
 const flagThen = (gap) => new RegExp(String.raw`(--[\w-]+)(?:${gap}([^\s-][^\s]*))?`, "gu");
 const FLAG_VALUE = flagThen(String.raw`[ \t]+`);
@@ -13,7 +13,7 @@ const PROPOSAL = /^(?:#[^\n]*\n\s*)?\*\*Status: proposal for ((?:`forge [a-z]+`(
 const ARG = String.raw`(?:--?[\w-]+|<[^>\n]*>|\$\{[^}]*\}|\\?"[^"\n]*\\?"|'[^'\n]*'|[\w.@/=,'-]+)`;
 /* One command over two lines of one expression: stopping at the closing quote left the flags past the join judged by nothing, which reads exactly like a form that has none (ISS-700). */
 const JOIN = String.raw`(?:[ \t]*[\x60"'][ \t]*\r?\n?\s*\+\s*[\x60"'][ \t]*)`;
-const SOURCE_FORM = new RegExp(String.raw`forge ([a-z]+)((?:(?:[ \t]+|${JOIN})${ARG})*)`, "gu");
+const SOURCE_FORM = new RegExp(String.raw`forge ([a-z]+(?:-[a-z]+)*)((?:(?:[ \t]+|${JOIN})${ARG})*)`, "gu");
 const JOINED = new RegExp(JOIN, "gu");
 const QUOTED = /\\?"[^"\n]*\\?"|'[^'\n]*'/gu;
 
