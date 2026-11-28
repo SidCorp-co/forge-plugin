@@ -404,6 +404,8 @@ export const fakeTracker = async (state) => {
     [/^\/api\/projects\/[^/]+\/issues\/standing\/([^/]+)$/u, (q, sent, method, [key]) =>
       answered("forge_issues", { action: "moves", key: decodeURIComponent(key) })],
     [/^\/api\/forge\/feedback$/u, (q, sent) => answered("forge_feedback", { action: "submit", data: sent })],
+    [/^\/api\/projects\/[^/]+\/feedback$/u, (q, sent) =>
+      answered("forge_project_feedback", { action: "submit", data: sent })],
     [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) => (q.get("withModules")
       ? windowOn(q, answered("forge_issues", { action: "attributed", statuses: q.getAll("status"),
         statusNot: q.getAll("statusNot"), module: q.get("module") }))

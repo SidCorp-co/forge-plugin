@@ -130,6 +130,35 @@ test("the category the filing names is what the body is read against, and what t
   assert.doesNotMatch(run.stdout, /"kind"/u, "nor anywhere in the reply");
   assert.doesNotMatch(run.stdout, /"category"/u,
     "which the reply does not echo either, the caller having just typed it");
+  assert.doesNotMatch(run.stdout, /product-feedback/u, "and a bug is no Feedback, so no note names that lane");
+});
+
+test("a feature is filed as asked and the note names the Feedback lane after it; nothing is refused", async () => {
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", TITLE, "--category", "feature");
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(state.calls.some((one) => one.args.action === "create"), "the issue was filed");
+  assert.match(run.stdout, /Feedback, not an issue an agent files[\s\S]*forge product-feedback/u);
+});
+
+test("`forge product-feedback` files the project's Feedback, and refuses a missing or doubled target unsent", async () => {
+  const sent = () => state.calls.filter((one) => one.name === "forge_project_feedback");
+  const base = ["product-feedback", bodyAt("The screen hides the total.\n"), "--title", "total is hidden", "--kind", "idea"];
+  state.calls = [];
+  const none = await ranAsync(FORGE, base, ENV);
+  assert.equal(none.status, 1);
+  assert.match(none.stderr, /exactly one target[\s\S]*names none/u);
+  const two = await ranAsync(FORGE, [...base, "--requirement", "REQ-1", "--issue", "ISS-45"], ENV);
+  assert.equal(two.status, 1);
+  assert.match(two.stderr, /names --requirement and --issue/u);
+  const odd = await ranAsync(FORGE, [...base.slice(0, -1), "feature", "--screen", "cart"], ENV);
+  assert.match(odd.stderr, /--kind, one of idea, bug, change_request, question/u);
+  assert.deepEqual(sent(), [], "and nothing was sent for any of them");
+  const run = await ranAsync(FORGE, [...base, "--screen", "cart", "--severity", "low"], ENV);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(sent()[0].path, /^\/api\/projects\/[^/]+\/feedback$/u);
+  assert.deepEqual(sent()[0].args.data,
+    { kind: "idea", title: "total is hidden", body: "The screen hides the total.\n", severity: "low", screen: "cart" });
 });
 
 /* The ship step's own kind, filed by nobody: the body it generates is a feature's shape and the
@@ -289,6 +318,8 @@ test("`forge new -h` says what a filing with no rank gets, in the one line a fla
   assert.match(run.stdout, /^ {2}--priority P {3}.*unranked and the reply says so$/mu);
   assert.doesNotMatch(run.stdout, /sorts to the\nbottom of the browse verb/u,
     "and the paragraph the document owns is not printed beside it");
+  assert.match(run.stdout, /technical defect or debt[\s\S]*Feedback[\s\S]*forge product-feedback/u,
+    "and which lane each kind of finding goes to, naming the verb");
 });
 
 test("`forge new -h` lists every kind with the sections it requires", async () => {

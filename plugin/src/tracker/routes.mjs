@@ -193,6 +193,13 @@ export const ROUTES = {
     requests: (args) => one("/forge/feedback", "POST", args.data),
     sends: ["data"],
   },
+  // cm:why a project's own Feedback lane (`POST /projects/<id>/feedback`), beside the Forge-home door above: `forge product-feedback` files a finding about the product, which is not an issue
+  "forge_project_feedback.submit": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/feedback`, "POST", args.data),
+    sends: ["data"],
+  },
   "forge_issues.mark_merged": {
     writes: true,
     requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "POST",

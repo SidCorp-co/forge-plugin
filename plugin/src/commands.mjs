@@ -204,15 +204,21 @@ const criteriaFiled = async (path) => {
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
   "  --title T      what is true once this is fixed, one line",
-  `  --category C   ${KIND_NAMES.join(" | ")} — the shape the body is read against`,
-  "  --status S     the status to file at; the tracker's own default absent one",
+  `  --category C   ${KIND_NAMES.join(" | ")}`,
+  "  --status S     the status to file at",
   "  --priority P   the tracker's own set; absent, the filing is unranked and the reply says so",
-  `  --complexity C ${COMPLEXITY_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
-  "  --with ISS-45  a `relates` edge to that issue, or to several, comma-separated",
+  `  --complexity C ${COMPLEXITY_NAMES.join(" | ")} — the tracker's field, the rung's one source`,
+  "  --with ISS-45  a `relates` edge to it, or several, comma-separated",
   "  --module M     its primary module, which `forge doctor modules` lists",
-  "  --criteria F   a file of numbered lines `N. outcome`, its criteria",
-  "  --new          file it past the duplicate hold and the fold, and say which",
+  "  --criteria F   numbered `N. outcome` lines, its criteria",
+  "  --new          file it past the duplicate hold and the fold",
+  "",
+  "An issue is a technical defect or debt; a change to what users see or expect is Feedback: `forge product-feedback`.",
 ].join("\n");
+
+const FEATURE_NOTE = "Note: a feature that changes what users see or expect is Feedback, not an issue an agent "
+  + "files; triage turns it into a requirement and then an issue. This one was filed as asked. Next time: "
+  + "`forge product-feedback <file.md> --title T --kind idea --requirement R` (`forge product-feedback -h`).";
 
 /* The kinds table comes before the goals list: every filing reads the table to pick a category and
    its required sections, and most name no `Serves:` line at all (`none stated` is legal), so a
@@ -341,7 +347,7 @@ const own = {
     const after = absent.length
       ? (await import("./codex/proposed/fields.mjs")).proposeAtFiling({ title, body, kind: category }, absent)
       : null;
-    return fileAndSay({
+    const filed = await fileAndSay({
       title,
       body,
       kind: category,
@@ -356,6 +362,8 @@ const own = {
           ({ kind: "relates", blocksId: await documentIdOf(one) })))
         : null,
     }, { withKeys, after, dropKept });
+    if (category === "feature") console.log(FEATURE_NOTE);
+    return filed;
   },
   /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
      off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */
@@ -518,6 +526,7 @@ export const commands = {
   "release-batch": loads("./tools/release-batch/verb.mjs", "releaseBatch"),
   google: loads("./tools/services/google/google.mjs", "google"),
   feedback: loads("./tools/feedback.mjs", "feedback"),
+  "product-feedback": loads("./tools/product-feedback/verb.mjs", "productFeedback"),
   codex: loads("./codex/codex.mjs", "codex"),
   chatgpt: loads("./tools/services/chatgpt.mjs", "chatgpt"),
   hooks: loads("./hooks/log/hook-log.mjs", "hooks"),

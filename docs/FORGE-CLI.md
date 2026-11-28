@@ -104,6 +104,7 @@ how many topics there may be.
 | [`alike`](cli/alike.md) | Whose judgement a sweep of the open backlog reports by, what the find door's order does not establish, and what a reading shorter than the backlog is owed. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue, not a file, where its destination is held, which kinds the project allows, what no refusal loses. |
 | [`feedback` — core's door](cli/feedback-the-door.md) | Where a note goes when the credential cannot see this plugin's project, and which flags that path refuses. |
+| [`product-feedback`](cli/product-feedback.md) | Why a feature is Feedback and not an agent-filed issue, why `forge new` only notes it, and why the target is checked before the send. |
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why it neither prints nor exits, why a route adds a section rather than joining text, and the two decisions each route makes. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what an unanswered call counts as. |

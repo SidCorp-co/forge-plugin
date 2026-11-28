@@ -250,7 +250,7 @@ const TOOLS = [
   "forge_issues", "forge_uploads", "forge_comments", "forge_knowledge", "forge_memory.search", "forge_find.issues",
   "forge_guide", "forge_project_pm", "forge_config", "forge_projects.list", "forge_projects.create",
   "forge_projects.update", "forge_projects.read", "forge_projects.get", "forge_projects.archive",
-  "forge_projects.unarchive", "forge_coolify", "forge_release_batch", "forge_labels", "forge_questions", "forge_feedback",
+  "forge_projects.unarchive", "forge_coolify", "forge_release_batch", "forge_labels", "forge_questions", "forge_feedback", "forge_project_feedback",
   "forge_issues.criteria", "forge_issues.design", "forge_issues.record_design",
   "forge_issues.verdicts", "forge_issues.review", "forge_install.plugin", "forge_auth.me", "forge_issues.judged_build",
 ];
@@ -269,6 +269,7 @@ const PROBES = [
   ["POST", "/api/issues/u1/verdicts"],
   ["POST", "/api/issues/u1/review"],
   ["POST", "/api/forge/feedback"],
+  ["POST", "/api/projects/p1/feedback"],
   ["POST", "/api/projects/p1/issues"],
   ["DELETE", "/api/issues/u1/dependencies/e1"],
   ["GET", "/api/issues/u1/dependencies"],

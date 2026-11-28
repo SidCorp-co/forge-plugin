@@ -208,6 +208,7 @@ test("an action the verb has not got is a refusal, and a later help word is a va
 const FIELDS_OF = {
   issue: "documentId, edgeId, fields, filters, key, limit, offset",
   new: null,
+  "product-feedback": null,
   comment: "filters",
   claim: null,
   resume: null,
@@ -269,9 +270,9 @@ test("each verb's -h names the fields the tracker takes for the routes that verb
    verb takes one. */
 const NAMES_A_PROJECT = /--project\b|--slug\b|<slug>|projectRef|project[- ]id/iu;
 
-test("no row of the table but project, issue, comment and brief names a project, its slug or its identifier", () => {
+test("no row of the table but project, issue, comment, brief and product-feedback names a project, its slug or its identifier", () => {
   const found = VERBS.filter((row) => NAMES_A_PROJECT.test(spanOf(row) ?? "")).map((row) => row[0]).sort();
-  assert.deepEqual(found, ["brief", "comment", "issue", "project"],
+  assert.deepEqual(found, ["brief", "comment", "issue", "product-feedback", "project"],
     "a verb naming a project takes one from the caller, which the checkout already answered");
   assert.ok(NAMES_A_PROJECT.test(usageOf("project")), "and the one that does still says so");
 });
@@ -391,6 +392,7 @@ const ARGS = {
   "knowledge write": ["slug", "body.md"],
   "knowledge search": ["query"],
   "knowledge delete": ["slug"],
+  "product-feedback": ["body.md"],
   "cloudflare zone": ["zone-id"],
   "cloudflare dns": ["zone-id"],
   "cloudflare purge": ["zone-id"],
